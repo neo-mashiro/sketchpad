@@ -27,7 +27,7 @@ sudo apt-get install libglew1.5-dev libglm-dev
 7. Under "Linker > General", configure the "Additional Library Directories" as `$(SolutionDir)dependencies\freeGLUT\lib;$(SolutionDir)dependencies\GLFW\lib-vc2019;$(SolutionDir)dependencies\GLEW\lib\Release\Win32`.
 8. Under "Linker > Input", add `glfw3.lib;glew32s.lib` to the "Additional Dependencies".
 9. Under "Linker > Advanced", configure the "Entry Point" as `mainCRTStartup`.
-10. Copy the corresponding FreeGLUT DLLs to the `$(SolutionDir)` folder and ship them with the application. Or, copy them to the system folder if that's convenient for you, which is `C:\Windows\SysWOW64` for x64 and `C:\Windows\System32` for x86. For GLFW and GLEW, I'm only using the static libraries.
+10. Copy the corresponding FreeGLUT DLLs to the `$(SolutionDir)` folder, or to the system folder if that's convenient for you, which is `C:\Windows\SysWOW64` for x64 and `C:\Windows\System32` for x86. The DLLs should also be shipped with the application (be placed in the system folder or where the executable is).
 
 
 
