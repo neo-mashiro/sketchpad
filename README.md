@@ -1,9 +1,10 @@
 # OpenGL on Windows
 
-## Dependencies
+## Requirements
 
 - [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/)
-- [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT)(v3.0.0 MSVC Package) or [GLFW](https://en.wikipedia.org/wiki/GLFW)(version 3.3.2) for finer control
+- [Premake5](https://github.com/premake/premake-core)
+- [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package) or [GLFW](https://en.wikipedia.org/wiki/GLFW)(version 3.3.2) for finer control
 - [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library)
 
 For setup on Mac or Linux, may use the cross-platform IDE **Clion** and install libraries from the terminal.
@@ -28,6 +29,7 @@ sudo apt-get install libglew1.5-dev libglm-dev
 8. Under "Linker > Input", add `glfw3.lib;glew32s.lib` to the "Additional Dependencies".
 9. Under "Linker > Advanced", configure the "Entry Point" as `mainCRTStartup`.
 10. Copy the corresponding FreeGLUT DLLs to the `$(SolutionDir)` folder, or to the system folder if that's convenient for you, which is `C:\Windows\SysWOW64` for x64 and `C:\Windows\System32` for x86. The DLLs should also be shipped with the application (be placed in the system folder or where the executable is).
+
 
 
 
