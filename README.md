@@ -16,6 +16,12 @@ sudo apt-get install libglew1.5-dev libglm-dev
 ...
 ```
 
+## Build
+
+```bash
+vendor/premake/premake5.exe vs2019
+```
+
 ## Clean Environment Setup
 
 0. Create an empty project in Visual Studio 2019 or later, copy the dependencies folder to your project folder (or simply clone this repository).
