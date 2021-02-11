@@ -12,6 +12,20 @@ Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 ## How to build
 
 - `vendor/premake/premake5.exe vs2019`
+- `[to do] how to selectively build a particular window`
+
+## Recommended Visual Studio Settings
+
+The Lua scripts will handle the workspace/project/build settings for all configurations and platforms for us. Besides, it is recommended to consistently use spaces instead of tabs. In case the tab size of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, 4 spaces indentation would become 8 on Github, and there are too many 8 spaces indentation code on Github...
+
+![tab-settings](res/spaces.png)
+
+![tab-settings](res/SPC.png)
+
+
+## WIP
+
+- use Lua scripting to automate a build framework (build only a single .cpp and a single windowed app each time, exclude other files from build)
 
 ## Reference
 
