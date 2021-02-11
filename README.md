@@ -18,7 +18,7 @@ Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 
 The Lua scripts will handle the workspace/project/build settings for all configurations and platforms for us. Besides, it is recommended to consistently use spaces instead of tabs. In case the tab size of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, 4 spaces indentation would become 8 on Github, and there are too many 8 spaces indentation code on Github...
 
-![tab-settings](res/spaces.png)
+![tab-settings](res/spaces.PNG)
 
 ![tab-settings](res/SPC.png)
 
