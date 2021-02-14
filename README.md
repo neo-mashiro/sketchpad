@@ -5,7 +5,7 @@ Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 ## Requirements
 
 - [Premake5](https://github.com/premake/premake-core)
-- [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/)
+- [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
 - [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library) (version 2.1.0)
 - [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), or [GLFW](https://en.wikipedia.org/wiki/GLFW) (version 3.3.2) for finer control
 
@@ -26,8 +26,10 @@ The Lua scripts will handle the workspace/project/build settings for all configu
 ## WIP
 
 - use Lua scripting to automate a build framework (build only a single .cpp and a single windowed app each time, exclude other files from build)
+- add a pre-build step or use extensions to validate shaders at compile time
 
-## Reference
+## Useful References
 
-- http://docs.gl/
+- [OpenGL API Documentation](http://docs.gl/)
 - [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
+- [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)
