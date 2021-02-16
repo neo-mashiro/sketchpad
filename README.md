@@ -1,4 +1,4 @@
-# OpenGL-Canvas (Windows 10)
+# sketchpad (Windows 10)
 
 Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 
@@ -12,7 +12,6 @@ Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 ## How to build
 
 - `vendor/premake/premake5.exe vs2019`
-- `[to do] how to selectively build a particular window`
 
 ## Recommended Visual Studio Settings
 
@@ -22,11 +21,6 @@ The Lua scripts will handle the workspace/project/build settings for all configu
 
 ![tab-settings](res/SPC.png)
 
-
-## WIP
-
-- use Lua scripting to automate a build framework (build only a single .cpp and a single windowed app each time, exclude other files from build)
-- add a pre-build step or use extensions to validate shaders at compile time
 
 ## Useful References
 
