@@ -30,6 +30,8 @@ The Lua scripts will handle the workspace/project/build settings for all configu
 
 ## Useful References
 
+- [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
 - [OpenGL API Documentation](http://docs.gl/)
+- [OpenGL-Tutorials](https://www.opengl-tutorial.org/)
 - [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
 - [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)

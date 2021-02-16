@@ -1,163 +1,178 @@
-#include <iostream>
+#include <cstdio>
+
 #include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-//#include <stdio.h>
 
-#include <define.h>
+#include "define.h"
+
+Window window{};
+
+GLuint VAO;  // vertex array object
+GLuint VBO;  // vertex buffer object
+GLuint PO;   // program object
 
 
-std::string window_title = "Spiral";
-unsigned int display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
-int window_width = 512;
-int window_height = 512;
-
-
-GLuint CreateShader(GLenum eShaderType, const std::string& strShaderFile) {
-	GLuint shader = glCreateShader(eShaderType);
-	const char* strFileData = strShaderFile.c_str();
-	glShaderSource(shader, 1, &strFileData, NULL);
-
-	glCompileShader(shader);
-
-	GLint status;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-	if (status == GL_FALSE) {
-		GLint infoLogLength;
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-		GLchar* strInfoLog = new GLchar[infoLogLength + 1];
-		glGetShaderInfoLog(shader, infoLogLength, NULL, strInfoLog);
-
-		const char* strShaderType = NULL;
-		switch (eShaderType) {
-			case GL_VERTEX_SHADER: strShaderType = "vertex"; break;
-			case GL_GEOMETRY_SHADER: strShaderType = "geometry"; break;
-			case GL_FRAGMENT_SHADER: strShaderType = "fragment"; break;
-		}
-
-		fprintf(stderr, "Compile failure in %s shader:\n%s\n", strShaderType, strInfoLog);
-		delete[] strInfoLog;
-	}
-
-	return shader;
-}
-
-GLuint CreateProgram(const std::vector<GLuint>& shaderList) {
-	GLuint program = glCreateProgram();
-
-	for (size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-		glAttachShader(program, shaderList[iLoop]);
-
-	glLinkProgram(program);
-
-	GLint status;
-	glGetProgramiv(program, GL_LINK_STATUS, &status);
-	if (status == GL_FALSE) {
-		GLint infoLogLength;
-		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-		GLchar* strInfoLog = new GLchar[infoLogLength + 1];
-		glGetProgramInfoLog(program, infoLogLength, NULL, strInfoLog);
-		fprintf(stderr, "Linker failure: %s\n", strInfoLog);
-		delete[] strInfoLog;
-	}
-
-	for (size_t iLoop = 0; iLoop < shaderList.size(); iLoop++)
-		glDetachShader(program, shaderList[iLoop]);
-
-	return program;
-}
-
-GLuint theProgram;
-
-const std::string strVertexShader(
-	"#version 330\n"
-	"layout(location = 0) in vec4 position;\n"
-	"void main()\n"
-	"{\n"
-	"   gl_Position = position;\n"
-	"}\n"
-);
-
-const std::string strFragmentShader(
-	"#version 330\n"
-	"out vec4 outputColor;\n"
-	"void main()\n"
-	"{\n"
-	"   outputColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
-	"}\n"
-);
-
-void InitializeProgram() {
-	std::vector<GLuint> shaderList;
-
-	shaderList.push_back(CreateShader(GL_VERTEX_SHADER, strVertexShader));
-	shaderList.push_back(CreateShader(GL_FRAGMENT_SHADER, strFragmentShader));
-
-	theProgram = CreateProgram(shaderList);
-
-	std::for_each(shaderList.begin(), shaderList.end(), glDeleteShader);
-}
-
-const float vertexPositions[] = {
-	0.75f, 0.75f, 0.0f, 1.0f,
-	0.75f, -0.75f, 0.0f, 1.0f,
-	-0.75f, -0.75f, 0.0f, 1.0f,
+const GLfloat vertices[] = {
+    0.75f, 0.75f, 0.0f, 1.0f,
+    0.75f, -0.75f, 0.0f, 1.0f,
+    -0.75f, -0.75f, 0.0f, 1.0f,
 };
 
-GLuint vertex_buffer;
-GLuint vao;
 
+/// <summary>
+/// Given a shader type and file path, compiles the shader file and returns a shader id.
+/// If the path does not exist, deems the shader file optional and returns 0.
+/// </summary>
+GLuint LoadShader(GLenum shader_type, const std::string& shader_file_path) {
+	GLuint shader_id = glCreateShader(shader_type);
+	std::string shader_code;
 
-void InitVertexBuffer() {
-	glGenBuffers(1, &vertex_buffer);
+    std::ifstream file_stream(shader_file_path, std::ios::in);
+    if (file_stream.is_open()) {
+        std::stringstream buffer;
+		buffer << file_stream.rdbuf();
+		shader_code = buffer.str();
+		file_stream.close();
+    }
+    else {
+        return 0;
+    }
 
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertexPositions), vertexPositions, GL_STATIC_DRAW);  // allocate GPU memory and copy data
-	glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
+	printf("Compiling shader file : %s\n", shader_file_path.c_str());
+
+	const char* shader = shader_code.c_str();
+	glShaderSource(shader_id, 1, &shader, NULL);
+	glCompileShader(shader_id);
+
+	GLint status;
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &status);
+
+    if (status == GL_FALSE) {
+        GLint info_log_length;
+        glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+        GLchar* info_log = new GLchar[info_log_length + 1];
+        glGetShaderInfoLog(shader_id, info_log_length, NULL, info_log);
+
+        fprintf(stderr, "Failed to compile shader : %s\n", info_log);
+        delete[] info_log;
+    }
+
+	return shader_id;
 }
 
-//Called after the window and OpenGL are initialized. Called exactly once, before the main loop.
+/// <summary>
+/// Links a vector of shaders together to create a program. Negative shader ids will be discarded.
+/// </summary>
+GLuint LinkShaders(const std::vector<GLuint>& shaders) {
+	printf("Linking shader files ...\n");
+
+	GLuint program_id = glCreateProgram();
+
+    for (auto&& shader : shaders) {
+		if (shader > 0) {
+			glAttachShader(program_id, shader);
+		}
+    }
+
+	glLinkProgram(program_id);
+
+	GLint status;
+	glGetProgramiv(program_id, GL_LINK_STATUS, &status);
+
+	if (status == GL_FALSE) {
+		GLint info_log_length;
+		glGetProgramiv(program_id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+		GLchar* info_log = new GLchar[info_log_length + 1];
+		glGetProgramInfoLog(program_id, info_log_length, NULL, info_log);
+
+		fprintf(stderr, "Failed to link shaders : %s\n", info_log);
+		delete[] info_log;
+	}
+
+    for (auto&& shader : shaders) {
+        if (shader > 0) {
+			glDetachShader(program_id, shader);
+        }
+    }
+
+	return program_id;
+}
+
+void SetupWindow() {
+	window.title = "Triangle";
+    window.pos_x = glutGet(GLUT_SCREEN_WIDTH) / 2 - 256;
+    window.pos_y = glutGet(GLUT_SCREEN_HEIGHT) / 2 - 256;
+    window.display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
+}
+
 void Init() {
-	InitializeProgram();
-	InitVertexBuffer();
+	// create VAO
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	// create VBO
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
+
+	// compile shaders
+    std::string file_path = __FILE__;
+    std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
+
+    GLuint VS = LoadShader(GL_VERTEX_SHADER, dir + "vertex.glsl");
+	GLuint FS = LoadShader(GL_FRAGMENT_SHADER, dir + "fragment.glsl");
+	GLuint GS = LoadShader(GL_GEOMETRY_SHADER, dir + "geometry.glsl");
+	GLuint CS = LoadShader(GL_COMPUTE_SHADER, dir + "compute.glsl");
+
+	// create PO
+	std::vector<GLuint> shaders { VS, FS, GS, CS };
+    PO = LinkShaders(shaders);
+
+	// clean up
+	std::for_each(shaders.begin(), shaders.end(), glDeleteShader);
 }
 
-//Called to update the display.
-//You should call glutSwapBuffers after all of your rendering to display what you rendered.
-//If you need continuous updates of the screen, call glutPostRedisplay() at the end of the function.
 void Display() {
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(theProgram);
+	glUseProgram(PO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
-	glDisableVertexAttribArray(0);
-	glUseProgram(0);
+    glDisableVertexAttribArray(0);
+    glUseProgram(0);
 
 	glutSwapBuffers();
+	//glutPostRedisplay();  // call this at the end if you need continuous updates of the screen
 }
 
-//Called whenever the window is resized. The new window size is given, in pixels.
-//This is an opportunity to call glViewport or glScissor to keep up with the change in size.
-void Reshape(int w, int h) {
-	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+void Reshape(int width, int height) {
+	glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+	//TODO: keep aspect ratio
 }
 
 void Keyboard(unsigned char key, int x, int y) {
 	switch (key) {
 		case VK_ESCAPE:
+			// add messagebox https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messageboxa
 			glutLeaveMainLoop();
 			return;
 	}
 }
+
+void Mouse(int button, int state, int x, int y) {};
+void Idle(void) {};
+void Motion(int x, int y) {};
+void PassiveMotion(int x, int y) {};

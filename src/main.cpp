@@ -1,19 +1,25 @@
 #include <iostream>
-#include <define.h>
 
-
-int window;
+#include "define.h"
 
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(display_mode);
-    glutInitWindowSize(window_width, window_height);
-    glutInitWindowPosition(glutGet(GLUT_SCREEN_WIDTH) / 4, glutGet(GLUT_SCREEN_HEIGHT) / 4);
+    SetupWindow();
+    glutInitDisplayMode(window.display_mode);
+    glutInitWindowSize(window.width, window.height);
+    glutInitWindowPosition(window.pos_x, window.pos_y);
 
-    window = glutCreateWindow(window_title);
+    window.id = glutCreateWindow(window.title);
 
-    if (glewInit()) {
+    printf("%s, %u, %u", window.title, window.pos_x, window.id);
+
+    if (window.id <= 0) {
+        std::cerr << "Unable to create a window..." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (glewInit() != GLEW_OK) {
         std::cerr << "Unable to initialize GLEW..." << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -29,6 +35,9 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(PassiveMotion);
 
     glutMainLoop();
+
+    glDeleteProgram(PO);
+    glutDestroyWindow(window.id);
 
     return 0;
 }
