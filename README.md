@@ -21,6 +21,7 @@ The Lua scripts will handle the workspace/project/build settings for all configu
 
 ```bash
 git clone https://github.com/neo-mashiro/sketchpad.git
+cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
 
