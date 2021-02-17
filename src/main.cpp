@@ -1,7 +1,4 @@
-#include <iostream>
-
 #include "define.h"
-
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
@@ -11,8 +8,6 @@ int main(int argc, char** argv) {
     glutInitWindowPosition(window.pos_x, window.pos_y);
 
     window.id = glutCreateWindow(window.title);
-
-    printf("%s, %u, %u", window.title, window.pos_x, window.id);
 
     if (window.id <= 0) {
         std::cerr << "Unable to create a window..." << std::endl;

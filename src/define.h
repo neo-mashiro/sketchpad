@@ -1,5 +1,15 @@
 #pragma once
 
+#include <cstdio>
+#include <cmath>
+
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include <windows.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
@@ -19,6 +29,7 @@ struct Window {
     unsigned int pos_y{ 0 };
     unsigned int width{ 512 };
     unsigned int height{ 512 };
+    float aspect_ratio{ 1 };
 };
 
 extern Window window;

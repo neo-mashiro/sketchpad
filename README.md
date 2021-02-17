@@ -1,6 +1,6 @@
 # sketchpad (Windows 10)
 
-Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
+A simple canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 
 ## Requirements
 
@@ -8,10 +8,6 @@ Canvas for testing out the fundamentals of the OpenGL Rendering Pipeline.
 - [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
 - [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library) (version 2.1.0)
 - [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), or [GLFW](https://en.wikipedia.org/wiki/GLFW) (version 3.3.2) for finer control
-
-## How to build
-
-- `vendor/premake/premake5.exe vs2019`
 
 ## Recommended Visual Studio Settings
 
@@ -21,6 +17,17 @@ The Lua scripts will handle the workspace/project/build settings for all configu
 
 ![tab-settings](res/SPC.png)
 
+## How to build
+
+```bash
+git clone https://github.com/neo-mashiro/sketchpad.git
+vendor/premake/premake5.exe vs2019
+```
+
+## Build a single project
+
+- (WIP) add screenshot: select startup project in the solution's properties window
+- (WIP) add screenshot: keyboard controls, message boxes, mouse controls, motions, etc.
 
 ## Useful References
 
