@@ -7,14 +7,22 @@ GLuint VAO;  // vertex array object
 GLuint VBO;  // vertex buffer object
 GLuint PO;   // program object
 
-const GLfloat vertices[] = {
-    0.75f, 0.75f, 0.0f, 1.0f,
-    0.75f, -0.75f, 0.0f, 1.0f,
-    -0.75f, -0.75f, 0.0f, 1.0f,
+GLuint elapsed_time_uid;
+
+const float vertex_data[] = {
+    // position attribute ~ [-1, 1]
+    0.0f, 0.375f, 0.0f, 1.0f,
+    0.475f * cos(30 * DEG2RAD), -0.475f * sin(30 * DEG2RAD) - 0.1f, 0.0f, 1.0f,
+    -0.475f * cos(30 * DEG2RAD), -0.475f * sin(30 * DEG2RAD) - 0.1f, 0.0f, 1.0f,
+
+    // color attribute
+     1.0f, 0.0f, 0.0f, 1.0f,  // red
+     0.0f, 1.0f, 0.0f, 1.0f,  // green
+     0.0f, 0.0f, 1.0f, 1.0f,  // blue
 };
 
 void SetupWindow() {
-    window.title = "Triangle";
+    window.title = "Fading Rotation";
     SetupDefaultWindow(&window);
 }
 
@@ -26,13 +34,16 @@ void Init() {
     // create VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
 
     // create shader program
     std::string file_path = __FILE__;
     std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
     PO = CreateProgram(dir);
+
+    // query locations (index) of uniform attributes in the shader program
+    elapsed_time_uid = glGetUniformLocation(PO, "elapsed_time");
 }
 
 void Display() {
@@ -41,17 +52,22 @@ void Display() {
 
     glUseProgram(PO);
 
+    glUniform1f(elapsed_time_uid, glutGet(GLUT_ELAPSED_TIME) / 1000.0f);  // update the uniform's value
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(0);  // position attribute index
+    glEnableVertexAttribArray(1);  // color attribute index
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(vertex_data) / 2));
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
     glUseProgram(0);
 
     glutSwapBuffers();
-    //glutPostRedisplay();  // call this at the end if you need continuous updates of the screen
+    glutPostRedisplay();  // flush the display (continuous updates of the screen)
 }
 
 void Reshape(int width, int height) {

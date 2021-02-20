@@ -37,6 +37,10 @@ static GLuint LoadShader(GLenum shader_type, const std::string& shader_file_path
 
         fprintf(stderr, "Failed to compile shader : %s\n", info_log);
         delete[] info_log;
+        glDeleteShader(shader_id);  // prevent shader leak
+        
+        std::cin.get();  // pause the console before exiting so that we can read error messages
+        exit(EXIT_FAILURE);
     }
 
     return shader_id;

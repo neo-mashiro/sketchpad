@@ -37,3 +37,4 @@ vendor/premake/premake5.exe vs2019
 - [OpenGL-Tutorials](https://www.opengl-tutorial.org/)
 - [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
 - [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)
+- [OpenGL Shading Language](https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language)

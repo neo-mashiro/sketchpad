@@ -1,0 +1,31 @@
+# Custom Code Style Guide
+
+My preferred code style to facilitate consistent coding, code refactoring and improve readability.
+
+## General Rules
+
+- use spaces rather than tabs
+
+## GLSL Naming Conventions
+
+```GLSL
+#version 440
+
+// whenever possible, explicitly specify locations (indices) for attributes
+layout(location = 1) in vec4 position;
+layout(location = 2) in vec4 color;
+
+// user-defined variables to be shared between shader stages, prefixed by _
+flat in vec4 _color;
+smooth out vec4 _color;
+
+// use snake_case for normal variables
+const float loop_time = 2.0f;
+float time_scale = 3.141592653f * 2.0f / loop_time;
+
+// use PascalCase for user-defined output to be consumed by the current stage
+layout(location = 0) out vec4 Color;
+
+// use PascalCase for function names
+vec4 FooBar() { }
+```

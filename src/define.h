@@ -15,8 +15,6 @@
 #include <GL/freeglut.h>
 #include <GLFW/glfw3.h>
 
-constexpr auto PI = 3.14159265358979323846;
-
 typedef GLfloat vertex2[2];
 typedef GLfloat vertex3[3];
 typedef GLfloat vertex4[4];
