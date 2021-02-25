@@ -101,7 +101,12 @@ function setup_project()
             "_SCL_SECURE_NO_WARNINGS",
 
             -- TinyXML parser (read XML and create C++ objects, or vice versa)
-            "TIXML_USE_STL"
+            "TIXML_USE_STL",
+
+            -- "DEBUG", "_DEBUG",  -- will be automatically handled by Visual Studio
+
+            -- custom macros for various uses ......
+            "CANVAS_LOG=1", "CANVAS_CORE=1"
         }
 
         -- precompiled headers
@@ -169,11 +174,16 @@ function setup_project()
 
         -- header files include directories
         includedirs {
-            source_dir,        -- solution level
+            "../../src",       -- solution level
             abs_project_path,  -- per project level
             vendor_dir .. "GLEW/include",
             vendor_dir .. "GLFW/include",
-            vendor_dir .. "GLUT/include"
+            vendor_dir .. "GLUT/include",
+
+            -- header only libraries
+            "../../vendor",
+            vendor_dir .. "GLM/include",
+            vendor_dir .. "spdlog/include"
         }
 
         ------------------------------------------------------------------------
