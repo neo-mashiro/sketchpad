@@ -3,16 +3,12 @@
 
 Window window{};
 
-GLuint VAO;  // vertex array object
-GLuint VBO;  // vertex buffer object
-GLuint IBO;  // index buffer object
-GLuint PO;   // program object
+GLuint VAO, VBO, IBO, PO;
 
-GLuint mvp_uid;
 glm::mat4 MVP;
 
-// a cube has 8 vertices
 static const float vertex_data[] = {
+    // a cube has 8 vertices
     // position attribute
     -1.0f, -1.0f, -1.0f,
     -1.0f, +1.0f, -1.0f,
@@ -34,8 +30,8 @@ static const float vertex_data[] = {
     0.055f,  0.953f,  0.042f
 };
 
-// a cube has 6 sides, 12 triangles
 static const GLuint index_data[] = {
+    // a cube has 6 sides, 12 triangles
     0, 1, 2,
     0, 2, 3,
     4, 5, 6,
@@ -68,7 +64,7 @@ glm::mat4 ModelViewProjection() {
 
 void SetupWindow() {
     window.title = "Perspective Cube";
-    SetupDefaultWindow(&window);
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -80,31 +76,25 @@ void Init() {
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glEnableVertexAttribArray(0);  // position
+    glEnableVertexAttribArray(1);  // color
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(float) * 3 * 8));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind VBO, this is optional (actually not desired)
 
     // create IBO
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // context bindings
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glEnableVertexAttribArray(0);  // position
-    glEnableVertexAttribArray(1);  // color
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(float) * 3 * 8));
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // you must NOT unbind the IBO before VAO is unbound
 
     glBindVertexArray(0);  // unbind the VAO
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // now it's safe to unbind IBO, but not recommended
 
     // create shader program
     std::string file_path = __FILE__;
     std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
     PO = CreateProgram(dir);
-
-    // query uniform location
-    mvp_uid = glGetUniformLocation(PO, "MVP");
 
     // init the MVP matrix
     MVP = ModelViewProjection();
@@ -130,7 +120,7 @@ void Display() {
     glBindVertexArray(VAO);
 
     {
-        glUniformMatrix4fv(mvp_uid, 1, GL_FALSE, glm::value_ptr(MVP));
+        glUniformMatrix4fv(glGetUniformLocation(PO, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
         glDrawElements(GL_TRIANGLES, std::size(index_data), GL_UNSIGNED_INT, (void*)0);
     }
 
@@ -153,3 +143,10 @@ void Mouse(int button, int state, int x, int y) {};
 void Idle(void) {};
 void Motion(int x, int y) {};
 void PassiveMotion(int x, int y) {};
+
+void Cleanup() {
+    glDeleteBuffers(1, &IBO);
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(PO);
+    glDeleteVertexArrays(1, &VAO);
+}

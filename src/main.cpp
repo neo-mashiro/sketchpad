@@ -11,7 +11,7 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     // to find out exactly which source file and line number has caused the error,
     // also read the error message and error code in the console, then reference:
     // https://www.khronos.org/opengl/wiki/OpenGL_Error
-    __debugbreak();
+    __debugbreak();  // this is the MSVC intrinsic
     #endif
 }
 

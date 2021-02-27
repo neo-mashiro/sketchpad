@@ -30,8 +30,8 @@ struct Window {
     unsigned int display_mode{ GLUT_SINGLE | GLUT_RGB };
     unsigned int pos_x{ 0 };
     unsigned int pos_y{ 0 };
-    unsigned int width{ 512 };
-    unsigned int height{ 512 };
+    unsigned int width{ 800 };
+    unsigned int height{ 800 };
     float aspect_ratio{ 1.0f };
 };
 

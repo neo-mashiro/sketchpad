@@ -105,11 +105,11 @@ GLuint CreateProgram(const std::string& shader_path) {
 }
 
 
-void SetupDefaultWindow(Window* window) {
-    window->aspect_ratio = (float)window->width / window->height;
-    window->pos_x = (glutGet(GLUT_SCREEN_WIDTH) - window->width) / 2;
-    window->pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - window->height) / 2;
-    window->display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
+void SetupDefaultWindow() {
+    window.aspect_ratio = (float)window.width / window.height;
+    window.pos_x = (glutGet(GLUT_SCREEN_WIDTH) - window.width) / 2;
+    window.pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - window.height) / 2;
+    window.display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
 }
 
 void DefaultReshapeCallback(int width, int height) {

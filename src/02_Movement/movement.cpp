@@ -3,11 +3,7 @@
 
 Window window{};
 
-GLuint VAO;  // vertex array object
-GLuint VBO;  // vertex buffer object
-GLuint PO;   // program object
-
-GLuint elapsed_time_uid;
+GLuint VAO, VBO, PO;
 
 const float vertex_data[] = {
     // position attribute ~ [-1, 1]
@@ -23,7 +19,7 @@ const float vertex_data[] = {
 
 void SetupWindow() {
     window.title = "Fading Rotation";
-    SetupDefaultWindow(&window);
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -35,15 +31,12 @@ void Init() {
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind, but is unnecessary
 
     // create shader program
     std::string file_path = __FILE__;
     std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
     PO = CreateProgram(dir);
-
-    // query locations (index) of uniform attributes in the shader program
-    elapsed_time_uid = glGetUniformLocation(PO, "elapsed_time");
 }
 
 void Display() {
@@ -51,8 +44,10 @@ void Display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(PO);
+    glBindVertexArray(VAO);
 
-    glUniform1f(elapsed_time_uid, glutGet(GLUT_ELAPSED_TIME) / 1000.0f);  // update the uniform's value
+    // update the uniform's value
+    glUniform1f(glGetUniformLocation(PO, "elapsed_time"), glutGet(GLUT_ELAPSED_TIME) / 1000.0f);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(0);  // position attribute index
@@ -62,8 +57,10 @@ void Display() {
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    // clean up the context, but this is optional (not desired) since we have only 1 VAO
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    glBindVertexArray(0);
     glUseProgram(0);
 
     glutSwapBuffers();
@@ -82,3 +79,9 @@ void Mouse(int button, int state, int x, int y) {};
 void Idle(void) {};
 void Motion(int x, int y) {};
 void PassiveMotion(int x, int y) {};
+
+void Cleanup() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(PO);
+    glDeleteVertexArrays(1, &VAO);
+}

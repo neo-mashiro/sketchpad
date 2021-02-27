@@ -21,7 +21,7 @@ const float vertex_data[] = {
 
 void SetupWindow() {
     window.title = "Color Interpolation";
-    SetupDefaultWindow(&window);
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -75,3 +75,9 @@ void Mouse(int button, int state, int x, int y) {};
 void Idle(void) {};
 void Motion(int x, int y) {};
 void PassiveMotion(int x, int y) {};
+
+void Cleanup() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(PO);
+    glDeleteVertexArrays(1, &VAO);
+}
