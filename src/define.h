@@ -19,6 +19,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/perpendicular.hpp>
 
 typedef GLfloat vertex2[2];
 typedef GLfloat vertex3[3];

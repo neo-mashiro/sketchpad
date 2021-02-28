@@ -5,9 +5,9 @@ Window window{};
 
 GLuint VAO, VBO, IBO, PO;
 
-glm::mat4 MVP;
+glm::mat4 mvp;
 
-static const float vertex_data[] = {
+static const float vertices[] = {
     // a cube has 8 vertices
     // position attribute
     -1.0f, -1.0f, -1.0f,
@@ -30,7 +30,7 @@ static const float vertex_data[] = {
     0.055f,  0.953f,  0.042f
 };
 
-static const GLuint index_data[] = {
+static const GLuint indices[] = {
     // a cube has 6 sides, 12 triangles
     0, 1, 2,
     0, 2, 3,
@@ -46,7 +46,7 @@ static const GLuint index_data[] = {
     3, 6, 2
 };
 
-glm::mat4 ModelViewProjection() {
+void ModelViewProjection() {
     // perspective view, 45 degrees FoV, 0.1 near clip, 100 far clip
     glm::mat4 P = glm::perspective(glm::radians(45.0f), window.aspect_ratio, 0.1f, 100.0f);
 
@@ -59,7 +59,8 @@ glm::mat4 ModelViewProjection() {
 
     // model space is simply the viewing cube centered at the origin
     glm::mat4 M = glm::mat4(1.0f);
-    return P * V * M;
+
+    mvp = P * V * M;  // multiplication order must be reversed
 }
 
 void SetupWindow() {
@@ -75,7 +76,7 @@ void Init() {
     // create VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);  // position
     glEnableVertexAttribArray(1);  // color
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -85,7 +86,7 @@ void Init() {
     // create IBO
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // you must NOT unbind the IBO before VAO is unbound
 
     glBindVertexArray(0);  // unbind the VAO
@@ -97,7 +98,7 @@ void Init() {
     PO = CreateProgram(dir);
 
     // init the MVP matrix
-    MVP = ModelViewProjection();
+    ModelViewProjection();
 
     // face culling
     glEnable(GL_CULL_FACE);
@@ -120,8 +121,8 @@ void Display() {
     glBindVertexArray(VAO);
 
     {
-        glUniformMatrix4fv(glGetUniformLocation(PO, "MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
-        glDrawElements(GL_TRIANGLES, std::size(index_data), GL_UNSIGNED_INT, (void*)0);
+        glUniformMatrix4fv(glGetUniformLocation(PO, "mvp"), 1, GL_FALSE, glm::value_ptr(mvp));
+        glDrawElements(GL_TRIANGLES, std::size(indices), GL_UNSIGNED_INT, (GLvoid*)0);
     }
 
     glBindVertexArray(0);

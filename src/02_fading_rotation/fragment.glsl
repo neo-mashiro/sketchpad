@@ -4,7 +4,7 @@ smooth in vec4 _color;  // user-defined input, passed from the previous shader s
 
 layout(location = 0) out vec4 Color;
 
-uniform float elapsed_time;  // value inherited from vertex shader uniform of the same name & type
+uniform float elapsed_time;  // the same uniform as in vertex shader
 uniform float loop_time = 4.0f;
 
 const vec4 black = vec4(0.0f);  // const variables are NOT shared between shader stages

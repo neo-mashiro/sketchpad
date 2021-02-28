@@ -1,11 +1,17 @@
 #version 440
 
-layout(location = 0) in vec4 position;  // position attribute index = 0
-layout(location = 1) in vec4 color;     // color attribute index = 1
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 uv;
+layout(location = 2) in vec3 normal;
 
-smooth out vec4 _color;  // user-defined output variables, used by later shader stages, prefixed by _
+out vec2 _uv;
+out vec3 _normal;
+
+uniform mat4 mvp;
 
 void main() {
-    gl_Position = position;  // built-in output variables used by OpenGL start with gl_xxx
-    _color = color;
+    _uv = uv;
+    _normal = normal;
+    
+    gl_Position = mvp * vec4(position, 1.0f);
 }

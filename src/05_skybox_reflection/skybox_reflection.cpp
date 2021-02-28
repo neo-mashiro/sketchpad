@@ -13,6 +13,7 @@ GLuint PO;   // shader program
 GLuint SPO;  // skybox shader program
 
 glm::vec3 camera_position;
+glm::mat4 camera_rotation;
 glm::mat4 M, V, P;
 
 static const float skybox_vertices[] = {
@@ -59,7 +60,7 @@ static const float skybox_vertices[] = {
      1.0f, -1.0f,  1.0f
 };
 
-static const float vertex_data[] = {
+static const float vertices[] = {
     // positions          // normals
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -145,9 +146,7 @@ GLuint LoadCubeMap(const std::string& path) {
 
 void SetupWindow() {
     window.title = "Skybox Reflection";
-    window.width = 800;
-    window.height = 800;
-    SetupDefaultWindow(&window);
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -157,11 +156,11 @@ void Init() {
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);  // position
     glEnableVertexAttribArray(1);  // normal
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (void*)(sizeof(float) * 3));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (GLvoid*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 6, (GLvoid*)(sizeof(float) * 3));
 
     glBindVertexArray(0);
 
@@ -173,7 +172,7 @@ void Init() {
     glBindBuffer(GL_ARRAY_BUFFER, skybox_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skybox_vertices), skybox_vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 
     glBindVertexArray(0);
 
@@ -182,12 +181,14 @@ void Init() {
     std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
     PO = CreateProgram(dir);
     SPO = CreateProgram(dir + "skybox\\");
-    skybox_texture = LoadCubeMap("res\\cubemap\\");
+    skybox_texture = LoadCubeMap(dir + "cubemap\\");
     
-    // model view projection
-    camera_position = glm::vec3(1.0f, 0.9f, 1.25f);
+    // init model view projection
+    camera_position = glm::vec3(2.55f, 1.15f, 0.75f) * 0.8f;
+    camera_rotation = glm::rotate(glm::mat4(1), glm::radians(0.05f), glm::vec3(0.2f, 1, 0.1f));
+
     P = glm::perspective(glm::radians(90.0f), window.aspect_ratio, 0.1f, 100.0f);
-    V = glm::lookAt(camera_position, glm::vec3(0, 0.5f, 0), glm::vec3(0, 1, 0));
+    V = glm::lookAt(camera_position, glm::vec3(0, 0.25f, 0), glm::vec3(0, 1, 0));
     M = glm::mat4(1.0f);
 
     // face culling
@@ -213,15 +214,16 @@ void Display() {
     glDisable(GL_CULL_FACE);
 
     {
-        glUniformMatrix4fv(glGetUniformLocation(PO, "model"), 1, GL_FALSE, glm::value_ptr(M));
-        glUniformMatrix4fv(glGetUniformLocation(PO, "view"), 1, GL_FALSE, glm::value_ptr(V));
-        glUniformMatrix4fv(glGetUniformLocation(PO, "projection"), 1, GL_FALSE, glm::value_ptr(P));
+        camera_position = glm::vec3(camera_rotation * glm::vec4(camera_position, 1.0));
+        V = glm::lookAt(camera_position, glm::vec3(0, 0.25f, 0), glm::vec3(0, 1, 0));
+        glUniformMatrix4fv(glGetUniformLocation(PO, "mvp"), 1, GL_FALSE, glm::value_ptr(P * V * M));
 
         glUniform3fv(glGetUniformLocation(PO, "camera_pos"), 1, glm::value_ptr(camera_position));
-        glUniform1i(glGetUniformLocation(PO, "skybox"), 0);  // set uniform to read input from texture unit 0
+        glUniform1i(glGetUniformLocation(PO, "skybox"), 0);  // bind to texture unit 0 (optional)
 
         glActiveTexture(GL_TEXTURE0);  // activate texture unit 0
         glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_texture);
+
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }

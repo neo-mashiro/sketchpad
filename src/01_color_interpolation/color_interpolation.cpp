@@ -7,7 +7,7 @@ GLuint VAO;  // vertex array object
 GLuint VBO;  // vertex buffer object
 GLuint PO;   // program object
 
-const float vertex_data[] = {
+const float vertices[] = {
     // position attribute ~ [-1, 1]
     0.0f, 0.75f, 0.0f, 1.0f,
     0.95f * cos(30 * DEG2RAD), -0.95f * sin(30 * DEG2RAD) - 0.2f, 0.0f, 1.0f,
@@ -20,8 +20,8 @@ const float vertex_data[] = {
 };
 
 void SetupWindow() {
-    window.title = "Triangle";
-    SetupDefaultWindow(&window);
+    window.title = "Color Interpolation";
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -32,7 +32,7 @@ void Init() {
     // create VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
 
     // create shader program
@@ -51,7 +51,7 @@ void Display() {
     glEnableVertexAttribArray(0);  // position attribute index
     glEnableVertexAttribArray(1);  // color attribute index
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(vertex_data) / 2));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(vertices) / 2));
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -75,3 +75,9 @@ void Mouse(int button, int state, int x, int y) {};
 void Idle(void) {};
 void Motion(int x, int y) {};
 void PassiveMotion(int x, int y) {};
+
+void Cleanup() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(PO);
+    glDeleteVertexArrays(1, &VAO);
+}

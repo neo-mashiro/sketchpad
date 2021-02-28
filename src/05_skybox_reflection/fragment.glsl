@@ -1,7 +1,7 @@
 #version 440
 
-in vec3 _normal;  // normal vector
 in vec3 _position;
+in vec3 _normal;  // normal vector
 
 layout(location = 0) out vec4 Color;
 

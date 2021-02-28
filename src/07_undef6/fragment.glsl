@@ -1,9 +1,13 @@
 #version 440
 
-smooth in vec4 _color;  // user-defined input, passed from the previous shader stage, prefixed by _
+in vec2 _uv;
+in vec3 _normal;
 
-layout(location = 0) out vec4 Color;  // user-defined output to be consumed by the current stage, named as CamelCase
+layout(location = 0) out vec4 Color;
+
+uniform sampler2D base;
+uniform sampler2D overlay;
 
 void main() {
-    Color = _color;
+    Color = mix(texture(base, _uv), texture(overlay, _uv), 0.7);
 }

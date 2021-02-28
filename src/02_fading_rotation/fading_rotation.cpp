@@ -3,15 +3,13 @@
 
 Window window{};
 
-GLuint VAO;  // vertex array object
-GLuint VBO;  // vertex buffer object
-GLuint PO;   // program object
+GLuint VAO, VBO, PO;
 
-const float vertex_data[] = {
+const float vertices[] = {
     // position attribute ~ [-1, 1]
-    0.0f, 0.75f, 0.0f, 1.0f,
-    0.95f * cos(30 * DEG2RAD), -0.95f * sin(30 * DEG2RAD) - 0.2f, 0.0f, 1.0f,
-    -0.95f * cos(30 * DEG2RAD), -0.95f * sin(30 * DEG2RAD) - 0.2f, 0.0f, 1.0f,
+    0.0f, 0.375f, 0.0f, 1.0f,
+    0.475f * cos(30 * DEG2RAD), -0.475f * sin(30 * DEG2RAD) - 0.1f, 0.0f, 1.0f,
+    -0.475f * cos(30 * DEG2RAD), -0.475f * sin(30 * DEG2RAD) - 0.1f, 0.0f, 1.0f,
 
     // color attribute
      1.0f, 0.0f, 0.0f, 1.0f,  // red
@@ -20,8 +18,8 @@ const float vertex_data[] = {
 };
 
 void SetupWindow() {
-    window.title = "Triangle";
-    SetupDefaultWindow(&window);
+    window.title = "Fading Rotation";
+    SetupDefaultWindow();
 }
 
 void Init() {
@@ -32,8 +30,8 @@ void Init() {
     // create VBO
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind, but is unnecessary
 
     // create shader program
     std::string file_path = __FILE__;
@@ -46,17 +44,23 @@ void Display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(PO);
+    glBindVertexArray(VAO);
+
+    // update the uniform's value
+    glUniform1f(glGetUniformLocation(PO, "elapsed_time"), glutGet(GLUT_ELAPSED_TIME) / 1000.0f);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(0);  // position attribute index
     glEnableVertexAttribArray(1);  // color attribute index
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(vertex_data) / 2));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(vertices) / 2));
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
+    // clean up the context, but this is optional (not desired) since we have only 1 VAO
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    glBindVertexArray(0);
     glUseProgram(0);
 
     glutSwapBuffers();
@@ -75,3 +79,9 @@ void Mouse(int button, int state, int x, int y) {};
 void Idle(void) {};
 void Motion(int x, int y) {};
 void PassiveMotion(int x, int y) {};
+
+void Cleanup() {
+    glDeleteBuffers(1, &VBO);
+    glDeleteProgram(PO);
+    glDeleteVertexArrays(1, &VAO);
+}

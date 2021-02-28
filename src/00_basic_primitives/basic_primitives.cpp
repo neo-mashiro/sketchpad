@@ -8,7 +8,7 @@ const int N_VERTICES_MAX = N_VERTICES_PER_TURN * N_TURNS;
 Window window{};
 
 void SetupWindow() {
-    window.title = "Spiral";
+    window.title = "Spiral Artifacts";
     SetupDefaultWindow();
     window.display_mode = GLUT_SINGLE | GLUT_RGB;
 }
@@ -18,6 +18,8 @@ unsigned int n_vertices = 0;
 
 void Init() {
     glClearColor(0.0, 0.0, 0.0, 0.0);
+
+    // OpenGL legacy stuff, avoid use in real applications
     glColor3f(1.0, 0.0, 0.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -28,16 +30,16 @@ void Init() {
 
     double delta = 0.2;  // radius step size
     double alpha = 2.0 * PI / (double)N_VERTICES_PER_TURN;  // auto angle step size
-    double theta = 153.0 * PI / 180.0;                      // fixed angle step size
+    double theta = 103.0 * PI / 180.0;                      // fixed angle step size
 
     while ((n_vertices < N_VERTICES_MAX) && (radius < 400.0)) {
         // draw spiral with auto angle step size
-        vertices[n_vertices][0] = center_x + radius * cos(alpha * n_vertices);
-        vertices[n_vertices][1] = center_y + radius * sin(alpha * n_vertices);
+        //vertices[n_vertices][0] = center_x + radius * cos(alpha * n_vertices);
+        //vertices[n_vertices][1] = center_y + radius * sin(alpha * n_vertices);
 
         // draw nice patterns and artifacts with fixed angle step size
-        //vertices[n_vertices][0] = center_x + radius * cos(theta * n_vertices);
-        //vertices[n_vertices][1] = center_y + radius * sin(theta * n_vertices);
+        vertices[n_vertices][0] = center_x + radius * cos(theta * n_vertices);
+        vertices[n_vertices][1] = center_y + radius * sin(theta * n_vertices);
 
         n_vertices++;
         radius += delta;
@@ -46,9 +48,11 @@ void Init() {
 
 void Display() {
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // OpenGL legacy stuff, avoid use in real applications
     glColor3f(1.0, 0.0, 0.0);
     glPointSize(1);
-    glLineWidth(1.0f);
+    glLineWidth(0.7f);
 
     glBegin(GL_LINE_STRIP);
     for (int k = 0; k < n_vertices; k++) {

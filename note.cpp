@@ -3,26 +3,8 @@
 //transform矩阵很少在GLSL中完成，通常是用GLM在C++代码中算好矩阵, send it to GLSL, 在GLSL里只做multiplication乘法。
 //CPU擅长做通用计算。GPU是并行的，GPU对矩阵乘法是优化过的，矩阵乘法都要放在shader里（主要是vertex shader，对每个vertex apply）。
 
-//如何定义各种矩阵：
-#include <glm/glm.hpp>
-#include <glm/gtx/transform.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-glm::mat4 m = glm::mat4(1.0f);  //单位矩阵
-glm::mat4 m(1.0f);  //更简单粗暴
-
-glm::mat4 m = glm::translate(glm::mat4(), glm::vec3(10.0f, 0.0f, 0.0f));
-glm::vec4 v(10.0f, 10.0f, 10.0f, 0.0f);
-glm::vec4 transformedV = m * v;  //translate一个向量
-
-glm::mat4 m = glm::scale(2.0f, 2.0f, 2.0f);  //scale
-
-glm::vec3 myRotationAxis( ??, ??, ??);  // rotate
-glm::rotate( angle_in_degrees, myRotationAxis );
-
-// Cumulating transformations
-// ORDER matters. Scaling FIRST, and THEN the rotation, and THEN the translation.
-TransformedVector = TranslationMatrix * RotationMatrix * ScaleMatrix * OriginalVector;
+//GLM如何定义各种矩阵，以及做各种tranformation
+https://learnopengl.com/Getting-started/Transformations
 
 // 三大转换矩阵 1. Model matrix: Model Space (local) -> World Space (global)
 Model_matrix = TranslationMatrix * RotationMatrix * ScaleMatrix;
@@ -81,6 +63,21 @@ glBindBuffer(GL_ARRAY_BUFFER, VBO);
 glEnableVertexAttribArray(0);  // 这里0其实是VAO array中的一个指针
 glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);  //这里是告诉VBO我的数据的layout是怎样的，但实际上信息是绑到VAO里的
 
+/* 有时候，你可能会遇到一个OpenGL程序根本没有shader，没有VAOVBO，而且有一堆下面这种神秘代码，不要去理会，这是上世纪90年代的写法。
+   这些都是legacy OpenGL的东西，定义了一堆built-in的MVP矩阵，你可以去load然后transform它们之类的，还有几个default的shader在后台运行。这些历史方法，本来的初衷是为了简化程序，造了一堆默认的东西，为了让程序员不用写shader不做空间变换不定义VAO、VBO也能简单的画图，并配合最原始的glVertex等方法使用，但是它们性能很烂，而且自由度很小，只能完成最基础的需求。OpenGL4开始，这些方法早就deprecated了，被淘汰许多年了。
+   现代的OpenGL，没有人会用glVertex去一个点一个点的画，再画一堆原始的primitive，这样很蠢。现代的做法，都是要把vertices数据提前准备好，cache在程序里，然后再定义VAO,VBO,IBO，再用glDrawArray()和glDrawElements()这些方法去批量的画图。并且，程序员要自己手动处理MVP矩阵的变换，更加灵活。当然，自己写shader也是必不可少的，一个程序必须要至少有vs和fs两个shader，而不是去用legacy自带的shader。MVP变换本来就是vertex shader要做的事情。
+*/
+glMatrixMode(GL_PROJECTION);  // activate the built-in projection matrix to modify it
+glLoadIdentity();  // clean out any old leftover matrices
+gluPerspective(90.0, 800/600, 0.01, 100.0);
+glTranslatef(0,0,-2.0);
+glMultMatrixf(&viewMatrix[0][0]);
+glMatrixMode(GL_MODELVIEW);  // activate the built-in model-view matrix to modify it
+glLoadIdentity();
+glPushMatrix();  // save coordinate system
+glPopMatrix();   // restore/load coordinate system
+...
+
 /*
 频幕上最终能看到的vertex全都是在Normalized Device Coordinates (NDC)空间里的，俗称NDC space。它就是xyz三个轴都在[-1,1]之间的一个立方体范围。
 vertex shader的最终输出的gl_Position，就是把所有vertex的position转换到NDC空间。
@@ -92,13 +89,43 @@ NDC以外的vertex会被clip丢弃掉。
 如果你只draw一个物体，或只有一个VAO的话，每次在display callback里画完了之后也不用glBindVertexArray(0)，多此一举。
 
 对于GLSL shader，const变量是不会被不同的shader stages之间shared的，也就是说，你在vertex shader里定义一个const变量，不会被fragment shader看到，哪怕你在fragment shader定义了一个一模一样的同名变量，那也是另一个变量。
-而uniform是会被不同的shader stage之间共享的，假如你在vs和fs中都定义了一个同名的uniform变量，当vs和fs被link起来编译成一个program object的时候，这个program里只会有一个该uniform，换句话说，如果vs中定义了一个uniform A，fs中又定义了一个uniform也叫A，类型声明完全相同，这两个A实际上是同一个uniform变量，所以你只需要在opengl代码中从PO里面query一次这个uniform的location，不用query两次，也只需要给它赋值一次，不用赋两次，你赋值的时候，vs和fs都会同时接收到这个值。
+而uniform是会被不同的shader stage之间共享的，假如你在vs和fs中都定义了一个同名的uniform变量，当vs和fs被link起来编译成一个program object的时候，这个program里只会有一个该uniform，换句话说，如果vs中定义了一个uniform A，fs中又定义了一个uniform也叫A，类型声明完全相同，这两个A实际上是同一个uniform变量，所以你只需要在opengl代码中从PO里面query一次这个uniform的location，不用query两次，也只需要给它赋值一次，不用赋两次，你赋值的时候，vs和fs都会同时接收到这个值。当然，现实中你一般不会这么做，既然uniform是global的，那么你只需要在用到这个uniform的shader里定义一次就好了，而不用在vs和fs里各定义一次，再从vs传到fs什么的。
 但是，千万要注意，当你的程序里有多个PO，也就是有多个不同的shader program，这些program之间是完全独立的，他们里面的任何同名变量都不会被share，所以你在query location和赋值的时候，要对每个PO都分别操作一次。
+尤其要注意的是，假如你定义了一个没有被shader程序用到的uniform，那么GLSL编译器会自动remove这个变量，于是你用glGetUniformLocation去query它的时候，结果会返回-1（但并不是报错），然后程序正常运行却显示黑屏，很难debug。
+
+关于texture，FS里的sampler2D，samplerCube...等uniform，他们的location专门有个名称，叫做texture unit。
+一般来说default都是texture unit 0，并且是默认开启的，我们并不需要显式地query这个uniform的location再用glUniform1i给它赋值我们的texture，当调用glBindTexture的时候，这是自动完成的。但有的显卡可能没有default，所以unit 0通道不存在，这时候就必须要手动glUniform1i去赋值，否则黑屏。所以稳妥起见，每次都自己手动赋值比较清晰。
+
+OpenGL至少会有16个通道，16个texture units。我们可以叠加或使用多个texture，先activate一个通道，然后去bind texture，就会自动bind到那个通道。
+glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+glBindTexture(GL_TEXTURE_2D, texture);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // add this mode when you are working with the Mesh chapter
 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // draw wireframe
 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+改每个project的名字，和window title保持一致，否则不知道哪个是哪个，别管美丑，名字长无所谓
 
 
 
