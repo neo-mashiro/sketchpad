@@ -20,8 +20,8 @@ std::vector<float> vertices;
 
 void CreateSphereMesh() {
     // mesh grid size
-    int n_rows = 500;
-    int n_cols = 500;
+    unsigned int n_rows = 500;
+    unsigned int n_cols = 500;
 
     for (unsigned int col = 0; col <= n_cols; ++col) {
         for (unsigned int row = 0; row <= n_rows; ++row) {
@@ -37,8 +37,8 @@ void CreateSphereMesh() {
         }
     }
 
-    for (int col = 0; col < n_cols; ++col) {
-        for (int row = 0; row < n_rows; ++row) {
+    for (unsigned int col = 0; col < n_cols; ++col) {
+        for (unsigned int row = 0; row < n_rows; ++row) {
             // counter-clockwise
             indices.push_back((col + 1) * (n_rows + 1) + row);
             indices.push_back(col * (n_rows + 1) + row);
@@ -51,7 +51,7 @@ void CreateSphereMesh() {
         }
     }
 
-    for (int i = 0; i < positions.size(); ++i) {
+    for (unsigned int i = 0; i < positions.size(); ++i) {
         vertices.push_back(positions[i].x);
         vertices.push_back(positions[i].y);
         vertices.push_back(positions[i].z);
@@ -63,7 +63,7 @@ void CreateSphereMesh() {
     }
 }
 
-void LoadTexture(std::string& path) {
+void LoadTexture(const std::string& path) {
     stbi_set_flip_vertically_on_load(false);
 
     int width, height, n_channels;

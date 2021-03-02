@@ -5,23 +5,38 @@
 #include "stb_image.h"
 
 Window window{};
+Camera camera{};
+
+std::vector<glm::vec3> positions;
+std::vector<glm::vec2> uvs;
+std::vector<glm::vec3> normals;
+std::vector<float> vertices;
+std::vector<unsigned int> indices;
 
 GLuint VAO, VBO, IBO, PO;
 GLuint base, overlay;  // textures
 
 glm::mat4 M, V, P;
 
-std::vector<glm::vec3> positions;
-std::vector<glm::vec2> uvs;
-std::vector<glm::vec3> normals;
-std::vector<unsigned int> indices;
+// frame counter
+float delta_time;
+float last_frame;
 
-std::vector<float> vertices;
+// mouse movement
+float sensitivity = 0.05f;
+float zoom_speed = 2.0f;
+int last_mouse_x, last_mouse_y;
+
+// direction keys control
+bool u_pressed = false;
+bool d_pressed = false;
+bool l_pressed = false;
+bool r_pressed = false;
 
 void CreateSphereMesh() {
     // mesh grid size
-    int n_rows = 500;
-    int n_cols = 500;
+    unsigned int n_rows = 500;
+    unsigned int n_cols = 500;
 
     for (unsigned int col = 0; col <= n_cols; ++col) {
         for (unsigned int row = 0; row <= n_rows; ++row) {
@@ -37,8 +52,8 @@ void CreateSphereMesh() {
         }
     }
 
-    for (int col = 0; col < n_cols; ++col) {
-        for (int row = 0; row < n_rows; ++row) {
+    for (unsigned int col = 0; col < n_cols; ++col) {
+        for (unsigned int row = 0; row < n_rows; ++row) {
             // counter-clockwise
             indices.push_back((col + 1) * (n_rows + 1) + row);
             indices.push_back(col * (n_rows + 1) + row);
@@ -51,7 +66,7 @@ void CreateSphereMesh() {
         }
     }
 
-    for (int i = 0; i < positions.size(); ++i) {
+    for (unsigned int i = 0; i < positions.size(); ++i) {
         vertices.push_back(positions[i].x);
         vertices.push_back(positions[i].y);
         vertices.push_back(positions[i].z);
@@ -63,7 +78,7 @@ void CreateSphereMesh() {
     }
 }
 
-void LoadTexture(std::string& path) {
+void LoadTexture(const std::string& path) {
     stbi_set_flip_vertically_on_load(false);
 
     int width, height, n_channels;
@@ -87,8 +102,8 @@ void LoadTexture(std::string& path) {
 }
 
 void SetupWindow() {
-    window.title = "Multiple Textures Blending";
-    SetupDefaultWindow();
+    window.title = "Camera Control";
+    SetupDefaultWindow(window);
 }
 
 void Init() {
@@ -115,13 +130,13 @@ void Init() {
 
     std::string file_path = __FILE__;
     std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
-    PO = CreateProgram(dir);
+    PO = CreateShader(dir);
 
     // load base texture, generate mipmaps
     glGenTextures(1, &base);
     glBindTexture(GL_TEXTURE_2D, base);  // now the lines below will be tied to base
 
-    LoadTexture(dir + "textures\\color.jpg");
+    LoadTexture(dir + "textures\\base.jpg");
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // bilinear filtering
@@ -147,9 +162,11 @@ void Init() {
     glUniform1i(glGetUniformLocation(PO, "overlay"), 1);  // bind to texture unit 1
 
     // init model view projection
-    P = glm::perspective(glm::radians(90.0f), window.aspect_ratio, 0.1f, 100.0f);
-    V = glm::lookAt(glm::vec3(0, 0.5f, 2.5f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    P = glm::perspective(glm::radians(camera.fov), window.aspect_ratio, 0.1f, 100.0f);
+    V = glm::lookAt(camera.position, camera.position + camera.forward, camera.up);
     M = glm::mat4(1.0f);
+    last_mouse_x = window.width / 2;
+    last_mouse_y = window.height / 2;
 
     // face culling
     glEnable(GL_CULL_FACE);
@@ -163,6 +180,24 @@ void Init() {
     glDepthRange(0.0f, 1.0f);
 }
 
+// update camera positions based on global key pressing states, to be invoked every frame
+void SmoothKeyControl() {
+    if (u_pressed) {
+        camera.position += camera.forward * (camera.speed * delta_time);
+    }
+    if (d_pressed) {
+        camera.position -= camera.forward * (camera.speed * delta_time);
+    }
+    if (l_pressed) {
+        camera.position -= camera.right * (camera.speed * delta_time);
+    }
+    if (r_pressed) {
+        camera.position += camera.right * (camera.speed * delta_time);
+    }
+
+    camera.position.y = 0.0f;  // snap to the ground
+}
+
 void Display() {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(1.0f);
@@ -172,6 +207,14 @@ void Display() {
     glBindVertexArray(VAO);
 
     {
+        float this_frame = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        delta_time = this_frame - last_frame;
+        last_frame = this_frame;
+
+        SmoothKeyControl();
+
+        P = glm::perspective(glm::radians(camera.fov), window.aspect_ratio, 0.1f, 100.0f);
+        V = glm::lookAt(camera.position, camera.position + camera.forward, camera.up);
         M = glm::rotate(M, glm::radians(0.1f), glm::vec3(0, 1, 0));
         glUniformMatrix4fv(glGetUniformLocation(PO, "mvp"), 1, GL_FALSE, glm::value_ptr(P * V * M));
 
@@ -191,17 +234,84 @@ void Display() {
 }
 
 void Reshape(int width, int height) {
-    DefaultReshapeCallback(width, height);
+    DefaultReshapeCallback(window, width, height);
 }
 
+// keyboard callback does not report direction keys or WASD, for that we need the special callback
 void Keyboard(unsigned char key, int x, int y) {
     DefaultKeyboardCallback(key, x, y);
 }
 
-void Mouse(int button, int state, int x, int y) {};
-void Idle(void) {};
-void Motion(int x, int y) {};
-void PassiveMotion(int x, int y) {};
+// special callback does respond to direction keys, but it's not invoked continuously every frame.
+// when a key is held down, this is only invoked once every few frames, so if we update camera in
+// this function, the updates are not smooth and would result in noticeable jerky movement.
+// therefore, here we are only going to set the global key pressing states.
+// camera updates are done in the display callback based on these states, which happens every frame.
+void Special(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_UP:    u_pressed = true; break;
+        case GLUT_KEY_DOWN:  d_pressed = true; break;
+        case GLUT_KEY_LEFT:  l_pressed = true; break;
+        case GLUT_KEY_RIGHT: r_pressed = true; break;
+    }
+}
+
+// this callback responds to key releasing events, where we can reset key pressing states to false.
+void SpecialUp(int key, int x, int y) {
+    switch (key) {
+        case GLUT_KEY_UP:    u_pressed = false; break;
+        case GLUT_KEY_DOWN:  d_pressed = false; break;
+        case GLUT_KEY_LEFT:  l_pressed = false; break;
+        case GLUT_KEY_RIGHT: r_pressed = false; break;
+    }
+}
+
+void Mouse(int button, int state, int x, int y) {
+    // in freeglut, each scroll wheel event is reported as a button click
+    if (button == 3 && state == GLUT_DOWN) {  // scroll up
+        camera.fov -= 1.0f * zoom_speed;
+        camera.fov = glm::clamp(camera.fov, 1.0f, 90.0f);
+    }
+    else if (button == 4 && state == GLUT_DOWN) {  // scroll down
+        camera.fov += 1.0f * zoom_speed;
+        camera.fov = glm::clamp(camera.fov, 1.0f, 90.0f);
+    }
+}
+
+void Idle(void) {}
+
+void Entry(int state) {
+    DefaultEntryCallback(state);
+}
+
+void Motion(int x, int y) {}
+
+void PassiveMotion(int x, int y) {
+    // x, y are measured in pixels in screen space, with the origin at the top-left corner
+    // but OpenGL uses a world coordinate system with the origin at the bottom-left corner
+    int x_offset = x - last_mouse_x;
+    int y_offset = last_mouse_y - y;  // must invert y coordinate to flip the upside down
+
+    // cache last motion
+    last_mouse_x = x;
+    last_mouse_y = y;
+
+    // update camera based on mouse movements
+    camera.euler_y += x_offset * sensitivity;
+    camera.euler_x += y_offset * sensitivity;
+    camera.euler_x = glm::clamp(camera.euler_x, -90.0f, 90.0f);  // clamp vertical rotation
+
+    camera.forward = glm::normalize(
+        glm::vec3(
+            cos(glm::radians(camera.euler_y)) * cos(glm::radians(camera.euler_x)),
+            sin(glm::radians(camera.euler_x)),
+            sin(glm::radians(camera.euler_y)) * cos(glm::radians(camera.euler_x))
+        )
+    );
+
+    camera.right = glm::normalize(glm::cross(camera.forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+    camera.up = glm::normalize(glm::cross(camera.right, camera.forward));
+}
 
 void Cleanup() {
     glDeleteTextures(1, &base);

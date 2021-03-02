@@ -74,6 +74,7 @@ glTranslatef(0,0,-2.0);
 glMultMatrixf(&viewMatrix[0][0]);
 glMatrixMode(GL_MODELVIEW);  // activate the built-in model-view matrix to modify it
 glLoadIdentity();
+gluLookAt(1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 glPushMatrix();  // save coordinate system
 glPopMatrix();   // restore/load coordinate system
 ...
@@ -126,7 +127,7 @@ glBindTexture(GL_TEXTURE_2D, texture);
 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);  // draw wireframe
 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 改每个project的名字，和window title保持一致，否则不知道哪个是哪个，别管美丑，名字长无所谓
-
+// 在mouse callback里，最后的一个项目把menu加进去，放些界面控制按钮，加上fps计数，成品
 
 
 

@@ -15,6 +15,8 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     #endif
 }
 
+extern Window window;
+
 int main(int argc, char** argv) {
     SetConsoleOutputCP(65001);  // set the console code page to utf-8
 
@@ -48,8 +50,11 @@ int main(int argc, char** argv) {
     glutDisplayFunc(Display);
     glutReshapeFunc(Reshape);
     glutKeyboardFunc(Keyboard);
+    glutSpecialFunc(Special);
+    glutSpecialUpFunc(SpecialUp);
     glutMouseFunc(Mouse);
     glutIdleFunc(Idle);
+    glutEntryFunc(Entry);
     glutMotionFunc(Motion);
     glutPassiveMotionFunc(PassiveMotion);
 

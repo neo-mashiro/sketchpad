@@ -1,9 +1,7 @@
 #include "utils.h"
 
-/// <summary>
-/// Given a shader type and file path, compiles the shader file and returns a shader id.
-/// If the path does not exist, deems the shader file optional and returns 0.
-/// </summary>
+// Given a shader type and file path, compiles the shader file and returns a shader id.
+// If the path does not exist, deems the shader file optional and returns 0.
 static GLuint LoadShader(GLenum shader_type, const std::string& shader_file_path) {
     GLuint shader_id = glCreateShader(shader_type);
     std::string shader_code;
@@ -46,11 +44,9 @@ static GLuint LoadShader(GLenum shader_type, const std::string& shader_file_path
     return shader_id;
 }
 
-/// <summary>
-/// Links a vector of shaders together to create a program. Negative shader ids will be discarded.
-/// </summary>
+// Links a vector of shaders to create a program. Negative shader ids will be discarded.
 static GLuint LinkShaders(const std::vector<GLuint>& shaders) {
-    printf("Linking shader files ...\n");
+    printf("Linking shader files ...\n\n");
 
     GLuint program_id = glCreateProgram();
 
@@ -85,10 +81,8 @@ static GLuint LinkShaders(const std::vector<GLuint>& shaders) {
     return program_id;
 }
 
-/// <summary>
-/// Loads and links all shaders from the path to create a program.
-/// </summary>
-GLuint CreateProgram(const std::string& shader_path) {
+// Loads and links all shaders from the given path to create a program.
+GLuint CreateShader(const std::string& shader_path) {
     GLuint VS = LoadShader(GL_VERTEX_SHADER, shader_path + "vertex.glsl");
     GLuint FS = LoadShader(GL_FRAGMENT_SHADER, shader_path + "fragment.glsl");
     GLuint GS = LoadShader(GL_GEOMETRY_SHADER, shader_path + "geometry.glsl");
@@ -104,16 +98,19 @@ GLuint CreateProgram(const std::string& shader_path) {
     return program_id;
 }
 
-
-void SetupDefaultWindow() {
+void SetupDefaultWindow(Window& window) {
     window.aspect_ratio = (float)window.width / window.height;
     window.pos_x = (glutGet(GLUT_SCREEN_WIDTH) - window.width) / 2;
     window.pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - window.height) / 2;
     window.display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
 }
 
-void DefaultReshapeCallback(int width, int height) {
-    // keep original aspect ratio
+void DefaultReshapeCallback(Window& window, int width, int height) {
+    // update window size (but keep the original aspect ratio)
+    window.width = width;
+    window.height = height;
+
+    // viewport has the same aspect ratio as the window
     GLsizei viewport_w = width <= height ? width : height;
     GLsizei viewport_h = viewport_w / window.aspect_ratio;
 
@@ -140,5 +137,14 @@ void DefaultKeyboardCallback(unsigned char key, int x, int y) {
             case IDCANCEL:
                 break;
         }
+    }
+}
+
+void DefaultEntryCallback(int state) {
+    if (state == GLUT_ENTERED) {
+        std::cout << "cursor entered window" << std::endl;
+    }
+    else if (state == GLUT_LEFT) {
+        std::cout << "cursor left window" << std::endl;
     }
 }

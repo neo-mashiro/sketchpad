@@ -9,5 +9,5 @@ uniform sampler2D base;
 uniform sampler2D overlay;
 
 void main() {
-    Color = mix(texture(base, _uv), texture(overlay, _uv), 0.7);
+    Color = mix(texture(base, _uv), texture(overlay, _uv), 0.1);
 }

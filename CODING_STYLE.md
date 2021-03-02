@@ -1,33 +1,36 @@
 # GLSL Template
 
+To be consistent with OpenGL, use `snake_case` for all variables, and `PascalCase` for all custom functions.
+
 ```GLSL
 #version 460 core
+#extension all : disable
 
-in type in_variable;          // snake_case
-in type in_variable;          // snake_case
-in type _sharedInVariable;    // _camelCase (received from the previous stage)
+in type i_var;           // input variable
+in type i_var;           // input variable
+in type s_var;           // shared input variable (received from the previous stage)
 
-out type OutVariable;         // PascalCase (to be consumed by this stage)
-out type _sharedOutVariable;  // _camelCase (pass to the next stage as input)
+out type o_var;          // output variable (to be consumed by this stage)
+out type s_var;          // shared output variable (pass to the next stage as input)
 
-uniform type uniform_var;     // snake_case
-uniform type uniform_var;     // snake_case
+uniform type u_var;      // uniform
+uniform type u_var;      // uniform
 
-const type const_var = 3.5;   // snake_case
+const type c_var = 3.5;  // constant
 
-type FunctionName() {  // PascalCase
-    type local_var = builtinfunction(1, 2) * const_var;  // snake_case
+type FunctionInPascalCase() {
+    type var = builtinfunction(1, 2) * c_var;  // local variable
 }
 
 void main() {
-    type local_var1 = ...;     // process data
-    type local_var2 = ...;     // process data
+    type var = ...;      // process data
+    type var = ...;      // process data
 
-    _sharedOutVariable = ...;  // shared output
-    OutVariable = ...;         // local output
+    s_var = ...;         // shared output
+    o_var = ...;         // output
 
-    gl_Position = ...;         // built-in output
-    gl_FragDepth = ...;        // built-in output
+    gl_Position = ...;   // built-in output
+    gl_FragDepth = ...;  // built-in output
 }
 ```
 
@@ -37,7 +40,7 @@ void main() {
 
 - [x] whenever possible, explicitly specify layout locations
 ```GLSL
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 normal;
-layout(location = 0) out vec4 Color;
+layout(location = 0) in vec3 i_position;
+layout(location = 1) in vec3 i_normal;
+layout(location = 0) out vec4 o_color;
 ```

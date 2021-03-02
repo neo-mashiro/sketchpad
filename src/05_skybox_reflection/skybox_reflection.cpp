@@ -13,7 +13,6 @@ GLuint PO;   // shader program
 GLuint SPO;  // skybox shader program
 
 glm::vec3 camera_position;
-glm::mat4 camera_rotation;
 glm::mat4 M, V, P;
 
 static const float skybox_vertices[] = {
@@ -184,9 +183,7 @@ void Init() {
     skybox_texture = LoadCubeMap(dir + "cubemap\\");
     
     // init model view projection
-    camera_position = glm::vec3(2.55f, 1.15f, 0.75f) * 0.8f;
-    camera_rotation = glm::rotate(glm::mat4(1), glm::radians(0.05f), glm::vec3(0.2f, 1, 0.1f));
-
+    camera_position = glm::vec3(0, 0.5f, 1);
     P = glm::perspective(glm::radians(90.0f), window.aspect_ratio, 0.1f, 100.0f);
     V = glm::lookAt(camera_position, glm::vec3(0, 0.25f, 0), glm::vec3(0, 1, 0));
     M = glm::mat4(1.0f);
@@ -214,7 +211,10 @@ void Display() {
     glDisable(GL_CULL_FACE);
 
     {
-        camera_position = glm::vec3(camera_rotation * glm::vec4(camera_position, 1.0));
+        float radius = 2.0f;
+        float seconds = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        camera_position = glm::vec3(sin(seconds), 0.5f, cos(seconds)) * radius;
+
         V = glm::lookAt(camera_position, glm::vec3(0, 0.25f, 0), glm::vec3(0, 1, 0));
         glUniformMatrix4fv(glGetUniformLocation(PO, "mvp"), 1, GL_FALSE, glm::value_ptr(P * V * M));
 
