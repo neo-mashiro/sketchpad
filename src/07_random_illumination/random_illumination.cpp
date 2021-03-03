@@ -10,7 +10,16 @@ FrameCounter frame_counter{};
 MouseState mouse_state{};
 KeyState key_state{};
 
+glm::mat4 M, V, P;  // model view projection
+
 // sphere
+struct Material {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+} material;
+
 GLuint VAO, VBO, IBO, PO;
 std::vector<glm::vec3> positions;
 std::vector<glm::vec2> uvs;
@@ -19,12 +28,15 @@ std::vector<float> vertices;
 std::vector<unsigned int> indices;
 
 // light cube
+struct Light {
+    glm::vec3 source;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+} light;
+
 GLuint LVAO, LVBO, LPO;
 std::vector<float> light_vertices;
-glm::vec3 light_position;
-
-// model view projection
-glm::mat4 M, V, P;
 
 void CreateSphereMesh() {
     // mesh grid size
@@ -118,13 +130,20 @@ void CreateLightCube() {
 }
 
 void SetupWindow() {
-    window.title = "Phong illumination";
+    window.title = "Random illumination";
     SetupDefaultWindow(window);
 }
 
 void Init() {
     // setup sphere
     CreateSphereMesh();
+    srand((unsigned)time(0));
+
+    material.ambient = glm::vec3(0.0215f, 0.1745f, 0.0215f);
+    material.diffuse = glm::vec3(0.07568f, 0.61424f, 0.07568f);
+    material.specular = glm::vec3(0.633f, 0.727811f, 0.633f);
+    material.shininess = 256.0f;
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
@@ -141,11 +160,15 @@ void Init() {
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-
     glBindVertexArray(0);
 
     // setup light cube
     CreateLightCube();
+    light.source = glm::vec3(0.0f, 1.0f, 1.5f);
+    light.ambient = glm::vec3(1.0f);
+    light.diffuse = glm::vec3(1.0f);
+    light.specular = glm::vec3(1.0f);
+
     glGenVertexArrays(1, &LVAO);
     glBindVertexArray(LVAO);
 
@@ -154,7 +177,6 @@ void Init() {
     glBufferData(GL_ARRAY_BUFFER, light_vertices.size() * sizeof(float), &light_vertices[0], GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);  // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-
     glBindVertexArray(0);
 
     // create shaders
@@ -221,8 +243,9 @@ void Display() {
         V = glm::lookAt(camera.position, camera.position + camera.forward, camera.up);
         M = glm::mat4(1.0f);
 
-        light_position = glm::vec3(
-            1.5f * sin(frame_counter.this_frame), 1.0f, 1.5f * cos(frame_counter.this_frame)
+        // rotate the light source each frame
+        light.source = glm::vec3(
+            1.5f * sin(frame_counter.this_frame * 1.5f), 1.0f, 1.5f * cos(frame_counter.this_frame * 1.5f)
         );
     }
 
@@ -235,9 +258,15 @@ void Display() {
         glUniformMatrix4fv(glGetUniformLocation(PO, "u_view"), 1, GL_FALSE, glm::value_ptr(V));
         glUniformMatrix4fv(glGetUniformLocation(PO, "u_projection"), 1, GL_FALSE, glm::value_ptr(P));
 
-        glUniform3f(glGetUniformLocation(PO, "u_color"), 0.66f, 0.32f, 1.0f);
-        glUniform3f(glGetUniformLocation(PO, "u_light_color"), 1.0f, 1.0f, 1.0f);
-        glUniform3fv(glGetUniformLocation(PO, "u_light_position"), 1, &light_position[0]);
+        glUniform3fv(glGetUniformLocation(PO, "light.source"), 1, &light.source[0]);
+        glUniform3fv(glGetUniformLocation(PO, "light.ambient"), 1, &light.ambient[0]);
+        glUniform3fv(glGetUniformLocation(PO, "light.diffuse"), 1, &light.diffuse[0]);
+        glUniform3fv(glGetUniformLocation(PO, "light.specular"), 1, &light.specular[0]);
+
+        glUniform3fv(glGetUniformLocation(PO, "material.ambient"), 1, &material.ambient[0]);
+        glUniform3fv(glGetUniformLocation(PO, "material.diffuse"), 1, &material.diffuse[0]);
+        glUniform3fv(glGetUniformLocation(PO, "material.specular"), 1, &material.specular[0]);
+        glUniform1f(glGetUniformLocation(PO, "material.shininess"), material.shininess);
 
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     }
@@ -250,9 +279,9 @@ void Display() {
     glDisable(GL_CULL_FACE);
 
     {
-        M = glm::translate(M, light_position);
+        M = glm::translate(M, light.source);
         M = glm::scale(M, glm::vec3(0.05f));
-        glUniformMatrix4fv(glGetUniformLocation(LPO, "mvp"), 1, GL_FALSE, glm::value_ptr(P * V * M));
+        glUniformMatrix4fv(glGetUniformLocation(LPO, "u_mvp"), 1, GL_FALSE, glm::value_ptr(P * V * M));
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
@@ -291,20 +320,19 @@ void SpecialUp(int key, int x, int y) {
 }
 
 void Mouse(int button, int state, int x, int y) {
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-    // change material on mouse clicks!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    //if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-
-    //}
-    //else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-
-    //}
+    // change to random material color when the left button is clicked
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        material.ambient = glm::vec3(
+            0.4f * (float)rand() / RAND_MAX,
+            0.4f * (float)rand() / RAND_MAX,
+            0.4f * (float)rand() / RAND_MAX
+        );
+        material.diffuse = glm::vec3(
+            0.8f * (float)rand() / RAND_MAX,
+            0.8f * (float)rand() / RAND_MAX,
+            0.8f * (float)rand() / RAND_MAX
+        );
+    }
 
     // in freeglut, each scroll wheel event is reported as a button click
     if (button == 3 && state == GLUT_DOWN) {  // scroll up

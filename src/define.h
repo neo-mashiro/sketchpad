@@ -1,7 +1,9 @@
 #pragma once
 
-#include <cstdio>
 #include <cmath>
+#include <ctime>
+#include <cstdio>
+#include <cstdlib>
 
 #include <algorithm>
 #include <iostream>

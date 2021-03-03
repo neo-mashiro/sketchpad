@@ -1,10 +1,16 @@
 # GLSL Template
 
-To be consistent with OpenGL, use `snake_case` for all variables, and `PascalCase` for all custom functions.
+To be consistent with OpenGL, use `snake_case` for variables, `PascalCase` for custom functions and types.
 
 ```GLSL
 #version 460 core
 #extension all : disable
+
+struct MyType {
+    type var1;
+    type var2;
+    type var3;
+};
 
 in type i_var;           // input variable
 in type i_var;           // input variable
@@ -18,7 +24,7 @@ uniform type u_var;      // uniform
 
 const type c_var = 3.5;  // constant
 
-type FunctionInPascalCase() {
+type MyFunction() {
     type var = builtinfunction(1, 2) * c_var;  // local variable
 }
 
