@@ -4,21 +4,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define __DIR__ ParseDir(__FILE__)
-
 Window window{};
 Camera camera{};
 FrameCounter frame_counter{};
 MouseState mouse_state{};
 KeyState key_state{};
 
-glm::mat4 M, V, P;
+glm::mat4 M, V, P;  // model view projection
 
 // sphere
 struct Material {
-    GLuint diffuse_map;
-    GLuint specular_map;
-    GLuint emission_map;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
     float shininess;
 } material;
 
@@ -131,59 +129,21 @@ void CreateLightCube() {
     };
 }
 
-int LoadTexture(const std::string& file_path) {
-    std::string file_extension = file_path.substr(file_path.rfind(".") + 1);
-    printf("Loading texture %s, detected file extension = %s\n", file_path.c_str(), file_extension.c_str());
-
-    // attempt to read image binary data
-    if (file_extension == "png") {
-        stbi_set_flip_vertically_on_load(true);
-    }
-
-    int width, height, n_channels;
-    unsigned char* buffer = stbi_load(file_path.c_str(), &width, &height, &n_channels, 0);
-
-    if (!buffer) {
-        std::cerr << "Failed to load texture: " << file_path << std::endl;
-        stbi_image_free(buffer);
-        return -1;
-    }
-
-    // now image data has been loaded into the buffer, let's setup texture
-    GLuint texture_id;
-    glGenTextures(1, &texture_id);
-    glBindTexture(GL_TEXTURE_2D, texture_id);  // bind
-
-    if (n_channels == 3) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-    }
-    else if (n_channels == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-    }
-
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(buffer);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glBindTexture(GL_TEXTURE_2D, 0);  // unbind
-
-    return (int)texture_id;
-}
-
 void SetupWindow() {
-    window.title = "Lighting Maps";
+    window.title = "Random illumination";
     SetupDefaultWindow(window);
 }
 
 void Init() {
-    srand((unsigned)time(0));  // seed for random numbers
-
     // setup sphere
     CreateSphereMesh();
+    srand((unsigned)time(0));
+
+    material.ambient = glm::vec3(0.0215f, 0.1745f, 0.0215f);
+    material.diffuse = glm::vec3(0.07568f, 0.61424f, 0.07568f);
+    material.specular = glm::vec3(0.633f, 0.727811f, 0.633f);
+    material.shininess = 128.0f;
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
@@ -204,6 +164,11 @@ void Init() {
 
     // setup light cube
     CreateLightCube();
+    light.source = glm::vec3(0.0f, 1.0f, 1.5f);
+    light.ambient = glm::vec3(1.0f);
+    light.diffuse = glm::vec3(1.0f);
+    light.specular = glm::vec3(1.0f);
+
     glGenVertexArrays(1, &LVAO);
     glBindVertexArray(LVAO);
 
@@ -213,28 +178,12 @@ void Init() {
     glEnableVertexAttribArray(0);  // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
     glBindVertexArray(0);
-    
+
     // create shaders
-    PO = CreateShader(__DIR__);
-    LPO = CreateShader(__DIR__ + "light\\");
-
-    // load texture maps
-    material.diffuse_map = (GLuint)LoadTexture(__DIR__ + "textures\\Diffuse.jpg");
-    material.specular_map = (GLuint)LoadTexture(__DIR__ + "textures\\Specular.jpg");
-    material.emission_map = (GLuint)LoadTexture(__DIR__ + "textures\\Emission.jpg");
-    material.shininess = 64.0f;
-
-    // setup material uniforms
-    glUseProgram(PO);
-    glUniform1i(glGetUniformLocation(PO, "material.diffuse"), 0);   // bind to texture unit 0
-    glUniform1i(glGetUniformLocation(PO, "material.specular"), 1);  // bind to texture unit 1
-    glUniform1i(glGetUniformLocation(PO, "material.emission"), 2);  // bind to texture unit 2
-
-    // setup light source
-    light.source = glm::vec3(0.0f, 1.0f, 1.5f);
-    light.ambient = glm::vec3(1.0f);
-    light.diffuse = glm::vec3(1.0f);
-    light.specular = glm::vec3(1.0f);
+    std::string file_path = __FILE__;
+    std::string dir = file_path.substr(0, file_path.rfind("\\")) + "\\";
+    PO = CreateShader(dir);
+    LPO = CreateShader(dir + "light\\");
 
     // model view projection
     camera.position = glm::vec3(0.0f, 1.0f, 2.5f);
@@ -279,7 +228,7 @@ void SmoothKeyControl() {
 }
 
 void Display() {
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -316,16 +265,10 @@ void Display() {
         glUniform3fv(glGetUniformLocation(PO, "light.diffuse"), 1, &light.diffuse[0]);
         glUniform3fv(glGetUniformLocation(PO, "light.specular"), 1, &light.specular[0]);
 
+        glUniform3fv(glGetUniformLocation(PO, "material.ambient"), 1, &material.ambient[0]);
+        glUniform3fv(glGetUniformLocation(PO, "material.diffuse"), 1, &material.diffuse[0]);
+        glUniform3fv(glGetUniformLocation(PO, "material.specular"), 1, &material.specular[0]);
         glUniform1f(glGetUniformLocation(PO, "material.shininess"), material.shininess);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, material.diffuse_map);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, material.specular_map);
-
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, material.emission_map);
 
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     }
@@ -379,10 +322,18 @@ void SpecialUp(int key, int x, int y) {
 }
 
 void Mouse(int button, int state, int x, int y) {
-    // when the left button is clicked, toggle light mode (weak/strong)
+    // change to random material color when the left button is clicked
     if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        light.ambient = glm::length(light.ambient) >= 0.999f ? glm::vec3(0.2f, 0.2f, 0.2f) : glm::vec3(1.0f);
-        light.diffuse = glm::length(light.diffuse) >= 0.999f ? glm::vec3(0.5f, 0.5f, 0.5f) : glm::vec3(1.0f);
+        material.ambient = glm::vec3(
+            0.4f * (float)rand() / RAND_MAX,
+            0.4f * (float)rand() / RAND_MAX,
+            0.4f * (float)rand() / RAND_MAX
+        );
+        material.diffuse = glm::vec3(
+            0.8f * (float)rand() / RAND_MAX,
+            0.8f * (float)rand() / RAND_MAX,
+            0.8f * (float)rand() / RAND_MAX
+        );
     }
 
     // in freeglut, each scroll wheel event is reported as a button click
@@ -430,9 +381,6 @@ void PassiveMotion(int x, int y) {
 }
 
 void Cleanup() {
-    glDeleteTextures(1, &material.diffuse_map);
-    glDeleteTextures(1, &material.specular_map);
-    glDeleteTextures(1, &material.emission_map);
     glDeleteProgram(PO);
     glDeleteProgram(LPO);
     glDeleteBuffers(1, &IBO);
