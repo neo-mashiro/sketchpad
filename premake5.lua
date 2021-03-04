@@ -6,6 +6,8 @@ source_dir = "../../src/"     -- relative to the project path
 vendor_dir = "../../vendor/"  -- relative to the project path
 project_name = ""
 
+premake_action = "none"
+
 --------------------------------------------------------------------------------
 -- [ WORKSPACE / SOLUTION CONFIG ]
 --------------------------------------------------------------------------------
@@ -14,11 +16,12 @@ local function setup_solution()
         configurations { "Debug", "Release" }
         platforms      { "x64", "Win32" }
 
-        -- all variables are global by default unless using the local keyword
-        local action = "none"
+        -- all variables are global by default unless the local keyword is used
         -- _ACTION is the command line argument following premake5 (e.g. vs2019)
         if _ACTION ~= nil then
-            action = _ACTION
+            premake_action = _ACTION
+        else
+            error("Please specify an action! (e.g. vs2019)")
         end
 
         -- where to place the solution files (.sln)
@@ -80,12 +83,21 @@ function setup_project()
         -- project's absolute path (path of the script that calls this function)
         local abs_project_path = os.getcwd()
 
-        -- place the project files (.vcxproj) in the root dir (where .sln file is stored)
-        location("../../")
+        -- place the project files (.vcxproj) in the action folder under root dir
+        location("../../" .. premake_action .. "/")
 
-        objdir("../../build/intermediates/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
-        targetdir("../../build/bin/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
-        targetname "Canvas"
+        -- this is the final application to ship, build the executable to app dir
+        if (project_name == "sketchpad") then
+            objdir("../../build/intermediates/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
+            targetdir("../../app/")
+            targetname "z-sketchpad"  -- application name = z-sketchpad.exe
+
+        -- build all other sandbox chapters into the build folder
+        else
+            objdir("../../build/intermediates/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
+            targetdir("../../build/bin/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
+            targetname "Sandbox"
+        end
 
         -- use main() instead of WinMain() as the application entry point
         entrypoint "mainCRTStartup"
@@ -208,12 +220,12 @@ function setup_project()
         -- [ POST BUILD ACTIONS ]
         ------------------------------------------------------------------------
         -- [ CAVEAT ] shell commands are executed later in a real build inside Visual
-        -- Studio, NOT here in premake, as a result, any pre/post command must still
-        -- use the root dir (where .sln file is stored) as the working directory.
+        -- Studio, NOT here in premake, as a result, any pre/post command must use
+        -- the `action` folder (where .vcxproj file is stored) as the working directory.
 
         postbuildmessage "Copying dynamic DLL file to the target path ..."
         postbuildcommands {
-            "{COPY} vendor/GLUT/bin/%{cfg.platform}/freeglut.dll %{cfg.targetdir}"
+            "{COPY} ../vendor/GLUT/bin/%{cfg.platform}/freeglut.dll %{cfg.targetdir}"
         }
 
         -- keep the intermediate files after a build, we still need the `main.obj` file to debug
