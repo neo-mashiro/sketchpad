@@ -32,6 +32,7 @@ vendor/premake/premake5.exe vs2019
 
 ## Useful References
 
+- CMU 15-462/662: [Course Home](http://15462.courses.cs.cmu.edu/fall2020/home), [Video Lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
 - [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
 - [OpenGL API Documentation](http://docs.gl/)
 - [OpenGL-Tutorials](https://www.opengl-tutorial.org/)
