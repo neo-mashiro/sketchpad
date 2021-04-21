@@ -57,7 +57,7 @@
 
 \usepackage[type={CC}, modifier={by-nc-sa}, version={3.0},]{doclicense}
 
-\title{3D Math Review Practice}
+\title{Basic 3D Math Practice}
 \author{\href{mailto:neo-mashiro@hotmail.com}{\color{purple}{Wentao Lu}}}
 \date{2020-09-15}
 
@@ -381,7 +381,7 @@
     
     This time the 3x3 rotation matrix is given by
     \begin{align*}
-        M=uu^T+cos\theta (I-uu^T)+sin\theta \cdot U,\; \text{where} U=
+        M=uu^T+cos\theta (I-uu^T)+sin\theta \cdot U,\; \text{where}\; U=
         \begin{bmatrix}
             0 & -z & y\\
             z & 0 & -x\\
@@ -524,7 +524,7 @@
         \frac{v}{||v||}=\frac{(2,1,1)}{\sqrt{2^2+1^2+1^2}}=(\frac{2}{\sqrt{6}},\frac{1}{\sqrt{6}},\frac{1}{\sqrt{6}})=(x,y,z)
     \end{align*}
     
-    The matrix $R_{vy}(\theta _{vy}) \cdot R_{vx}(\theta _{vx})$ will align $v$ with the z-axis. In other words, using the inverse of this matrix, we can align the z-axis with $v$.
+    The matrix $R_{vy}(\theta _{vy}) \cdot R_{vx}(\theta _{vx})$ will align $v$ with the z-axis. Or to put it another way, using the inverse of this matrix, we can align the z-axis with $v$.
     \begin{align*}
         R_{vx}(\theta _{vx}) &= \begin{bmatrix}
             1 &   0   &   0   & 0\\
@@ -590,172 +590,351 @@
     0.     &  0.     &  0.     &  1.
     \end{bmatrix}$\\
 
+\section{3D Projections}
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{enumerate}[leftmargin=*]
+        \item[\textcolor{blue}{1.}] Derive the matrix of the parallel projection onto the plane $x + y + z$ = 1 in the direction of projector $v(-1,-1,-1)$.
+    \end{enumerate}
+    
+    \solution
+    
+    $v(-1,-1,-1)$ is in the opposite direction of $(1,1,1)$, which is a normal of the projection plane, but the projection plane is not parallel with the principal planes, so this is an axonometric projection. Consider a reference point of the plane $R(x_0,y_0,z_0)=(1,0,0)$ that satisfies the plane equation $x + y + z = 1$, and a unit normal vector of the plane
+    \begin{align*}
+        n=\frac{(1,1,1)}{\sqrt{1^2+1^2+1^2}}=(\frac{1}{\sqrt{3}},\frac{1}{\sqrt{3}},\frac{1}{\sqrt{3}})=(a,b,c)
+    \end{align*}
+    
+    To project a point $P(x,y,z)$ to its image $P'(x',y',z')$ on the plane, apply the transform
+    \begin{align*}
+        \begin{bmatrix}
+            x'\\y'\\z'\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            1-a^2 & -ab & -ac & ad_0\\
+            -ab & 1-b^2 & -bc & bd_0\\
+            -ac & -bc & 1-c^2 & cd_0\\
+            0   &  0  &   0   & 1
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+    \end{align*}
+    
+    where $d_0=ax_0 + by_0 + cz_0=a=\frac{1}{\sqrt{3}}$.\vspace{1mm}
+    
+    so the projection matrix is
+    \begin{align*}
+        \begin{bmatrix}
+            1-a^2 & -ab & -ac & ad_0\\
+            -ab & 1-b^2 & -bc & bd_0\\
+            -ac & -bc & 1-c^2 & cd_0\\
+            0   &  0  &   0   & 1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            2/3 & -1/3 & -1/3 & 1/3\\
+            -1/3 & 2/3 & -1/3 & 1/3\\
+            -1/3 & -1/3 & 2/3 & 1/3\\
+            0   &  0  &   0   & 1
+        \end{bmatrix}
+    \end{align*}
 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{enumerate}[leftmargin=*]
+        \item[\textcolor{blue}{2.}] Derive the matrix of general perspective projection onto the plane with normal vector $\bm{n}(a,b,c)$ and reference point $R(x_0,y_0,z_0)$ and using $C(c_x,c_y,c_z)$ as the center of projection.
+    \end{enumerate}
+    
+    \solution
+    
+    Let $P(x,y,z)$ be a point in 3D and $P'(x',y',z')$ be its projection on the plane. By definition, vector $P'P$ must pass through the center of projection $C$, so $CP'=\lambda CP$, i.e.
+    \begin{equation}
+        \begin{cases}
+            x'-c_x = \lambda (x-c_x)\\
+            y'-c_y = \lambda (y-c_y)\\
+            z'-c_z = \lambda (z-c_z)
+        \end{cases}
+        \Leftrightarrow \;\;\label{eq:1}
+        \begin{bmatrix}
+            x'\\y'\\z'
+        \end{bmatrix}
+        =\lambda
+        \begin{bmatrix}
+            x\\y\\z
+        \end{bmatrix}
+        +(1-\lambda)
+        \begin{bmatrix}
+            c_x\\c_y\\c_z
+        \end{bmatrix}
+    \end{equation}
+    
+    The perpendicular distance from center of projection $C$ to the plane can be computed as
+    \begin{align*}
+        d_{cr} &= CR \cdot \bm{n}\\
+        &= a(x_0-c_x)+b(y_0-c_y)+c(z_0-c_z)\\
+        &= (ax_0+by_0+cz_0)-(ac_x+bc_y+cc_z)\\
+        &= d_r-d_c
+    \end{align*}
+    
+    Here, we decompose $d_{cr}$ into two constants that are geometrically meaningful: $d_r$ is the perpendicular distance from the origin to the plane, and $d_c$ measures the distance from the origin to the center of projection $C$ along the projector direction.\vspace{3mm}
+    
+    Since $CR=CP'+P'R$ and $CP'=\lambda CP$, it follows that
+    \begin{align*}
+        d_{cr} &= CR \cdot \bm{n}\\
+        &= CP'\cdot \bm{n}+P'R\cdot \bm{n}\\
+        &= \lambda CP \cdot \bm{n} + 0\\
+        &= \lambda [a(x-c_x)+b(y-c_y)+c(z-c_z)]\\
+        &= \lambda [(ax+by+cz)-(ac_x+bc_y+cc_z)]\\
+        &= \lambda [(ax+by+cz)-d_c]
+    \end{align*}
+    
+    therefore, we can derive the factor $\lambda$
+    \begin{align*}
+        \Rightarrow\lambda=\frac{d_{cr}}{(ax+by+cz)-d_c}
+    \end{align*}
+    
+    substitute $\lambda$ into the above equation \eqref{eq:1}, we obtain \vspace{1mm}
+    \begin{align*}
+        \begin{bmatrix}
+            x'\\y'\\z'
+        \end{bmatrix}
+        =\frac{d_{cr}}{(ax+by+cz)-d_c}
+        \begin{bmatrix}
+            x\\y\\z
+        \end{bmatrix}
+        +(1-\frac{d_{cr}}{(ax+by+cz)-d_c})
+        \begin{bmatrix}
+            c_x\\c_y\\c_z
+        \end{bmatrix}
+    \end{align*}
+    
+    In order to convert this into homogeneous matrix form, first we need to translate COP to the origin so it reduces to a simple case, then apply the homogeneous transform, and finally undo the translation. Therefore, the matrix in this general case can be computed as
+    \begin{align*}
+        M_C = T_C \cdot M_0 \cdot T_{-C}=
+        \begin{bmatrix}
+            1 & 0 & 0 & c_x\\
+            0 & 1 & 0 & c_y\\
+            0 & 0 & 1 & c_z\\
+            0 & 0 & 0 & 1
+        \end{bmatrix}
+        \begin{bmatrix}
+            d_{cr} & 0 & 0 & 0\\
+            0 & d_{cr} & 0 & 0\\
+            0 & 0 & d_{cr} & 0\\
+            a & b & c & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+            1 & 0 & 0 & -c_x\\
+            0 & 1 & 0 & -c_y\\
+            0 & 0 & 1 & -c_z\\
+            0 & 0 & 0 & 1
+        \end{bmatrix}
+    \end{align*}
+    
+    after factoring and combining like terms, finally we have \vspace{1mm}
+    \begin{align*}
+        \begin{bmatrix}
+            x'\\y'\\z'\\1
+        \end{bmatrix}
+        =M_C
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            ac_x+d_{cr} & bc_x        & cc_x        & -d_rc_x\\
+            ac_y        & bc_y+d_{cr} & cc_y        & -d_rc_y\\
+            ac_z        & bc_z        & cc_z+d_{cr} & -d_rc_z\\
+            a           & b           & c           & -d_c
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+    \end{align*}\vspace{1mm}
+    
+    if we expand $M_C$, the projection matrix will be\vspace{1mm}
+    \begin{align*}
+        M=
+        \begin{bsmallmatrix}
+            ax_0+b(y_0-c_y)+c(z_0-c_z) & bc_x                       & cc_x                       & -(ax_0+by_0+cz_0)c_x\\
+            ac_y                       & a(x_0-c_x)+by_0+c(z_0-c_z) & cc_y                       & -(ax_0+by_0+cz_0)c_y\\
+            ac_z                       & bc_z                       & a(x_0-c_x)+b(y_0-c_y)+cz_0 & -(ax_0+by_0+cz_0)c_z\\
+            a                          & b                          & c                          & -(ac_x+bc_y+cc_z)
+        \end{bsmallmatrix}
+    \end{align*}\vspace{2mm}
 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{enumerate}[leftmargin=*]
+        \item[\textcolor{blue}{3.}] Using the origin as the center of projection, derive the perspective transformation onto the plane passing through $(1,0,0)$ and having the normal $n(1,1,1)$.\\
+        What are the principal vanishing points for this perspective transformation?
+    \end{enumerate}
+    
+    \solution
+    
+    Using $(1,0,0)$ as the reference point $R(x_0,y_0,z_0)$ and $(\frac{1}{\sqrt{3}},\frac{1}{\sqrt{3}},\frac{1}{\sqrt{3}})=(a,b,c)$ as the unit normal vector, we have $d_0=ax_0 + by_0 + cz_0=\frac{1}{\sqrt{3}}$, so the transformation is
+    \begin{align*}
+        \begin{bmatrix}
+            x'\\y'\\z'\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            d_0 & 0 & 0 & 0\\
+            0 & d_0 & 0 & 0\\
+            0 & 0 & d_0 & 0\\
+            a & b & c & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            \frac{1}{\sqrt{3}} & 0 & 0 & 0\\
+            0 & \frac{1}{\sqrt{3}} & 0 & 0\\
+            0 & 0 & \frac{1}{\sqrt{3}} & 0\\
+            \frac{1}{\sqrt{3}} & \frac{1}{\sqrt{3}} & \frac{1}{\sqrt{3}} & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+    \end{align*}
 
+    Consider the family of parallel lines in the direction of $(u_x,u_y,u_z)$
+    \begin{align*}
+        x = u_xt+\alpha,\;\;y = u_yt+\beta,\;\;z = u_zt+\gamma
+    \end{align*}
 
+    where $\alpha,\beta,\gamma$ are constants and $t$ is any real number.\vspace{2mm}
+    
+    Apply the projection matrix to the points on the line, we have
+    \begin{align*}
+        \begin{bmatrix}
+            x'\\y'\\z'\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            \frac{1}{\sqrt{3}} & 0 & 0 & 0\\
+            0 & \frac{1}{\sqrt{3}} & 0 & 0\\
+            0 & 0 & \frac{1}{\sqrt{3}} & 0\\
+            \frac{1}{\sqrt{3}} & \frac{1}{\sqrt{3}} & \frac{1}{\sqrt{3}} & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            x/\sqrt{3}\\y/\sqrt{3}\\z/\sqrt{3}\\(x+y+z)/\sqrt{3}
+        \end{bmatrix}
+        \sim
+        \begin{bmatrix}
+            x/(x+y+z)\\y/(x+y+z)\\z/(x+y+z)\\1
+        \end{bmatrix}
+    \end{align*}
+    
+    as ${t\to\infty}$, this becomes
+    \begin{align*}
+        \begin{bmatrix}
+            x/(x+y+z)\\y/(x+y+z)\\z/(x+y+z)\\1
+        \end{bmatrix}_{t\to\infty}
+        =
+        \begin{bmatrix}
+            \frac{u_xt+\alpha}{(u_x+u_y+u_z)t+\alpha+\beta+\gamma}\\
+            \frac{u_yt+\beta}{(u_x+u_y+u_z)t+\alpha+\beta+\gamma}\\
+            \frac{u_zt+\gamma}{(u_x+u_y+u_z)t+\alpha+\beta+\gamma}\\
+            1
+        \end{bmatrix}_{t\to\infty}
+        =
+        \begin{bmatrix}
+            u_x/(u_x+u_y+u_z)\\u_y/(u_x+u_y+u_z)\\u_z/(u_x+u_y+u_z)\\1
+        \end{bmatrix}
+    \end{align*}
+    
+    \indent when $u_x=1,u_y=u_z=0$, the x-axis vanishing point is $(1,0,0,1)$.\\
+    \indent when $u_y=1,u_x=u_z=0$, the y-axis vanishing point is $(0,1,0,1)$.\\
+    \indent when $u_z=1,u_x=u_y=0$, the z-axis vanishing point is $(0,0,1,1)$.\vspace{2mm}
 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{enumerate}[leftmargin=*]
+        \item[\textcolor{blue}{4.}] Assume given the canonical perspective projection where the view plane is parallel to the xy-plane and located at distance $d>$ 0 on the positive z-axis, and the center of projection located at the origin.
+        \begin{enumerate}
+            \item What is the projected image of a point $P(x,y,0)$ located in the xy-plane.
+            \item What is the projected image of the line segment joining the points $P_1(-1,1,-d)$ and $P_2(2,-2,d)$.
+        \end{enumerate}
+    \end{enumerate}
+    
+    \solution
+    
+    Given the canonical camera setup with a focal length of $d$, the perspective projection on any point $(x,y,z)$ where $z$ is not zero is given by
+    \begin{align*}
+        \begin{bmatrix}
+            1 & 0 & 0 & 0\\
+            0 & 1 & 0 & 0\\
+            0 & 0 & 1 & 0\\
+            0 & 0 & \frac{1}{d} & 0
+        \end{bmatrix}
+        \begin{bmatrix}
+            x\\y\\z\\1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            x\\y\\z\\z/d
+        \end{bmatrix}
+        \sim
+        \begin{bmatrix}
+            dx/z\\dy/z\\d\\1
+        \end{bmatrix}
+    \end{align*}
+    
+    \begin{enumerate}
+        \item Since $P(x,y,0)$ is located in the xy-plane, $z$ = 0, we cannot use the formula above. In fact, the line from $P$ to the center of projection (the origin) is on the xy-plane, which does not intersect with the view plane. Hence, $P$ is invisible to the viewer.
+        \item $OP_1$ and $OP_2$ are not in the same direction, so they will be projected onto different end points on the view plane.
+        \begin{align*}
+            P_1^* &= (-d/-d,d/-d,d,1) = (1,-1,d,1)\\
+            P_2^* &= (2d/d,-2d/d,d,1) = (2,-2,d,1)
+        \end{align*}
+        therefore, their 2D coordinates on the view plane are $P_1^*$=$(1,-1)$,$P_2^*$=$(2,-2)$, the projected image will be the line segment joining $P_1^*$ and $P_2^*$.
+    \end{enumerate}
 
+\section{Change of Frame}
+    Find the matrix that converts the coordinates $a^T$ = $(\alpha_1,\alpha_2,\alpha_3,\alpha_4)$ in the frame $[u_1,u_2,u_3,P_0]$ into coordinates $b^T$ = $(\beta_1,\beta_2,\beta_3,\beta_4)$ in the new frame $[v_1,v_2,v_3,Q_0]$, given by
+    \begin{align*}
+        v_1 = u_1,\; v_2 = u_2,\; v_3 = u_2 + u_3,\; Q_0 = P_0 + u_1
+    \end{align*}
+    If $a^T$ = $(1,1,1,1)$, what are the coordinates of $b$?\vspace{3mm}
+    
+    \solution
+    \begin{equation*}
+        \begin{cases}
+            v_1 = 1 \cdot u_1 + 0 \cdot u_2 + 0 \cdot u_3\\
+            v_2 = 0 \cdot u_1 + 1 \cdot u_2 + 0 \cdot u_3\\
+            v_3 = 0 \cdot u_1 + 1 \cdot u_2 + 1 \cdot u_3\\
+            Q_0 = 1 \cdot u_1 + 0 \cdot u_2 + 0 \cdot u_3 + P_0
+        \end{cases}
+        \Rightarrow M=
+        \begin{pmatrix}
+             1 & 0 & 0 & 0\\
+             0 & 1 & 0 & 0\\
+             0 & 1 & 1 & 0\\
+             1 & 0 & 0 & 1
+        \end{pmatrix}
+    \end{equation*}
 
+    this matrix converts homogeneous coordinates between the two frames, like so:
+    \begin{align*}
+        b=(M^T)^{-1}a=
+        \begin{pmatrix}
+            1 & 0 & 0 & 1\\
+            0 & 1 & 1 & 0\\
+            0 & 0 & 1 & 0\\
+            0 & 0 & 0 & 1
+        \end{pmatrix}^{-1}
+        \begin{pmatrix}
+            1\\1\\1\\1
+        \end{pmatrix}=
+        \begin{pmatrix}
+            0\\0\\1\\1\\
+        \end{pmatrix}
+    \end{align*}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%\item For each of the following definitions of \texttt{draw\_stuff()}, match the output of our program with a picture on Figure 1. If no picture matches, indicate this with the word \textbf{none}.
-%
-%\solution
-%\begin{figure}[H]
-%\includegraphics[width=\linewidth]{q1.png}
-%\end{figure}
-%
-%\item Consider the following three points:
-%\begin{enumerate}
-%\item[$\diamond$] $P_0 = (1.0, 2.0, 3.0, 1.0)$
-%\item[$\diamond$] $P_1 = (-5.0, 4.0, 6.0, 1.0)$
-%\item[$\diamond$] $P_2 = (-3.0, 3.0, 6.0, 1.0)$
-%\end{enumerate}
-%\begin{enumerate}
-%\item Compute the normal to the triangular surface defined by these points. The normal should be defined so that it points in the direction determined by the right-hand rule when one traverses the points in the order: $P_0,P_1,P_2$. Make sure to normalize the length to 1.0.
-%\item Given the following light source vector: $(0.0, 1.0, 0.0, 0.0)$, compute the reflection vector for this surface.
-%\item Suppose the direction of the viewer is given by: $v=(0.0,0.0,1.0,0.0)$. If the diffuse, specular and ambient constants for both the light source and the material are all set to 1.0, and there is no attenuation, and the shininess coefficient, alpha is set to 1.0, what is the Intensity reflected from that surface according to the Phong Reflection Model? Calculate the Intensity for the following values of alpha: 1.0, 5.0, 10.0.
-%\end{enumerate}
-%\solution
-%\begin{enumerate}
-%\item The normal to the triangular surface is the cross product of vectors $\overrightarrow{p_0p_1}$ and $\overrightarrow{p_0p_2}$
-%\begin{align*}
-%n_0 &= (p_2-p_0) \times (p_1-p_0) = (-4,1,3) \times (-6,2,3) = (-3,-6,-2)\\
-%\Rightarrow n &= \frac{n_0}{|n_0|} = \frac{(-3,-6,-2)}{\sqrt{3^2+6^2+2^2}} = (-\frac{3}{7},-\frac{6}{7},-\frac{2}{7})
-%\end{align*}
-%\item The light source has a $w$-component of 0, so it's a directional distant light, therefore the light vector for any point is always $I = (0,1,0)$, the reflection vector is
-%\begin{align*}
-%r = 2(I \cdot n)n - I = -\frac{12}{7}n - I = (\frac{36}{49},\frac{23}{49},\frac{24}{49})
-%\end{align*}
-%\item Without the attenuation term, the Phong model is
-%\begin{align*}
-%intensity &= diffuse + specular + ambient\\
-%&= k_d(I \cdot n)L_d + k_s(r \cdot v)^\alpha L_s + k_aL_a
-%\end{align*}
-%since all the constants are set to 1.0, for each of the red, blue, green channel, we have
-%\begin{align*}
-%diffuse &= k_d(I \cdot n)L_d = 1 \times (-\frac{6}{7}) \times 1 = -\frac{6}{7} = 0 \;\;\text{(clamped)}\\
-%specular &= k_s(r \cdot v)^\alpha L_s = 1 \times (\frac{24}{49})^\alpha \times 1 = (\frac{24}{49})^\alpha\\
-%ambient &= k_aL_a = 1 \times 1 = 1.0
-%\end{align*}
-%in practice, each of the diffuse, specular and ambient components must range from $[0,1]$ corresponding to the $[0,255]$ color values, so they are clamped to $[0,1]$. The sum of them is the total intensity, which must also be clamped to the $[0,1]$ range.\\
-%
-%In our case, the ambient component is already 1.0, so the total intensity is always clamped to 1.0 regardless of the value of $\alpha$.\\
-%\end{enumerate}
-%
-%\item Show that if $v$ lies in the same plane as $l, n$ and $r$, then the halfway angle satisfies $2\psi=\phi$. What relationship is there between the angles if $v$ is not coplanar with the other vectors?
-%\begin{figure}[H]
-%\centering
-%\includegraphics[width=0.4\linewidth]{half.png}
-%\end{figure}
-%\solution\\
-%As shown in the figure above, since $r$ is a perfect reflection of $I$, they must be symmetric relative to $n$, so the angle between $I$ and $n$ is equal to the angle between $n$ and $r$. Hence, the angle between $h$ and $r$ is $\theta-\psi$.
-%
-%Besides, $h$ is the halfway vector of $I$ and $v$, by definition, it equally bisects the angle between $I$ and $v$, so
-%\begin{align*}
-%\theta + \psi &= (\theta-\psi) + \phi\\
-%\Rightarrow \phi &= 2\psi
-%\end{align*}
-%if $v$ is not coplanar with the other vectors, $\phi = 2\psi$ does not hold anymore, their relationship varies case by case. For example, if $I, n$ and $r$ are perpendicular to each other, and $v$ is perpendicular to the plane defined by $I, n$ and $r$, all these angles $\theta, \phi$ and $\psi$ will be 90\degree.\\
-%
-%\item Show that the halfway vector $h$ is at the angle at which a surface must be oriented so that the maximum amount of reflected light reaches the viewer.
-%
-%\solution\\
-%In order to view the maximum amount of reflected light, the viewer must be looking down directly at the reflection vector, so we have $v=r$, the angle between them is $\phi = 0$. In this case, all these vectors are on the same plane, so according to the previous problem, we also have
-%\begin{align*}
-%\phi = 2\psi = 0 \Rightarrow \psi = 0
-%\end{align*}
-%since $\psi=0$ is the angle between $n$ and $h$, so $h=n$, which means that the surface must be oriented so that $h$ is aligned with $n$. Otherwise, the viewer can't see the maximum amount of reflected light.\\
-%
-%\item As geometric data pass through the viewing pipeline, a sequence of rotations, translations, scalings, and a projection transformation is applied to the vectors that determine the cosine terms in the Phong reflection model. Which, if any, of these operations preserve(s) the angles between the vectors? What are the implications of your answer for implementation of shading?
-%
-%\solution\\
-%If an operation preserves the angles between vectors, the cosine terms are maintained, so the dot product of the vectors does not change. Suppose we have vectors $u$ and $v$, and a transformation matrix $M$, to preserve the angles between $u$ and $v$, we would want
-%\begin{align*}
-%Mu \cdot Mv = u \cdot v
-%\end{align*}
-%since the dot product $u \cdot v = u^Tv$, it implies that
-%\begin{align*}
-%Mu \cdot Mv &= (Mu)^T(Mv) = (u^TM^T)(Mv)\\
-%&= u^T(M^TM)v = u \cdot v = u^Tv
-%\end{align*}
-%in order for the equation $u^T(M^TM)v = u^Tv$ to hold, we must have
-%\begin{align*}
-%M^TM &= I \;\;\small\text{(the identity matrix)}\normalsize\\
-%\Rightarrow M^T &= M^{-1}
-%\end{align*}
-%In other words, the transformation matrix $M$ needs to be invertible and orthogonal.
-%
-%Translations and rotations are orthogonal, scaling is not, so only translations and rotations preserve the angles between the vectors. Also, orthogonal projection preserves distances and angles, but perspective projection does not.
-%
-%Therefore, to implement shading correctly, we must be careful about scaling and perspective projection, in specific, we must either preserve spatial relationships as vertices and vectors pass through the pipeline, or go backward through the pipeline to obtain the required shading information.
-%
-%\item Show mathematically how the texture pattern in Figure 2(a) can be transferred to the cylindrical surface patch in Figure 2(b).
-%\begin{figure}[H]
-%\centering\includegraphics[width=0.8\linewidth]{66.png}
-%\end{figure}
-%\solution\\
-%Figure 2(a) is a unit square bitmap, where $0 \leq s,t \leq 1$.\\
-%Figure 2(b) is a curved part of the cylinder, suppose the height is $h$, any point on the surface can be represented by:
-%\begin{align*}
-%x &= rcos\theta \;\;(0 \leq \theta \leq \frac{\pi}{2})\\
-%y &= rsin\theta \;\;(0 \leq \theta \leq \frac{\pi}{2})\\
-%z &= kh \;\;(0 \leq k \leq 1)
-%\end{align*}
-%
-%As $s$ goes from 0 to 1, we want $\theta$ to go from 0 to $\frac{\pi}{2}$.\\
-%As $t$ goes from 0 to 1, we want $k$ to go from 0 to 1, so that $z$ goes from 0 to $h$.
-%
-%Hence, the texture image can be mapped to the cylinder patch via
-%\begin{align*}
-%s &= \theta / \frac{\pi}{2} = \frac{2\theta}{\pi}\\
-%t &= k
-%\end{align*}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%\end{enumerate}
+    \vfill
+    \doclicenseThis
 
 \end{document}
