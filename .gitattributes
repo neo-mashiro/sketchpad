@@ -1,2 +1,2 @@
 vendor/* linguist-vendored
-doc/review.tex -linguist-documentation
+doc/math_review.tex -linguist-documentation=true
