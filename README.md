@@ -1,6 +1,6 @@
 # sketchpad (Windows 10)
 
-A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL Rendering Pipeline. This framework was built to quickly test some low-level graphics topics and to learn how they work in OpenGL.
+A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL rendering pipeline. This framework was built to quickly test some low-level graphics features and to learn how they work in OpenGL. Future versions may consider using the [SPIR-V](https://www.khronos.org/spir/) open source ecosystem to support Vulkan or OpenCL.
 
 ## Dependencies
 
@@ -51,4 +51,4 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 - [OpenGL Video Series, The Cherno](https://www.youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2)
 - [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
 - [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)
-- [GLSL v4.60 Specification](https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language)
+- [GLSL v4.60 Specification](https://github.com/neo-mashiro/sketchpad/blob/main/res/GLSL%20v4.60%20Spec.pdf)
