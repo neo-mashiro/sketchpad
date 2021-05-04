@@ -1,6 +1,6 @@
 # sketchpad (Windows 10)
 
-A simple canvas for testing out various topics and rendering techniques in Computer Graphics using the OpenGL Rendering Pipeline.
+A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL Rendering Pipeline. This framework was built to quickly test some low-level graphics topics and to learn how they work in OpenGL.
 
 ## Dependencies
 
@@ -26,13 +26,13 @@ git clone https://github.com/neo-mashiro/sketchpad.git
 cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
-Besides, it is recommended to use spaces everywhere instead of tabs. In case the **tab size** of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, there are so many hard-to-read repos on Github that use inconsistent indentation in the same file, because they are mixing four spaces with two tabs (of size 2) in the IDE, which is then converted to eight spaces on Github...
-
-![tab-settings](res/SPC.png)
+As an aside, it is recommended to use spaces everywhere instead of tabs. In case the **tab size** of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, there are so many hard-to-read repos on Github that use inconsistent indentation in the same file, because they are mixing four spaces with two tabs (of size 2) in the IDE, which is then converted to eight spaces on Github...
 
 ![tab-settings](res/spaces.PNG)
 
-## Build a single project
+![tab-settings](res/SPC.png)
+
+## How to build a scene
 
 - (WIP) add screenshot: select startup project in the solution's properties window
 - (WIP) add screenshot: keyboard controls, message boxes, mouse controls, motions, etc.
@@ -47,9 +47,8 @@ Besides, it is recommended to use spaces everywhere instead of tabs. In case the
 - CMU 15-462/662: [Course Home](http://15462.courses.cs.cmu.edu/fall2020/home), [Video Lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
 - [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
 - [OpenGL API Documentation](http://docs.gl/)
-- [OpenGL-Tutorials](https://www.opengl-tutorial.org/)
 - [Learn OpenGL](https://learnopengl.com)
 - [OpenGL Video Series, The Cherno](https://www.youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2)
 - [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
 - [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)
-- [OpenGL Shading Language](https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language)
+- [GLSL v4.60 Specification](https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language)
