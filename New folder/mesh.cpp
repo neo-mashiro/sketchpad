@@ -65,7 +65,7 @@ class Mesh {
                 shader.SetInt(textures[i].type, i);  // set sampler uniform
             }
 
-            glBindTexture(GL_TEXTURE_2D, textures[i].id);  // bind texture in this unit
+            glBindTexture(textures[i].target, textures[i].id);  // bind texture in this unit
         }
     }
 
