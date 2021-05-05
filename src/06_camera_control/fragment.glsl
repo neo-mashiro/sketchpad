@@ -1,4 +1,4 @@
-#version 440
+#version 460
 
 in vec2 _uv;
 in vec3 _normal;

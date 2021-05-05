@@ -63,24 +63,69 @@ glBindBuffer(GL_ARRAY_BUFFER, VBO);
 glEnableVertexAttribArray(0);  // 这里0其实是VAO array中的一个指针
 glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);  //这里是告诉VBO我的数据的layout是怎样的，但实际上信息是绑到VAO里的
 
-/* 有时候，你可能会遇到一个OpenGL程序根本没有shader，没有VAOVBO，而且有一堆下面这种神秘代码，不要去理会，这是上世纪90年代的写法。
-   这些都是legacy OpenGL的东西，定义了一堆built-in的MVP矩阵，你可以去load然后transform它们之类的，还有几个default的shader在后台运行。这些历史方法，本来的初衷是为了简化程序，造了一堆默认的东西，为了让程序员不用写shader不做空间变换不定义VAO、VBO也能简单的画图，并配合最原始的glVertex等方法使用，但是它们性能很烂，而且自由度很小，只能完成最基础的需求。OpenGL4开始，这些方法早就deprecated了，被淘汰许多年了。
-   现代的OpenGL，没有人会用glVertex去一个点一个点的画，再画一堆原始的primitive，这样很蠢。现代的做法，都是要把vertices数据提前准备好，cache在程序里，然后再定义VAO,VBO,IBO，再用glDrawArray()和glDrawElements()这些方法去批量的画图。并且，程序员要自己手动处理MVP矩阵的变换，更加灵活。当然，自己写shader也是必不可少的，一个程序必须要至少有vs和fs两个shader，而不是去用legacy自带的shader。MVP变换本来就是vertex shader要做的事情。
-*/
+// some legacy OpenGL (deprecated, don't use)
 glMatrixMode(GL_PROJECTION);  // activate the built-in projection matrix to modify it
 glLoadIdentity();  // clean out any old leftover matrices
 gluPerspective(90.0, 800/600, 0.01, 100.0);
 glTranslatef(0,0,-2.0);
+glRotatef();
+glScalef();
 glMultMatrixf(&viewMatrix[0][0]);
 glMatrixMode(GL_MODELVIEW);  // activate the built-in model-view matrix to modify it
-glLoadIdentity();
 gluLookAt(1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 glPushMatrix();  // save coordinate system
 glPopMatrix();   // restore/load coordinate system
-...
+
+// some legacy GLSL (deprecated, don't use)
+gl_ModelViewMatrix = mat4(...);
+gl_ModelViewMatrixProjection = mat4(...);
+attribute vec3 position;
+varying vec2 myTexCoord;
+
+
+
+// Try to not overburden the fragment processors of your GPU.
+// it is recommended to do computations in the vertex shader rather than in the fragment shader, because
+// for every vertex shader invocation, the fragment shader could be invoked hundreds or thousands of times more.
+// (this is because the number of fragments is far more >> than the number of vertices, think of fragments as pixels)
+
+// 尽可能的多使用Swizzle操作，Swizzle masks are essentially free in hardware
+// Swizzle有三种表示方式，随意使用，xyzw, rgba, stpq
+in vec4 in_pos;
+// The following two lines:
+gl_Position.x = in_pos.x;
+gl_Position.y = in_pos.y;
+// can be simplified to:
+gl_Position.xy = in_pos.xy;  // much more efficient and faster
+
+// 除法是比较昂贵的，通常需要cost额外的计算cycle，可能的情况下，尽量改成做乘法
+vec4 x = (value / 2.0f);
+vec4 x = (value * 0.5f);  // much faster
+
+// 同样的操作，尽可能使用built-in的函数，不要自己计算，built-in的函数是优化过的，要快很多
+x = a * t + b * (1 - t);  // slow
+x = mix(a, b, t);         // fast
+
+vec3 a;
+value = a.x + a.y + a.z;        // slow
+value = dot(a, vec4(1.0).xyz);  // fast
+
+// 现实的应用中，关于VBO的使用是很有讲究的，当涉及到许多个mesh的时候，是分开bind多个VBO好，还是组合在一个大的VBO里好，是很复杂的。
+// 这个问题要考虑许多因素，比如用大的VBO可以减少切换上下文的开销，但是每次draw一个mesh的时候，其他mesh的资源是被浪费的，等等，有很多权衡取舍。
+// 此外，还要考虑是否是用了batch rendering，考虑mesh的大小，以及这些mesh是否需要频繁的更新，有时候可能还要用glBufferSubData来对mesh分层。
+// 目前暂时不要考虑这些优化的问题，只做一个可以学习技术的项目就好了。
+
+// GLSL中创建矩阵的时候，用vec来构建，但是要注意，矩阵是用column major order来创建的，每个vec必须是列，而不是行
+mat2(vec2, vec2);
+mat3(vec3, vec3, vec3);
+mat4(vec4, vec4, vec4, vec4);
+
+// GLSL中的float，不需要以f结尾，这点和C++ C#不一样。不要写f，这样看上去整洁一点。
+float x = 3.5;
+float y = 4.2f;  // unnecessary
 
 /*
-频幕上最终能看到的vertex全都是在Normalized Device Coordinates (NDC)空间里的，俗称NDC space。它就是xyz三个轴都在[-1,1]之间的一个立方体范围。
+频幕上最终能看到的vertex全都是在Normalized Device Coordinates(NDC)空间里的，俗称NDC space。它就是xyz三个轴都在[-1,1]之间的一个立方体范围。
 vertex shader的最终输出的gl_Position，就是把所有vertex的position转换到NDC空间。
 NDC以外的vertex会被clip丢弃掉。
 被转换到NDC空间的点，然后会通过glViewport转换为屏幕上的screen-space的点，这些点是最终我们看到的，也是fragment shader的input。
@@ -95,16 +140,18 @@ NDC以外的vertex会被clip丢弃掉。
 尤其要注意的是，假如你定义了一个没有被shader程序用到的uniform，那么GLSL编译器会自动remove这个变量，于是你用glGetUniformLocation去query它的时候，结果会返回-1（但并不是报错），然后程序正常运行却显示黑屏，很难debug。
 
 关于texture，FS里的sampler2D，samplerCube...等uniform，他们的location专门有个名称，叫做texture unit。
-一般来说default都是texture unit 0，并且是默认开启的，我们并不需要显式地query这个uniform的location再用glUniform1i给它赋值我们的texture，当调用glBindTexture的时候，这是自动完成的。但有的显卡可能没有default，所以unit 0通道不存在，这时候就必须要手动glUniform1i去赋值，否则黑屏。所以稳妥起见，每次都自己手动赋值比较清晰。
+一般来说default都是texture unit 0，并且是默认开启的，我们并不需要显式地query这个uniform的location再用glUniform1i给它赋值我们的texture，当调用glBindTexture的时候，这是自动完成的。但有的显卡驱动可能没有default，所以unit 0通道不存在，这时候就必须要手动glUniform1i去赋值，否则黑屏。所以稳妥起见，每次都自己手动赋值比较清晰。
 
 OpenGL至少会有16个通道，16个texture units。我们可以叠加或使用多个texture，先activate一个通道，然后去bind texture，就会自动bind到那个通道。
 glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
 glBindTexture(GL_TEXTURE_2D, texture);
 
+normal map和bump map不是一回事。bump map是通过grayscale修改每个像素是偏黑还是偏白，提供像素的depth的错觉，但只有上下两个方向，它产生的detail是假的，通过旋转camera到不同的角度，就很容易发现，所以bump map只适合模拟大概的细节，优点是比较容易制作。
+而normal map其实是新一代更先进的bump map，虽然normal map产生的depth细节也是假的，但它用的是RGB信息来对应3D空间的XYZ，给每个点都提供了normal的数据，参与shading的计算，所以哪怕camera换了角度也不会失真。
 
-
-
-
+change to GLFW3!!!!
+change to GLAD!!!!!
+import IMGUI!!!!!
 
 
 
@@ -131,7 +178,9 @@ glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
 
-
+最后把所有的小项目整合成为一个deliverable，功能就和Unity的material选择器一样。
+（做个大概雏形就可以，功能不要太复杂，因为这已经是game engine的范畴了，比Mana-Oasis优先度低很多）
+默认的model是一个3D的单位sphere，即材质球，在viewport中显示。window比viewport大一点，周边加上menu和button和滑动bar，让用户可以自己选择各种选项，包括但不限于：texture（各种diffuse map，albedo，normal map之类的），light，skybox，或是上传自己的3D模型mesh数据来替代sphere，加上animation数据。然后要显示fps，要有一个plane，鼠标键盘要和FPS controller视角一样。
 
 
 

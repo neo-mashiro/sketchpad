@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
 #include "canvas.h"
 
 enum class Direction { W, A, S, D };
@@ -35,7 +36,7 @@ class Camera {
         float euler_x = 0.0f, float euler_y = -90.0f);
 
     glm::mat4 GetViewMatrix(void) const;
-    glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.0f) const;
+    glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.77777777f) const;  // default 16:9 window
 
     void Update(Canvas::MouseState mouse, int zoom, Canvas::KeyState keystate, float deltatime, bool snap = true);
 };

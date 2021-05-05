@@ -1,4 +1,3 @@
-#include "define.h"
 #include "canvas.h"
 
 
@@ -17,25 +16,23 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     #endif
 }
 
-// Strips out the current directory path from a file path, either absolute or relative.
 std::string ParseDir(const std::string& file_path) {
     return file_path.substr(0, file_path.rfind("\\")) + "\\";
 }
 
-extern Window window;
+extern Canvas canvas;
 
 int main(int argc, char** argv) {
     SetConsoleOutputCP(65001);  // set the console code page to utf-8
 
     glutInit(&argc, argv);
-    SetupWindow();
-    glutInitDisplayMode(window.display_mode);
-    glutInitWindowSize(window.width, window.height);
-    glutInitWindowPosition(window.pos_x, window.pos_y);
+    glutInitDisplayMode(canvas.window.display_mode);
+    glutInitWindowSize(canvas.window.width, canvas.window.height);
+    glutInitWindowPosition(canvas.window.pos_x, canvas.window.pos_y);
 
-    window.id = glutCreateWindow(window.title.c_str());
+    canvas.window.id = glutCreateWindow(canvas.window.title.c_str());
 
-    if (window.id <= 0) {
+    if (canvas.window.id <= 0) {
         std::cerr << "Unable to create a window..." << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -50,22 +47,22 @@ int main(int argc, char** argv) {
     std::cout << "OpenGL current version: " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GLSL primary version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n' << std::endl;
 
-    int tex_size2, tex_size3, tex_sizec;
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &tex_size2);
-    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &tex_size3);
-    glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &tex_sizec);
+    int texture_size[3];
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texture_size[0]);
+    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &texture_size[1]);
+    glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &texture_size[2]);
 
     std::cout << "Maximum texture size supported by this GPU: " << std::endl;
     std::cout << "--------------------------------------------" << std::endl;
-    std::cout << "1D/2D texture (width and height): " << texture_size << std::endl;
-    std::cout << "3D texture (width, height and depth): " << texture_size << std::endl;
-    std::cout << "Cubemap texture (width and height): " << texture_size << '\n' << std::endl;
+    std::cout << "1D/2D texture (width and height): " << texture_size[0] << std::endl;
+    std::cout << "3D texture (width, height & depth): " << texture_size[1] << std::endl;
+    std::cout << "Cubemap texture (width and height): " << texture_size[2] << '\n' << std::endl;
 
     int texture_units;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texture_units);
     std::cout << "Maximum number of samplers supported in the fragment shader: " << texture_units << '\n' << std::endl;
 
-
+    // register debug callback
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
@@ -90,10 +87,6 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(std::bind(&Window::PassiveMotion, window));
 
     glutMainLoop();
-
-    Cleanup();
-
-    
 
     return 0;
 }

@@ -175,7 +175,7 @@ int LoadTexture(const std::string& file_path) {
 }
 
 void SetupWindow() {
-    window.title = "Lighting Maps";
+    window.title = "Mixture Lights";
     SetupDefaultWindow(window);
 }
 

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
@@ -16,11 +17,9 @@ class Shader {
     std::vector<GLuint> shaders;
     mutable std::unordered_map<std::string, GLint> uniform_loc_cache;
 
-    // Given a shader type and file path, compiles the shader and returns a shader id or 0
     void LoadShader(GLenum type, const std::string& filepath);
-    // Links all shaders to create a program, negative shader ids will be discarded
     void LinkShaders();
-    // Acquires a uniform location and cache it in memory
+
     GLint GetUniformLocation(const std::string& name) const;
 
   public:

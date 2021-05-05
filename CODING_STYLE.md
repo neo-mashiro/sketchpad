@@ -13,7 +13,6 @@ struct MyType {
 };
 
 in type i_var;           // input variable
-in type i_var;           // input variable
 in type s_var;           // shared input variable (received from the previous stage)
 
 out type o_var;          // output variable (to be consumed by this stage)

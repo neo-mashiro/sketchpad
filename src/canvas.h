@@ -22,7 +22,8 @@ class Canvas {
     };
 
     struct MouseState {
-        int pos_x, pos_y, delta_x, delta_y;
+        unsigned int pos_x, pos_y;
+        int delta_x, delta_y;
     };
 
     struct KeyState {
@@ -34,15 +35,15 @@ class Canvas {
     struct MouseState mouse;
     struct KeyState keystate;
 
-    Canvas(const std::string& title, int width = 1280, int height = 720);
+    Canvas(const std::string& title, unsigned int width = 1280, unsigned int height = 720);
     ~Canvas();
 
     void Update();
 
     // default callbacks
-    virtual static void Idle(void);
-    virtual static void Entry(int state);
-    virtual static void Keyboard(unsigned char key, int x, int y);
+    virtual void Idle(void);
+    virtual void Entry(int state);
+    virtual void Keyboard(unsigned char key, int x, int y);
     virtual void Reshape(int width, int height);
     virtual void PassiveMotion(int x, int y);
     virtual void Mouse(int button, int state, int x, int y);

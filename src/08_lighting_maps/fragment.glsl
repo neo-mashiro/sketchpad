@@ -1,4 +1,4 @@
-#version 440
+#version 460
 
 struct Material {
     sampler2D diffuse;   // lighting map
