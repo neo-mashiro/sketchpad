@@ -102,12 +102,6 @@ GLint Shader::GetUniformLocation(const std::string& name) const {
 Shader::Shader(const std::string& filepath) {
     Canvas::CheckOpenGLContext("Shader");
 
-    if (Canvas::GetInstance()->opengl_context_active == false) {
-        fprintf(stderr, "[FATAL] OpenGL context is not active, cannot create the shader!\n");
-        std::cin.get();
-        exit(EXIT_FAILURE);
-    }
-
     // load all shaders from the given path
     LoadShader(GL_VERTEX_SHADER, filepath + "vertex.glsl");
     LoadShader(GL_FRAGMENT_SHADER, filepath + "fragment.glsl");
@@ -160,6 +154,9 @@ Shader& Shader::operator=(Shader&& other) noexcept {
 }
 
 void Shader::Bind() const {
+    if (id == 0) {
+        std::cout << "[CAUTION] Attempting to use an invalid shader (id = 0)!" << std::endl;
+    }
     glUseProgram(id);
 }
 

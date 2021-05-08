@@ -228,7 +228,6 @@ void Mesh::SafeMoveTextures(std::vector<Texture>& textures) {
     int max_texture_units = Canvas::GetInstance()->gl_max_texture_units;
 
     if (textures.size() > max_texture_units) {
-        // throw std::out_of_range("Exceeded maximum allowed texture units...");
         std::cout << "[WARNING] Exceeded maximum allowed texture units, "
             "redundant textures are automatically discarded..." << std::endl;
 
@@ -243,13 +242,13 @@ void Mesh::SafeMoveTextures(std::vector<Texture>& textures) {
             textures[i].id = 0;
         }
 
-        textures.clear();  // this calls the destructor for each element texture
+        textures.clear();  // clear() calls the destructor for each element texture
     }
     else {
         this->textures = std::move(textures);
-        //for (size_t i = 0; i < textures.size(); i++) {
+        // for (size_t i = 0; i < textures.size(); i++) {
         //    (this->textures).push_back(std::move(textures[i]));
-        //}
+        // }
     }
 }
 
@@ -304,7 +303,7 @@ Mesh::~Mesh() {
 }
 
 Mesh::Mesh(Mesh&& other) noexcept {
-    //*this = std::move(other);
+    *this = std::move(other);
 }
 
 Mesh& Mesh::operator=(Mesh&& other) noexcept {
@@ -336,13 +335,9 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept {
         std::swap(vertices, other.vertices);
         std::swap(indices, other.indices);
 
-
-        //std::swap(textures, other.textures);
-        //size_t n = other.textures.size();
-        //textures = std::vector<Texture>();
-        //for (size_t i = 0; i < n; i++) {
-        //    textures.push_back(std::move(other.textures[i]));
-        //}
+        for (size_t i = 0; i < other.textures.size(); i++) {
+            textures.push_back(std::move(other.textures[i]));
+        }
 
         M = other.M;
         other.M = glm::mat4(1.0f);
