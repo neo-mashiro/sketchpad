@@ -38,6 +38,8 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
+    glutSetCursor(GLUT_CURSOR_INHERIT);
+
     if (glewInit() != GLEW_OK) {
         std::cerr << "Unable to initialize GLEW..." << std::endl;
         exit(EXIT_FAILURE);
@@ -84,6 +86,7 @@ int main(int argc, char** argv) {
     glutIdleFunc(Canvas::Idle);
     glutEntryFunc(Canvas::Entry);
     glutKeyboardFunc(Canvas::Keyboard);
+    glutKeyboardUpFunc(Canvas::KeyboardUp);
     glutMouseFunc(Canvas::Mouse);
     glutReshapeFunc(Canvas::Reshape);
     glutPassiveMotionFunc(Canvas::PassiveMotion);

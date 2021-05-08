@@ -29,6 +29,9 @@ std::vector<Texture> sphere_textures, plane_textures;
 unsigned int scene_id = 2;
 
 void InitScene() {
+    glutSetWindowTitle("Smooth camera");
+    //glutWarpPointer
+
     // find our canvas instance
     canvas = Canvas::GetInstance();
 

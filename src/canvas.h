@@ -26,7 +26,8 @@ struct MouseState {
 };
 
 struct KeyState {
-    bool u, d, l, r;
+    bool u, d;        // up and down
+    bool f, b, l, r;  // forward, backward, left, right
 };
 
 // canvas can be treated as a sealed singleton instance that survives the entire application lifecycle
@@ -59,6 +60,7 @@ class Canvas final {
     static void Idle(void);
     static void Entry(int state);
     static void Keyboard(unsigned char key, int x, int y);
+    static void KeyboardUp(unsigned char key, int x, int y);
     static void Reshape(int width, int height);
     static void PassiveMotion(int x, int y);
     static void Mouse(int button, int state, int x, int y);

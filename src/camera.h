@@ -9,7 +9,7 @@
 
 #include "canvas.h"
 
-enum class Direction { W, A, S, D };
+enum class Direction { F, B, L, R, U, D };
 
 class Camera {
   private:

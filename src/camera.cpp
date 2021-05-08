@@ -27,18 +27,28 @@ void Camera::Zoom(int zoom) {
 }
 
 void Camera::Move(Direction direction, float deltatime, bool snap) {
-    switch (direction) {
-    	case Direction::W: position += forward * (move_speed * deltatime); break;
-        case Direction::S: position -= forward * (move_speed * deltatime); break;
-    	case Direction::A: position -= right * (move_speed * deltatime); break;
-        case Direction::D: position += right * (move_speed * deltatime); break;
+    float elevation = position.y;
 
-    	default:
-            std::cout << "[WARNING] Invalid direction" << std::endl; break;
+    switch (direction) {
+    	case Direction::F: position += forward * (move_speed * deltatime); break;
+        case Direction::B: position -= forward * (move_speed * deltatime); break;
+    	case Direction::L: position -= right * (move_speed * deltatime); break;
+        case Direction::R: position += right * (move_speed * deltatime); break;
+
+        case Direction::U:
+            position.y += move_speed * deltatime;
+            snap = false;
+            break;
+
+        case Direction::D:
+            position.y -= move_speed * deltatime;
+            position.y = max(position.y, 0.0f);
+            snap = false;
+            break;
 	}
 
     if (snap) {
-        position.y = 0.0f;  // snap to the ground
+        position.y = elevation;  // snap to the plane
     }
 }
 
