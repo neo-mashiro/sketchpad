@@ -30,7 +30,6 @@ unsigned int scene_id = 2;
 
 void InitScene() {
     glutSetWindowTitle("Smooth camera");
-    //glutWarpPointer
 
     // find our canvas instance
     canvas = Canvas::GetInstance();

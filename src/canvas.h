@@ -14,6 +14,7 @@ struct Window {
     float aspect_ratio;
     int zoom, pos_x, pos_y;
     GLuint display_mode;
+    bool on_top_layer;
 };
 
 struct FrameCounter {

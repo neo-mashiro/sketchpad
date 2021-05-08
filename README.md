@@ -43,15 +43,17 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 
 ## Mouse and keyboard control
 
+- on application startup, cursor is locked into the window and set to invisible.
 - move the mouse to look around the scene from a first-person perspective.
-- scroll up or down the mouse wheel to zoom in or zoom out.
-- use direction keys or `WASD` to walk through the scene, press `space` and `z` to go up and down
-- mouse clicks work only on registered GUI components (radio button, slide bar, etc.)
+- scroll up/down the mouse wheel to zoom in or zoom out the main camera.
+- use direction keys or `wasd` to walk around, use `space` and `z` to go up and down.
+- press `enter` to open the control menu, where you can click on GUI buttons, slide bars, etc.
+- press `esc` to pop up the confirmation message box, click OK to exit or cancel.
 
 ## Useful References
 
-- CMU 15-462/662: [Course Home](http://15462.courses.cs.cmu.edu/fall2020/home), [Video Lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
-- [GAMES202](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html) - Advanced Real-time Rendering
+- CMU 15-462 - Computer Graphics: [course home](http://15462.courses.cs.cmu.edu/fall2020/home), [video lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
+- GAMES202 - [Advanced Real-time Rendering](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html)
 - [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
 - [OpenGL API Documentation](http://docs.gl/)
 - [Learn OpenGL](https://learnopengl.com)

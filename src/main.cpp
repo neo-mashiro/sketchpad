@@ -38,14 +38,14 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    glutSetCursor(GLUT_CURSOR_INHERIT);
-
     if (glewInit() != GLEW_OK) {
         std::cerr << "Unable to initialize GLEW..." << std::endl;
         exit(EXIT_FAILURE);
     }
 
     canvas->opengl_context_active = true;
+
+    glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
 
     std::cout << "===================================================================" << std::endl;
     std::cout << "v(^_^)v Welcome to sketchpad! OpenGL context is now active! m(~_^)m" << std::endl;
