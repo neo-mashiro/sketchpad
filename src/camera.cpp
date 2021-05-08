@@ -71,8 +71,11 @@ glm::mat4 Camera::GetProjectionMatrix(float aspect_ratio) const {
 void Camera::Update(MouseState mouse, int zoom, KeyState keystate, float deltatime, bool snap) {
     Spin(mouse.delta_x, mouse.delta_y);
     Zoom(zoom);
-    if (keystate.u) Move(Direction::W, deltatime, snap);
-    if (keystate.d) Move(Direction::S, deltatime, snap);
-    if (keystate.l) Move(Direction::A, deltatime, snap);
-    if (keystate.r) Move(Direction::D, deltatime, snap);
+
+    if (keystate.f) Move(Direction::F, deltatime, snap);
+    if (keystate.b) Move(Direction::B, deltatime, snap);
+    if (keystate.l) Move(Direction::L, deltatime, snap);
+    if (keystate.r) Move(Direction::R, deltatime, snap);
+    if (keystate.u) Move(Direction::U, deltatime, snap);
+    if (keystate.d) Move(Direction::D, deltatime, snap);
 }

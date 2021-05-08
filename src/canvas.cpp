@@ -56,35 +56,42 @@ void Canvas::Entry(int state) {
     }
 }
 
+void OnExitConfirm() {
+    int button_id = MessageBox(NULL,
+        (LPCWSTR)L"Do you want to close the window?",
+        (LPCWSTR)L"Sketchpad Canvas",
+        MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1 | MB_SETFOREGROUND
+    );
+
+    switch (button_id) {
+        case IDOK:
+            glutLeaveMainLoop();
+            break;
+        case IDCANCEL:
+            break;
+    }
+}
+
 void Canvas::Keyboard(unsigned char key, int x, int y) {
     if (key == VK_ESCAPE) {
-        int button_id = MessageBox(NULL,
-            (LPCWSTR)L"Do you want to close the window?",
-            (LPCWSTR)L"Sketchpad Canvas",
-            MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1 | MB_SETFOREGROUND
-        );
-
-        switch (button_id) {
-            case IDOK:
-                glutLeaveMainLoop();
-                break;
-            case IDCANCEL:
-                break;
-        }
+        OnExitConfirm();
     }
     else if (key == VK_RETURN) {
+        // to be determined
     }
     else if (key == VK_SPACE) {
-
+        auto* kptr = &(GetInstance()->keystate);
+        kptr->u = true;
     }
-    else if (key == VK_CONTROL) {
-
+    else if (key == 'z') {
+        auto* kptr = &(GetInstance()->keystate);
+        kptr->d = true;
     }
     else {
         auto* kptr = &(GetInstance()->keystate);
         switch (key) {
-            case 'w': kptr->u = true; break;
-            case 's': kptr->d = true; break;
+            case 'w': kptr->f = true; break;
+            case 's': kptr->b = true; break;
             case 'a': kptr->l = true; break;
             case 'd': kptr->r = true; break;
         }
@@ -93,21 +100,23 @@ void Canvas::Keyboard(unsigned char key, int x, int y) {
 
 void Canvas::KeyboardUp(unsigned char key, int x, int y) {
     if (key == VK_RETURN) {
-
+        // to be determined
     }
     else if (key == VK_SPACE) {
-
+        auto* kptr = &(GetInstance()->keystate);
+        kptr->u = false;
     }
-    else if (key == VK_CONTROL) {
-
+    else if (key == 'z') {
+        auto* kptr = &(GetInstance()->keystate);
+        kptr->d = false;
     }
     else {
         auto* kptr = &(GetInstance()->keystate);
         switch (key) {
-            case 'w': kptr->u = true; break;
-            case 's': kptr->d = true; break;
-            case 'a': kptr->l = true; break;
-            case 'd': kptr->r = true; break;
+            case 'w': kptr->f = false; break;
+            case 's': kptr->b = false; break;
+            case 'a': kptr->l = false; break;
+            case 'd': kptr->r = false; break;
         }
     }
 }
@@ -115,7 +124,7 @@ void Canvas::KeyboardUp(unsigned char key, int x, int y) {
 void Canvas::Reshape(int width, int height) {
     auto* wptr = &(GetInstance()->window);
 
-    // lock the window position, size and aspect ratio
+    // lock window position, size and aspect ratio
     glutPositionWindow(wptr->pos_x, wptr->pos_y);
     glutReshapeWindow(wptr->width, wptr->height);
 
@@ -151,11 +160,10 @@ void Canvas::Mouse(int button, int state, int x, int y) {
     }
 }
 
-// special callback does respond to direction keys, but it's not invoked continuously every frame.
-// when a key is held down, this is only invoked once every few frames, so if we update things like
-// camera here, the updates are not smooth and would result in noticeable jerky movement.
-// this callback should only be used to set global switches or flags such as key pressing states,
-// other continuous updates must be done in the idle/display callback, which happens every frame.
+// this callback responds to special key pressing events (f1, f2, numpads, etc.)
+// note that this is not invoked every frame, but once a few frames, whatever updates we
+// do here will not be smooth, so this should only be used to set canvas states or flags.
+// updates must be done in the idle/display callback to avoid noticeable jerky movement.
 void Canvas::Special(int key, int x, int y) {
     auto* kptr = &(GetInstance()->keystate);
     switch (key) {
@@ -166,7 +174,7 @@ void Canvas::Special(int key, int x, int y) {
     }
 }
 
-// this callback responds to key releasing events, where we can reset key pressing states
+// this callback responds to special key releasing events
 void Canvas::SpecialUp(int key, int x, int y) {
     auto* kptr = &(GetInstance()->keystate);
     switch (key) {
