@@ -1,10 +1,13 @@
 #include "shader.h"
 
 void Shader::LoadShader(GLenum type, const std::string& filepath) {
+    // this line may cause access violation if OpenGL context is not set up
+    // machine-level exceptions like this or segmentation fault cannot be caught
     GLuint shader_id = glCreateShader(type);
-    std::string shader_code;
 
+    std::string shader_code;
     std::ifstream file_stream(filepath, std::ios::in);
+
     if (file_stream.is_open()) {
         std::stringstream buffer;
         buffer << file_stream.rdbuf();
@@ -18,7 +21,7 @@ void Shader::LoadShader(GLenum type, const std::string& filepath) {
     printf("Compiling shader file : %s\n", filepath.c_str());
 
     const char* shader = shader_code.c_str();
-    glShaderSource(shader_id, 1, &shader, NULL);
+    glShaderSource(shader_id, 1, &shader, nullptr);
     glCompileShader(shader_id);
 
     GLint status;
@@ -83,18 +86,28 @@ GLint Shader::GetUniformLocation(const std::string& name) const {
         return uniform_loc_cache[name];
     }
 
-    // if not found in cache, query from GPU
+    // if not found in cache, query from GPU (only the first time)
     GLint location = glGetUniformLocation(id, name.c_str());
-    if (location != -1) {
-        uniform_loc_cache[name] = location;  // cache in memory
+    if (location == -1) {
+        printf("\nUniform location not found : %s, the GLSL compiler may have optimized it out\n", name.c_str());
     }
-    else {
-        printf("Uniform location not found : %s, the GLSL compiler may have optimized it out\n", name.c_str());
-    }
+
+    uniform_loc_cache[name] = location;  // cache location in memory (including -1)
+
+    // it's ok to pass a location of -1 to the shader, the data passed in will
+    // be silently ignored and the specified uniform variable won't be changed
     return location;
 }
 
 Shader::Shader(const std::string& filepath) {
+    Canvas::CheckOpenGLContext("Shader");
+
+    if (Canvas::GetInstance()->opengl_context_active == false) {
+        fprintf(stderr, "[FATAL] OpenGL context is not active, cannot create the shader!\n");
+        std::cin.get();
+        exit(EXIT_FAILURE);
+    }
+
     // load all shaders from the given path
     LoadShader(GL_VERTEX_SHADER, filepath + "vertex.glsl");
     LoadShader(GL_FRAGMENT_SHADER, filepath + "fragment.glsl");
@@ -109,7 +122,41 @@ Shader::Shader(const std::string& filepath) {
 }
 
 Shader::~Shader() {
+    Canvas::CheckOpenGLContext("~Shader");
+
+    // log friendly message to the console, so that we are aware of the *hidden* destructor calls
+    // this is super useful in case our data accidentally goes out of scope, debugging made easier!
+    if (id > 0) {
+        printf("[CAUTION] Deleting shader program (id = %d)!\n", id);
+    }
+
+    shaders.clear();
+    shaders.shrink_to_fit();
+    uniform_loc_cache.clear();
+
     glDeleteProgram(id);
+}
+
+Shader::Shader(Shader&& other) noexcept {
+    *this = std::move(other);
+}
+
+Shader& Shader::operator=(Shader&& other) noexcept {
+    if (this != &other) {
+        // free this shader program, reset it to a clean null state
+        glDeleteProgram(id);
+        id = 0;
+        shaders.clear();
+        shaders.shrink_to_fit();
+        uniform_loc_cache.clear();
+
+        // transfer ownership from other to this
+        std::swap(id, other.id);
+        std::swap(shaders, other.shaders);
+        std::swap(uniform_loc_cache, other.uniform_loc_cache);
+    }
+
+    return *this;
 }
 
 void Shader::Bind() const {
@@ -121,7 +168,7 @@ void Shader::Unbind() const {
 }
 
 void Shader::SetBool(const std::string& name, bool value) const {
-    glUniform1i(GetUniformLocation(name), (int)value);
+    glUniform1i(GetUniformLocation(name), static_cast<int>(value));
 }
 
 void Shader::SetInt(const std::string& name, int value) const {

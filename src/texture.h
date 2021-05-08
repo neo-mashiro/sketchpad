@@ -4,11 +4,10 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
-
+#include <utility>
 #include <GL/glew.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "canvas.h"
 
 class Texture {
   private:
@@ -35,4 +34,20 @@ class Texture {
 
     Texture(GLenum target, const std::string& type, const std::string& path, bool anisotropic = false);
     ~Texture();
+
+    // forbid the copying of instances because they encapsulate global OpenGL resources and states.
+    // when that happens, the old instance would probably be destructed and ruin the global states,
+    // so we end up with a copy that points to an OpenGL object that has already been destroyed.
+    // compiler-provided copy constructor and assignment operator only perform shallow copy.
+
+    Texture(const Texture&) = delete;             // delete the copy constructor
+    Texture& operator=(const Texture&) = delete;  // delete the assignment operator
+
+    // it may be possible to override the copy constructor and assignment operator to make deep
+    // copies and put certain constraints on the destructor, so as to keep the OpenGL states alive,
+    // but that could be incredibly expensive or even impractical.
+
+    // a better option is to use move semantics:
+    Texture(Texture&& other) noexcept;             // move constructor
+    Texture& operator=(Texture&& other) noexcept;  // move assignment operator
 };

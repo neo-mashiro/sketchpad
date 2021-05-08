@@ -7,14 +7,16 @@
 
 #include <cmath>
 #include <iostream>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "canvas.h"
 #include "shader.h"
 #include "texture.h"
 
-constexpr auto PI = 3.14159265358979323846f;
-constexpr auto MAX_TEXTURE_UNITS = 16;  // reset this to your GPU limit (value is queried in `main()`)
+constexpr auto PI = 3.14159265358979323846;
 
 struct Vertex {
     glm::vec3 position;
@@ -32,6 +34,10 @@ class Mesh {
 
     void BindBuffer();
     void BindTexture(const Shader& shader, bool layout_bind) const;
+
+    // safely move assign the passed in textures vector to our class member
+    // without breaking the global OpenGL texture binding states
+    void SafeMoveTextures(std::vector<Texture>& textures);
 
     // -------------------------------------------------------------------------------------------
     // The member functions below can be used to create some primitive objects with correct vertex
@@ -65,13 +71,30 @@ class Mesh {
                   // upon instantiation, M is initialized to the identity matrix, only external
                   // callers should update it later, M is not supposed to be mutated internally
 
+    // std::vector<Texture>& cannot be marked "const" as we need to std::move() assign it
     Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
-        const std::vector<Texture>& textures);
+        std::vector<Texture>& textures);
 
-    Mesh(Primitive object, const std::vector<Texture>& textures);
+    Mesh(Primitive object, std::vector<Texture>& textures);
     Mesh(Primitive object);
 
     ~Mesh();
+
+    // forbid the copying of instances because they encapsulate global OpenGL resources and states.
+    // when that happens, the old instance would probably be destructed and ruin the global states,
+    // so we end up with a copy that points to an OpenGL object that has already been destroyed.
+    // compiler-provided copy constructor and assignment operator only perform shallow copy.
+
+    Mesh(const Mesh&) = delete;             // delete the copy constructor
+    Mesh& operator=(const Mesh&) = delete;  // delete the assignment operator
+
+    // it may be possible to override the copy constructor and assignment operator to make deep
+    // copies and put certain constraints on the destructor, so as to keep the OpenGL states alive,
+    // but that could be incredibly expensive or even impractical.
+
+    // a better option is to use move semantics:
+    Mesh(Mesh&& other) noexcept;             // move constructor
+    Mesh& operator=(Mesh&& other) noexcept;  // move assignment operator
 
     void Draw(const Shader& shader, bool layout_bind = false) const;
 };

@@ -7,9 +7,11 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-
+#include <utility>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+
+#include "canvas.h"
 
 class Shader {
   private:
@@ -25,6 +27,12 @@ class Shader {
   public:
     Shader(const std::string& filepath);
     ~Shader();
+
+    Shader(const Shader&) = delete;             // delete the copy constructor
+    Shader& operator=(const Shader&) = delete;  // delete the assignment operator
+
+    Shader(Shader&& other) noexcept;             // move constructor
+    Shader& operator=(Shader&& other) noexcept;  // move assignment operator
 
     void Bind() const;
     void Unbind() const;

@@ -1,5 +1,8 @@
 #include "texture.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 const std::unordered_map<GLenum, std::string> Texture::cubemap {
     { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx.png" },
     { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy.png" },
@@ -109,6 +112,8 @@ void Texture::SetFilterMode(bool anisotropic) const {
 Texture::Texture(GLenum target, const std::string& type, const std::string& path, bool anisotropic)
     : target(target), type(type), path(path) {
 
+    Canvas::CheckOpenGLContext("Texture");
+
     glGenTextures(1, &id);
     glBindTexture(target, id);
 
@@ -126,6 +131,43 @@ Texture::Texture(GLenum target, const std::string& type, const std::string& path
 }
 
 Texture::~Texture() {
+    // keep in mind that most OpenGL calls have global states, which in some cases might conflict
+    // with the object oriented approach in C++, because class instances have their own scope.
+    // chances are you don't want this to be called, unless you have removed the mesh from the scene.
+
+    Canvas::CheckOpenGLContext("~Texture");
+
+    // log friendly message to the console, so that we are aware of the *hidden* destructor calls
+    // this is super useful in case our data accidentally goes out of scope, debugging made easier!
+    if (id > 0) {  // texture may be still in use
+        printf("[CAUTION] Destructing texture data (target = %d, id = %d)!\n", target, id);
+    }
+
     glBindTexture(target, 0);
     glDeleteTextures(1, &id);
+}
+
+Texture::Texture(Texture&& other) noexcept {
+    *this = std::move(other);
+}
+
+Texture& Texture::operator=(Texture&& other) noexcept {
+    if (this != &other) {
+        // free this texture, reset it to a clean null state
+        glDeleteTextures(1, &id);
+        id = 0;
+        type = path = "";
+        target = other.target;  // force target to be a valid GLenum so the state is clean
+
+        // transfer ownership from other to this
+        std::swap(id, other.id);
+        std::swap(target, other.target);
+        std::swap(type, other.type);
+        std::swap(path, other.path);
+    }
+
+    // after the swap, the other texture has an id of 0, which is a clean null state
+    // (a default fallback texture that is all black), when it gets destroyed later,
+    // deleting a 0-id texture won't break the global binding states so we are safe.
+    return *this;
 }

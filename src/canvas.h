@@ -6,47 +6,62 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-class Canvas {
+struct Window {
+    int id;
+    const char* title;
+    GLuint width, height;
+    GLuint full_width, full_height;
+    float aspect_ratio;
+    int zoom, pos_x, pos_y;
+    GLuint display_mode;
+};
+
+struct FrameCounter {
+    float last_frame, this_frame, delta_time;
+};
+
+struct MouseState {
+    GLuint pos_x, pos_y;
+    int delta_x, delta_y;
+};
+
+struct KeyState {
+    bool u, d, l, r;
+};
+
+// canvas can be treated as a sealed singleton instance that survives the entire application lifecycle
+
+class Canvas final {
+  private:
+    Canvas();
+    ~Canvas() {};
+
   public:
-    struct Window {
-        int id;  // unique window identifier
-        std::string title;
-        unsigned int width, height;
-        float aspect_ratio;
-        int zoom, pos_x, pos_y;
-        unsigned int display_mode;
-    };
-
-    struct FrameCounter {
-        float last_frame, this_frame, delta_time;
-    };
-
-    struct MouseState {
-        unsigned int pos_x, pos_y;
-        int delta_x, delta_y;
-    };
-
-    struct KeyState {
-        bool u, d, l, r;
-    };
-
     struct Window window;
     struct FrameCounter frame_counter;
     struct MouseState mouse;
     struct KeyState keystate;
 
-    Canvas(const std::string& title, unsigned int width = 1280, unsigned int height = 720);
-    ~Canvas();
+    bool opengl_context_active;
+    std::string gl_vendor, gl_renderer, gl_version, glsl_version;
+    int gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
 
-    void Update();
+    Canvas(Canvas& canvas) = delete;         // delete copy constructor
+    void operator=(const Canvas&) = delete;  // delete assignment operator
 
-    // default callbacks
-    virtual void Idle(void);
-    virtual void Entry(int state);
-    virtual void Keyboard(unsigned char key, int x, int y);
-    virtual void Reshape(int width, int height);
-    virtual void PassiveMotion(int x, int y);
-    virtual void Mouse(int button, int state, int x, int y);
-    virtual void Special(int key, int x, int y);
-    virtual void SpecialUp(int key, int x, int y);
+    static Canvas* GetInstance();
+
+    static void CheckOpenGLContext(const std::string& call);
+
+    static void Update();
+
+    // default event callbacks
+    static void Idle(void);
+    static void Entry(int state);
+    static void Keyboard(unsigned char key, int x, int y);
+    static void Reshape(int width, int height);
+    static void PassiveMotion(int x, int y);
+    static void Mouse(int button, int state, int x, int y);
+    static void Special(int key, int x, int y);
+    static void SpecialUp(int key, int x, int y);
 };

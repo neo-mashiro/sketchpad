@@ -1,6 +1,5 @@
 #include "canvas.h"
 
-
 #pragma execution_character_set("utf-8")
 
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -16,23 +15,25 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     #endif
 }
 
-std::string ParseDir(const std::string& file_path) {
-    return file_path.substr(0, file_path.rfind("\\")) + "\\";
-}
+void InitScene(void);
 
-extern Canvas canvas;
+void Display(void);
 
 int main(int argc, char** argv) {
     SetConsoleOutputCP(65001);  // set the console code page to utf-8
 
     glutInit(&argc, argv);
-    glutInitDisplayMode(canvas.window.display_mode);
-    glutInitWindowSize(canvas.window.width, canvas.window.height);
-    glutInitWindowPosition(canvas.window.pos_x, canvas.window.pos_y);
 
-    canvas.window.id = glutCreateWindow(canvas.window.title.c_str());
+    Canvas* canvas = Canvas::GetInstance();
+    Window* winptr = &(canvas->window);
 
-    if (canvas.window.id <= 0) {
+    glutInitDisplayMode(winptr->display_mode);
+    glutInitWindowSize(winptr->width, winptr->height);
+    glutInitWindowPosition(winptr->pos_x, winptr->pos_y);
+
+    winptr->id = glutCreateWindow(winptr->title);
+
+    if (winptr->id <= 0) {
         std::cerr << "Unable to create a window..." << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -42,49 +43,52 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "GPU vendor name: " << glGetString(GL_VENDOR) << std::endl;
-    std::cout << "OpenGL renderer: " << glGetString(GL_RENDERER) << std::endl;
-    std::cout << "OpenGL current version: " << glGetString(GL_VERSION) << std::endl;
-    std::cout << "GLSL primary version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << '\n' << std::endl;
+    canvas->opengl_context_active = true;
 
-    int texture_size[3];
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texture_size[0]);
-    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &texture_size[1]);
-    glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &texture_size[2]);
+    std::cout << "===================================================================" << std::endl;
+    std::cout << "v(^_^)v Welcome to sketchpad! OpenGL context is now active! m(~_^)m" << std::endl;
+    std::cout << "===================================================================" << std::endl;
 
-    std::cout << "Maximum texture size supported by this GPU: " << std::endl;
-    std::cout << "--------------------------------------------" << std::endl;
-    std::cout << "1D/2D texture (width and height): " << texture_size[0] << std::endl;
-    std::cout << "3D texture (width, height & depth): " << texture_size[1] << std::endl;
-    std::cout << "Cubemap texture (width and height): " << texture_size[2] << '\n' << std::endl;
+    canvas->gl_vendor    = std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+    canvas->gl_renderer  = std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    canvas->gl_version   = std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    canvas->glsl_version = std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
-    int texture_units;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &texture_units);
-    std::cout << "Maximum number of samplers supported in the fragment shader: " << texture_units << '\n' << std::endl;
+    std::cout << "Graphics card vendor: "   << canvas->gl_vendor    << std::endl;
+    std::cout << "OpenGL renderer: "        << canvas->gl_renderer  << std::endl;
+    std::cout << "OpenGL current version: " << canvas->gl_version   << std::endl;
+    std::cout << "GLSL primary version: "   << canvas->glsl_version << '\n' << std::endl;
+
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &(canvas->gl_texsize));
+    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &(canvas->gl_texsize_3d));
+    glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &(canvas->gl_texsize_cubemap));
+
+    std::cout << "Maximum texture size the GPU supports: " << std::endl;
+    std::cout << "---------------------------------------" << std::endl;
+    std::cout << "1D/2D texture (width and height): "   << canvas->gl_texsize << std::endl;
+    std::cout << "3D texture (width, height & depth): " << canvas->gl_texsize_3d << std::endl;
+    std::cout << "Cubemap texture (width and height): " << canvas->gl_texsize_cubemap << '\n' << std::endl;
+
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(canvas->gl_max_texture_units));
+    std::cout << "Maximum number of samplers supported in the fragment shader: " << canvas->gl_max_texture_units << '\n' << std::endl;
 
     // register debug callback
     glEnable(GL_DEBUG_OUTPUT);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
 
-    Init();
-
-    virtual void Reshape(int width, int height);
-    virtual void PassiveMotion(int x, int y);
-    virtual void Mouse(int button, int state, int x, int y);
+    InitScene();
 
     glutDisplayFunc(Display);
 
-    glutSpecialFunc(Special);
-    glutSpecialUpFunc(SpecialUp);
-
-    glutIdleFunc(std::bind(&Window::Idle));
-    glutEntryFunc(std::bind(&Window::Entry));
-    glutKeyboardFunc(std::bind(&Window::Keyboard));
-
-    glutMouseFunc(std::bind(&Window::Mouse, window));
-    glutReshapeFunc(std::bind(&Window::Reshape, window));
-    glutPassiveMotionFunc(std::bind(&Window::PassiveMotion, window));
+    glutIdleFunc(Canvas::Idle);
+    glutEntryFunc(Canvas::Entry);
+    glutKeyboardFunc(Canvas::Keyboard);
+    glutMouseFunc(Canvas::Mouse);
+    glutReshapeFunc(Canvas::Reshape);
+    glutPassiveMotionFunc(Canvas::PassiveMotion);
+    glutSpecialFunc(Canvas::Special);
+    glutSpecialUpFunc(Canvas::SpecialUp);
 
     glutMainLoop();
 

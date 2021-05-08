@@ -201,7 +201,7 @@ void Mesh::CreatePlane(float size, float elevation) {
     v_arr[6] = { glm::vec3(+1.0f * size, elevation, -1.0f * size), down, glm::vec2(1.0f, 0.0f), zero, zero };
     v_arr[7] = { glm::vec3(-1.0f * size, elevation, -1.0f * size), down, glm::vec2(0.0f, 0.0f), zero, zero };
 
-    for (Vertex v : v_arr) {
+    for (Vertex& v : v_arr) {
         vertices.push_back(v);
     }
 
@@ -223,49 +223,70 @@ void Mesh::CreatePrimitive(Primitive object) {
     }
 }
 
+void Mesh::SafeMoveTextures(std::vector<Texture>& textures) {
+    // store textures up to the GPU limit
+    int max_texture_units = Canvas::GetInstance()->gl_max_texture_units;
+
+    if (textures.size() > max_texture_units) {
+        // throw std::out_of_range("Exceeded maximum allowed texture units...");
+        std::cout << "[WARNING] Exceeded maximum allowed texture units, "
+            "redundant textures are automatically discarded..." << std::endl;
+
+        // std::move the other vector to this vector
+        (this->textures).insert((this->textures).end(),
+            std::make_move_iterator(textures.begin()),
+            std::make_move_iterator(textures.begin() + max_texture_units - 1)
+        );
+
+        // reset other vector to a clean empty state
+        for (size_t i = 0; i < textures.size(); i++) {
+            textures[i].id = 0;
+        }
+
+        textures.clear();  // this calls the destructor for each element texture
+    }
+    else {
+        this->textures = std::move(textures);
+        //for (size_t i = 0; i < textures.size(); i++) {
+        //    (this->textures).push_back(std::move(textures[i]));
+        //}
+    }
+}
+
 Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices,
-    const std::vector<Texture>& textures)
+    std::vector<Texture>& textures)
     : vertices(vertices), indices(indices), M(glm::mat4(1.0f)) {
 
-    if (textures.size() > MAX_TEXTURE_UNITS) {
-        // throw std::out_of_range("Exceeded maximum allowed texture units...");
-        this->textures = { textures.begin(), textures.begin() + MAX_TEXTURE_UNITS - 1 };
-        std::cout << "[WARNING] Exceeded maximum allowed texture units, "
-        "redundant textures are automatically discarded..." << std::endl;
-    }
-    else {
-        this->textures = textures;
-    }
-
+    Canvas::CheckOpenGLContext("Mesh");
     BindBuffer();
+    SafeMoveTextures(textures);
 }
 
-Mesh::Mesh(Primitive object, const std::vector<Texture>& textures) : M(glm::mat4(1.0f)) {
-    // populate vertices and indices vector
-    CreatePrimitive(object);
-
-    // store textures up to the GPU limit
-    if (textures.size() > MAX_TEXTURE_UNITS) {
-        // throw std::out_of_range("Exceeded maximum allowed texture units...");
-        this->textures = { textures.begin(), textures.begin() + MAX_TEXTURE_UNITS - 1 };
-        std::cout << "[WARNING] Exceeded maximum allowed texture units, "
-        "redundant textures are automatically discarded..." << std::endl;
-    }
-    else {
-        this->textures = textures;
-    }
-
-    BindBuffer();
+Mesh::Mesh(Primitive object, std::vector<Texture>& textures) : Mesh(object) {
+    SafeMoveTextures(textures);
 }
 
-Mesh::Mesh(Primitive object) : textures({}), M(glm::mat4(1.0f)) {
-    CreatePrimitive(object);
+Mesh::Mesh(Primitive object) : M(glm::mat4(1.0f)) {
+    Canvas::CheckOpenGLContext("Mesh");
+    CreatePrimitive(object);  // populate vertices and indices vector
     BindBuffer();
 }
 
 Mesh::~Mesh() {
+    // keep in mind that most OpenGL calls have global states, which in some cases might conflict
+    // with the object oriented approach in C++, because class instances have their own scope.
+    // chances are you don't want this to be called, unless you have removed the mesh from the scene.
+
+    Canvas::CheckOpenGLContext("~Mesh");
+
+    // log friendly message to the console, so that we are aware of the *hidden* destructor calls
+    // this is super useful in case our data accidentally goes out of scope, debugging made easier!
+    if (VAO > 0) {
+        printf("[CAUTION] Destructing mesh data (VAO = %d)!\n", VAO);
+    }
+
     for (unsigned int i = 0; i < textures.size(); i++) {
-        glDeleteTextures(1, &textures[i].id);
+        glDeleteTextures(1, &textures[i].id);  // this is optional, texture will clean up itself
     }
 
     glDeleteBuffers(1, &IBO);
@@ -280,6 +301,54 @@ Mesh::~Mesh() {
 
     textures.clear();
     textures.shrink_to_fit();
+}
+
+Mesh::Mesh(Mesh&& other) noexcept {
+    //*this = std::move(other);
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+    if (this != &other) {
+        // free resources, reset this mesh to a clean null state
+        for (unsigned int i = 0; i < textures.size(); i++) {
+            glDeleteTextures(1, &textures[i].id);
+        }
+
+        glDeleteBuffers(1, &IBO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteVertexArrays(1, &VAO);
+
+        VAO = VBO = IBO = 0;
+
+        vertices.clear();
+        vertices.shrink_to_fit();
+
+        indices.clear();
+        indices.shrink_to_fit();
+
+        textures.clear();
+        textures.shrink_to_fit();
+
+        // transfer ownership from other to this
+        std::swap(VAO, other.VAO);
+        std::swap(VBO, other.VBO);
+        std::swap(IBO, other.IBO);
+        std::swap(vertices, other.vertices);
+        std::swap(indices, other.indices);
+
+
+        //std::swap(textures, other.textures);
+        //size_t n = other.textures.size();
+        //textures = std::vector<Texture>();
+        //for (size_t i = 0; i < n; i++) {
+        //    textures.push_back(std::move(other.textures[i]));
+        //}
+
+        M = other.M;
+        other.M = glm::mat4(1.0f);
+    }
+
+    return *this;
 }
 
 void Mesh::Draw(const Shader& shader, bool layout_bind) const {

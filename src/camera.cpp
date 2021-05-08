@@ -43,7 +43,7 @@ void Camera::Move(Direction direction, float deltatime, bool snap) {
 }
 
 Camera::Camera(glm::vec3 position, glm::vec3 forward, float euler_x, float euler_y)
-    : position(position), forward(forward), up(up), euler_x(euler_x), euler_y(euler_y), fov(90.0f),
+    : position{position}, forward{forward}, euler_x(euler_x), euler_y(euler_y), fov(90.0f),
       near_clip(0.1f), far_clip(100.0f), move_speed(2.5f), zoom_speed(2.0f), sensitivity(0.05f) {
 
     right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
@@ -58,7 +58,7 @@ glm::mat4 Camera::GetProjectionMatrix(float aspect_ratio) const {
     return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
 }
 
-void Camera::Update(Canvas::MouseState mouse, int zoom, Canvas::KeyState keystate, float deltatime, bool snap) {
+void Camera::Update(MouseState mouse, int zoom, KeyState keystate, float deltatime, bool snap) {
     Spin(mouse.delta_x, mouse.delta_y);
     Zoom(zoom);
     if (keystate.u) Move(Direction::W, deltatime, snap);

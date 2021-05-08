@@ -7,3 +7,6 @@ build/
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
+
+# temporary texture files
+**.jpg
