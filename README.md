@@ -1,6 +1,6 @@
 # sketchpad (Windows 10)
 
-![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?label=License&style=plastic)
+![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
 
 A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL rendering pipeline. This framework was built to quickly test some low-level graphics features and to learn how they work in OpenGL. Future versions may consider using the [SPIR-V](https://www.khronos.org/spir/) open source ecosystem to support Vulkan or OpenCL.
 
