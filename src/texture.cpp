@@ -21,11 +21,21 @@ void Texture::LoadTexture() const {
         buffer = stbi_load(path.c_str(), &width, &height, &n_channels, 0);
         if (!buffer) {
             std::cerr << "Failed to load texture: " << path << std::endl;
+            std::cerr << "stbi failure reason: " << stbi_failure_reason() << std::endl;
             stbi_image_free(buffer);
             return;
         }
 
-        GLint format = (n_channels == 4 ? GL_RGBA : GL_RGB);
+        GLint format = 0;
+        switch (n_channels) {
+            case 3: format = GL_RGB; break;
+            case 4: format = GL_RGBA; break;
+            default:
+                std::cout << "Non-standard image format: " << path << std::endl;
+                printf("This texture image has %d channels\n", n_channels);
+                break;
+        }
+
         glTexImage2D(target, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, buffer);
 
         glGenerateMipmap(target);
@@ -49,11 +59,13 @@ void Texture::LoadSkybox() const {
         buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
 
         if (!buffer) {
-            std::cerr << "Failed to load skybox texture: " << filepath << std::endl;
+            std::cerr << "Failed to load skybox: " << filepath << std::endl;
+            std::cerr << "stbi failure reason: " << stbi_failure_reason() << std::endl;
             stbi_image_free(buffer);
             return;
         }
         else {
+            assert(n_channels == 4);  // skybox assumes 4 channel images
             glTexImage2D(face.first, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
         }
 

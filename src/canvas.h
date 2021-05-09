@@ -53,8 +53,10 @@ class Canvas final {
 
     static Canvas* GetInstance();
 
+    // check if a valid OpenGL context is present, used by other modules to validate context
     static void CheckOpenGLContext(const std::string& call);
 
+    // keep track of the frame statistics, all scene updates depend on this
     static void Update();
 
     // default event callbacks

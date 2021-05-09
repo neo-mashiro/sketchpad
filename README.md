@@ -1,5 +1,7 @@
 # sketchpad (Windows 10)
 
+![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?label=License&style=plastic)
+
 A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL rendering pipeline. This framework was built to quickly test some low-level graphics features and to learn how they work in OpenGL. Future versions may consider using the [SPIR-V](https://www.khronos.org/spir/) open source ecosystem to support Vulkan or OpenCL.
 
 从零开始手写的一个OpenGL练习框架，用于实现GAMES202中的作业内容和其他一些有趣的东西。
@@ -46,13 +48,13 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 - on application startup, cursor is locked into the window and set to invisible.
 - move the mouse to look around the scene from a first-person perspective.
 - scroll up/down the mouse wheel to zoom in or zoom out the main camera.
-- use direction keys or `wasd` to walk around, use `space` and `z` to go up and down.
-- press `enter` to open the control menu, where you can click on GUI buttons, slide bars, etc.
-- press `esc` to pop up the confirmation message box, click OK to exit or cancel.
+- use directional keys or `wasd` to walk around the scene, use `space` and `z` to go up and down.
+- press `enter` to open the menu (cursor enabled), where you can control GUI buttons, slidebars, etc.
+- press `esc` to pop up the exit message box, click ok to confirm exit or cancel to resume.
 
 ## Useful References
 
-- CMU 15-462 - Computer Graphics: [course home](http://15462.courses.cs.cmu.edu/fall2020/home), [video lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
+- CMU 15-462 - [course home](http://15462.courses.cs.cmu.edu/fall2020/home), [video lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
 - GAMES202 - [Advanced Real-time Rendering](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html)
 - [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
 - [OpenGL API Documentation](http://docs.gl/)

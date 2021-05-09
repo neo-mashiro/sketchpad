@@ -38,5 +38,5 @@ class Camera {
     glm::mat4 GetViewMatrix(void) const;
     glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.77777777f) const;  // default 16:9 window
 
-    void Update(MouseState mouse, int zoom, KeyState keystate, float deltatime, bool snap = true);
+    void Update(MouseState& mouse, Window& window, KeyState& keystate, float deltatime, bool snap = true);
 };

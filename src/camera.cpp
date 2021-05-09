@@ -68,9 +68,12 @@ glm::mat4 Camera::GetProjectionMatrix(float aspect_ratio) const {
     return glm::perspective(glm::radians(fov), aspect_ratio, near_clip, far_clip);
 }
 
-void Camera::Update(MouseState mouse, int zoom, KeyState keystate, float deltatime, bool snap) {
+void Camera::Update(MouseState& mouse, Window& window, KeyState& keystate, float deltatime, bool snap) {
     Spin(mouse.delta_x, mouse.delta_y);
-    Zoom(zoom);
+    mouse.delta_x = mouse.delta_y = 0;  // recover mouse offset
+
+    Zoom(window.zoom);
+    window.zoom = 0;  // recover zoom to 0
 
     if (keystate.f) Move(Direction::F, deltatime, snap);
     if (keystate.b) Move(Direction::B, deltatime, snap);

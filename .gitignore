@@ -8,5 +8,8 @@ build/
 **.vcxproj.filters
 **.vcxproj.user
 
-# temporary texture files
+# temporary files
+tmp/
+
+# unfinalized texture files
 **.jpg
