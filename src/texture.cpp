@@ -4,12 +4,12 @@
 #include "stb_image.h"
 
 const std::unordered_map<GLenum, std::string> Texture::cubemap {
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx.jpg" },
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy.jpg" },
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_Z, "posz.jpg" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_X, "negx.jpg" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, "negy.jpg" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, "negz.jpg" }
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx" },
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy" },
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_Z, "posz" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_X, "negx" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, "negy" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, "negz" }
 };
 
 void Texture::LoadTexture() const {
@@ -53,9 +53,20 @@ void Texture::LoadSkybox() const {
     stbi_set_flip_vertically_on_load(false);
     int width, height, n_channels;
     unsigned char* buffer = nullptr;
+    std::string extension = ".jpg";
+
+    try {
+        std::string filepath = path + "posx" + extension;
+        if (!stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha)) {
+            throw "incorrect file extension";
+        }
+    }
+    catch (const char* error_extension) {
+        extension = ".png";
+    }
 
     for (const auto& face : cubemap) {
-        std::string filepath = path + face.second;
+        std::string filepath = path + face.second + extension;
         buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
 
         if (!buffer) {
