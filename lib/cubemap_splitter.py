@@ -6,8 +6,8 @@ import os, subprocess, sys
 path = os.path.abspath("") + "\\"
 
 faces = {
-    'posx': (2,1), 'posy': (1,2), 'posz': (1,1),
-    'negx': (0,1), 'negy': (1,0), 'negz': (3,1)
+    'posx': (2,1), 'posy': (1,0), 'posz': (1,1),
+    'negx': (0,1), 'negy': (1,2), 'negz': (3,1)
 }
 
 def process_image(filename):

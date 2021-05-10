@@ -13,9 +13,6 @@ cd lib  # move cubemap to this folder
 python cubemap_splitter.py skybox.png
 ```
 
-## panorama_converter.py
+## Panorama to Cubemap
 
-Convert a 360° panoramic image to six cube faces and save them to the disk.
-```bash
-...
-```
+An online tool that converts 360° panoramas to six cube faces, developed by [Lucas Crane](https://github.com/jaxry/panorama-to-cubemap).
