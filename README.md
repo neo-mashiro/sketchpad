@@ -32,10 +32,6 @@ vendor/premake/premake5.exe vs2019
 ```
 As an aside, it is recommended to use spaces everywhere instead of tabs. In case the **tab size** of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, there are so many hard-to-read repos on Github that use inconsistent indentation in the same file, because they are mixing four spaces with two tabs (of size 2) in the IDE, which is then converted to eight spaces on Github...
 
-![tab-settings](res/spaces.PNG)
-
-![tab-settings](res/SPC.png)
-
 ## How to build a scene
 
 - (WIP) add screenshot: select startup project in the solution's properties window
