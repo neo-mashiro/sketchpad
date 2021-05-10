@@ -26,8 +26,8 @@ Canvas* canvas = nullptr;  // singleton canvas instance
 
 // global pointers are ok
 std::unique_ptr<Camera> camera;
-std::unique_ptr<Shader> cube_shader, skybox_shader;
-std::unique_ptr<Mesh> cube, skybox;
+std::unique_ptr<Shader> cube_shader, sphere_shader, skybox_shader;
+std::unique_ptr<Mesh> cube, sphere, skybox;
 
 // global containers are ok
 std::vector<Texture> skybox_textures;
@@ -55,6 +55,12 @@ void Start() {
     // reflective cube
     cube_shader = std::make_unique<Shader>(cwd + "cube\\");
     cube = std::make_unique<Mesh>(Primitive::Cube);  // no textures, reflect the skybox
+
+    // reflective sphere
+    sphere_shader = std::make_unique<Shader>(cwd + "sphere\\");
+    sphere = std::make_unique<Mesh>(Primitive::Sphere);  // no textures, reflect the skybox
+    sphere->M = glm::translate(sphere->M, glm::vec3(0, -3, -8));
+    sphere->M = glm::scale(sphere->M, glm::vec3(3, 3, 3));
 
     // enable face culling
     glEnable(GL_CULL_FACE);
@@ -84,12 +90,28 @@ void Update() {
     // draw reflective cube
     cube_shader->Bind();
     {
+        float shift = glm::sin((canvas->frame_counter).time) * 0.005f;
+        cube->M = glm::rotate(cube->M, glm::radians(0.2f), glm::vec3(0, 1, 0));
+        cube->M = glm::translate(cube->M, glm::mat3(glm::inverse(cube->M)) * glm::vec3(shift, 0, 0));
+
         cube_shader->SetMat4("u_MVP", P * V * cube->M);
+        cube_shader->SetMat4("u_M", cube->M);
         cube_shader->SetVec3("camera_pos", camera->position);
-        cube_shader->SetInt("skybox", 0);  // this line has bug!!! check the shader
+        cube_shader->SetInt("skybox", 0);
         cube->Draw(*cube_shader);
     }
     cube_shader->Unbind();
+
+    // draw reflective sphere
+    sphere_shader->Bind();
+    {
+        sphere_shader->SetMat4("u_MVP", P * V * sphere->M);
+        sphere_shader->SetMat4("u_M", sphere->M);
+        sphere_shader->SetVec3("camera_pos", camera->position);
+        sphere_shader->SetInt("skybox", 0);
+        sphere->Draw(*sphere_shader);
+    }
+    sphere_shader->Unbind();
 
     // drawing skybox at last can save us many draw calls, because it is the farthest object in
     // the scene, which should be rendered behind all other objects.
