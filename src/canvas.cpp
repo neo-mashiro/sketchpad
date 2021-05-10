@@ -54,7 +54,7 @@ Canvas::Canvas() {
     window.display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
     window.on_top_layer = true;
 
-    frame_counter = { 0.0f, 0.0f, 0.0f };
+    frame_counter = { 0.0f, 0.0f, 0.0f, 0.0f };
     mouse = { 1280 / 2, 720 / 2, 0, 0 };
     keystate = { false, false, false, false, false, false };
 
@@ -83,6 +83,7 @@ void Canvas::Update() {
     counter->this_frame = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
     counter->delta_time = counter->this_frame - counter->last_frame;
     counter->last_frame = counter->this_frame;
+    counter->time += counter->delta_time;
 }
 
 // all the functions below are glut event callbacks

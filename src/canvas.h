@@ -18,7 +18,7 @@ struct Window {
 };
 
 struct FrameCounter {
-    float last_frame, this_frame, delta_time;
+    float last_frame, this_frame, delta_time, time;
 };
 
 struct MouseState {
