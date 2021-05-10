@@ -15,9 +15,9 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
     #endif
 }
 
-void InitScene(void);
+void Start(void);
 
-void Display(void);
+void Update(void);
 
 int main(int argc, char** argv) {
     SetConsoleOutputCP(65001);  // set the console code page to utf-8
@@ -79,9 +79,9 @@ int main(int argc, char** argv) {
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
 
-    InitScene();
+    Start();
 
-    glutDisplayFunc(Display);
+    glutDisplayFunc(Update);
 
     glutIdleFunc(Canvas::Idle);
     glutEntryFunc(Canvas::Entry);

@@ -4,12 +4,12 @@
 #include "stb_image.h"
 
 const std::unordered_map<GLenum, std::string> Texture::cubemap {
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx.png" },
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy.png" },
-    { GL_TEXTURE_CUBE_MAP_POSITIVE_Z, "posz.png" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_X, "negx.png" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, "negy.png" },
-    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, "negz.png" }
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx.jpg" },
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy.jpg" },
+    { GL_TEXTURE_CUBE_MAP_POSITIVE_Z, "posz.jpg" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_X, "negx.jpg" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, "negy.jpg" },
+    { GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, "negz.jpg" }
 };
 
 void Texture::LoadTexture() const {
@@ -65,7 +65,7 @@ void Texture::LoadSkybox() const {
             return;
         }
         else {
-            assert(n_channels == 4);  // skybox assumes 4 channel images
+            assert(n_channels == 3 || n_channels == 4);
             glTexImage2D(face.first, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
         }
 

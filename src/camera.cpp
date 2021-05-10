@@ -7,7 +7,7 @@ void Camera::Spin(int delta_x, int delta_y) {
 
     euler_y += delta_x * sensitivity;
     euler_x += delta_y * sensitivity;
-    euler_x = glm::clamp(euler_x, -90.0f, 90.0f);  // clamp vertical rotation
+    euler_x = glm::clamp(euler_x, -88.0f, 88.0f);  // clamp vertical rotation
 
     forward = glm::normalize(
         glm::vec3(

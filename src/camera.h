@@ -13,10 +13,6 @@ enum class Direction { F, B, L, R, U, D };
 
 class Camera {
   private:
-    glm::vec3 position;  // camera position in world space
-    glm::vec3 forward;   // forward direction in world space
-    glm::vec3 right;     // right direction in world space
-    glm::vec3 up;        // up direction in world space
     float euler_x;       // euler angles around the x-axis
     float euler_y;       // euler angles around the y-axis
 
@@ -31,6 +27,11 @@ class Camera {
     float move_speed;    // keypress translates the camera
     float zoom_speed;    // scrollwheel zooms in/out the FoV
     float sensitivity;   // mouse movement rotates the camera
+
+    glm::vec3 position;  // camera position in world space
+    glm::vec3 forward;   // forward direction in world space
+    glm::vec3 right;     // right direction in world space
+    glm::vec3 up;        // up direction in world space
 
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f),
         float euler_x = 0.0f, float euler_y = -90.0f);

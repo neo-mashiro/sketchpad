@@ -10,6 +10,3 @@ build/
 
 # temporary files
 tmp/
-
-# unfinalized texture files
-**.jpg

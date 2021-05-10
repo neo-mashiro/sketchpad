@@ -26,14 +26,14 @@ Canvas* canvas = nullptr;  // singleton canvas instance
 
 // global pointers are ok
 std::unique_ptr<Camera> camera;
-std::unique_ptr<Shader> aqua_shader, box_shader, cube_shader, skybox_shader;
-std::unique_ptr<Mesh> aqua, box, cube, skybox;
+std::unique_ptr<Shader> cube_shader, skybox_shader;
+std::unique_ptr<Mesh> cube, skybox;
 
 // global containers are ok
-std::vector<Texture> aqua_textures, box_textures, skybox_textures;
+std::vector<Texture> skybox_textures;
 
 // static initialization is ok
-const char* scene_title = "Sample Scene";  // name your scene here
+const char* scene_title = "Sample Scene 2";  // name your scene here
 
 
 // event function: this is called right after the OpenGL context has been established
@@ -52,23 +52,9 @@ void Start() {
     skybox_textures.push_back(Texture(GL_TEXTURE_CUBE_MAP, "skybox", cwd + "skybox\\"));  // rvalue
     skybox = std::make_unique<Mesh>(Primitive::Cube, skybox_textures);
 
-    // aqua
-    aqua_shader = std::make_unique<Shader>(cwd + "aqua\\");
-    aqua_textures.push_back(Texture(GL_TEXTURE_2D, "albedo", cwd + "aqua\\albedo.jpg"));  // rvalue
-    aqua = std::make_unique<Mesh>(Primitive::Sphere, aqua_textures);
-
-    // box
-    box_shader = std::make_unique<Shader>(cwd + "box\\");
-    box_textures.push_back(Texture(GL_TEXTURE_2D, "albedo", cwd + "box\\albedo.jpg", true));
-    box = std::make_unique<Mesh>(Primitive::Cube, box_textures);
-    box->M = glm::translate(box->M, glm::vec3(3, 0, 0));
-    box->M = glm::scale(box->M, glm::vec3(1, 0.3f, 1));
-
-    // cube
+    // reflective cube
     cube_shader = std::make_unique<Shader>(cwd + "cube\\");
-    cube = std::make_unique<Mesh>(Primitive::Cube);  // no textures, use color interpolation
-    cube->M = glm::translate(cube->M, glm::vec3(3, 2, -2));
-    cube->M = glm::scale(cube->M, glm::vec3(0.8f, 0.8f, 0.8f));
+    cube = std::make_unique<Mesh>(Primitive::Cube);  // no textures, reflect the skybox
 
     // enable face culling
     glEnable(GL_CULL_FACE);
@@ -95,28 +81,12 @@ void Update() {
     glm::mat4 V = camera->GetViewMatrix();
     glm::mat4 P = camera->GetProjectionMatrix((canvas->window).aspect_ratio);
 
-    // draw aqua
-    aqua_shader->Bind();
-    {
-        aqua->M = glm::rotate(aqua->M, glm::radians(0.1f), glm::vec3(0, 1, 0));
-        aqua_shader->SetMat4("u_MVP", P * V * aqua->M);
-        aqua->Draw(*aqua_shader);
-    }
-    aqua_shader->Unbind();
-
-    // draw box
-    box_shader->Bind();
-    {
-        box_shader->SetMat4("u_MVP", P * V * box->M);
-        box->Draw(*box_shader);
-    }
-    box_shader->Unbind();
-
-    // draw colorful cube
+    // draw reflective cube
     cube_shader->Bind();
     {
-        cube->M = glm::rotate(cube->M, glm::radians(0.5f), glm::vec3(1, 0, 0));
         cube_shader->SetMat4("u_MVP", P * V * cube->M);
+        cube_shader->SetVec3("camera_pos", camera->position);
+        cube_shader->SetInt("skybox", 0);  // this line has bug!!! check the shader
         cube->Draw(*cube_shader);
     }
     cube_shader->Unbind();

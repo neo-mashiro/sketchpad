@@ -244,7 +244,7 @@ local function main()
     local dirs = os.matchdirs("src/*")
 
     for index, folder in ipairs(dirs) do
-        -- folder is relative path: e.g. "src/00_Basics"
+        -- folder is relative path: e.g. "src/scene_0"
         local build_file = string.format("%s/build.lua", folder)
 
         if (os.isfile(build_file)) then
