@@ -9,6 +9,8 @@
 #include "shader.h"
 #include "texture.h"
 
+using namespace Sketchpad;
+
 const std::string path = std::string(__FILE__);
 const std::string cwd = path.substr(0, path.rfind("\\")) + "\\";  // current working directory
 

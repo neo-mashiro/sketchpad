@@ -9,35 +9,37 @@
 
 #include "canvas.h"
 
-enum class Direction { F, B, L, R, U, D };
+namespace Sketchpad {
+    enum class Direction { F, B, L, R, U, D };
+    
+    class Camera {
+      private:
+        float euler_x;       // euler angles around the x-axis
+        float euler_y;       // euler angles around the y-axis
 
-class Camera {
-  private:
-    float euler_x;       // euler angles around the x-axis
-    float euler_y;       // euler angles around the y-axis
+        void Spin(int delta_x, int delta_y);
+        void Zoom(int zoom);
+        void Move(Direction direction, float deltatime, bool snap);
 
-    void Spin(int delta_x, int delta_y);
-    void Zoom(int zoom);
-    void Move(Direction direction, float deltatime, bool snap);
+      public:
+        float fov;           // vertical field of view (fovy)
+        float near_clip;     // near clipping distance
+        float far_clip;      // far clipping distance
+        float move_speed;    // keypress translates the camera
+        float zoom_speed;    // scrollwheel zooms in/out the FoV
+        float sensitivity;   // mouse movement rotates the camera
 
-  public:
-    float fov;           // vertical field of view (fovy)
-    float near_clip;     // near clipping distance
-    float far_clip;      // far clipping distance
-    float move_speed;    // keypress translates the camera
-    float zoom_speed;    // scrollwheel zooms in/out the FoV
-    float sensitivity;   // mouse movement rotates the camera
+        glm::vec3 position;  // camera position in world space
+        glm::vec3 forward;   // forward direction in world space
+        glm::vec3 right;     // right direction in world space
+        glm::vec3 up;        // up direction in world space
 
-    glm::vec3 position;  // camera position in world space
-    glm::vec3 forward;   // forward direction in world space
-    glm::vec3 right;     // right direction in world space
-    glm::vec3 up;        // up direction in world space
+        Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f),
+            float euler_x = 0.0f, float euler_y = -90.0f);
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f),
-        float euler_x = 0.0f, float euler_y = -90.0f);
+        glm::mat4 GetViewMatrix(void) const;
+        glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.77777777f) const;  // default 16:9 window
 
-    glm::mat4 GetViewMatrix(void) const;
-    glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.77777777f) const;  // default 16:9 window
-
-    void Update(MouseState& mouse, Window& window, KeyState& keystate, float deltatime, bool snap = true);
-};
+        void Update(MouseState& mouse, Window& window, KeyState& keystate, float deltatime, bool snap = true);
+    };
+}

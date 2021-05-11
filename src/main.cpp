@@ -20,6 +20,7 @@ void Start(void);
 void Update(void);
 
 int main(int argc, char** argv) {
+    using namespace Sketchpad;
     SetConsoleOutputCP(65001);  // set the console code page to utf-8
 
     glutInit(&argc, argv);

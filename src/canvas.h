@@ -6,67 +6,69 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-struct Window {
-    int id;
-    const char* title;
-    GLuint width, height;
-    GLuint full_width, full_height;
-    float aspect_ratio;
-    int zoom, pos_x, pos_y;
-    GLuint display_mode;
-    bool on_top_layer;
-};
+namespace Sketchpad {
+    struct Window {
+        int id;
+        const char* title;
+        GLuint width, height;
+        GLuint full_width, full_height;
+        float aspect_ratio;
+        int zoom, pos_x, pos_y;
+        GLuint display_mode;
+        bool on_top_layer;
+    };
 
-struct FrameCounter {
-    float last_frame, this_frame, delta_time, time;
-};
+    struct FrameCounter {
+        float last_frame, this_frame, delta_time, time;
+    };
 
-struct MouseState {
-    GLuint pos_x, pos_y;
-    int delta_x, delta_y;
-};
+    struct MouseState {
+        GLuint pos_x, pos_y;
+        int delta_x, delta_y;
+    };
 
-struct KeyState {
-    bool u, d;        // up and down
-    bool f, b, l, r;  // forward, backward, left, right
-};
+    struct KeyState {
+        bool u, d;        // up and down
+        bool f, b, l, r;  // forward, backward, left, right
+    };
 
-// canvas can be treated as a sealed singleton instance that survives the entire application lifecycle
+    // canvas can be treated as a sealed singleton instance that survives the entire application lifecycle
 
-class Canvas final {
-  private:
-    Canvas();
-    ~Canvas() {};
+    class Canvas final {
+      private:
+        Canvas();
+        ~Canvas() {};
 
-  public:
-    struct Window window;
-    struct FrameCounter frame_counter;
-    struct MouseState mouse;
-    struct KeyState keystate;
+      public:
+        struct Window window;
+        struct FrameCounter frame_counter;
+        struct MouseState mouse;
+        struct KeyState keystate;
 
-    bool opengl_context_active;
-    std::string gl_vendor, gl_renderer, gl_version, glsl_version;
-    int gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
+        bool opengl_context_active;
+        std::string gl_vendor, gl_renderer, gl_version, glsl_version;
+        int gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
 
-    Canvas(Canvas& canvas) = delete;         // delete copy constructor
-    void operator=(const Canvas&) = delete;  // delete assignment operator
+        Canvas(Canvas& canvas) = delete;         // delete copy constructor
+        void operator=(const Canvas&) = delete;  // delete assignment operator
 
-    static Canvas* GetInstance();
+        static Canvas* GetInstance();
 
-    // check if a valid OpenGL context is present, used by other modules to validate context
-    static void CheckOpenGLContext(const std::string& call);
+        // check if a valid OpenGL context is present, used by other modules to validate context
+        static void CheckOpenGLContext(const std::string& call);
 
-    // keep track of the frame statistics, all scene updates depend on this
-    static void Update();
+        // keep track of the frame statistics, all scene updates depend on this
+        static void Update();
 
-    // default event callbacks
-    static void Idle(void);
-    static void Entry(int state);
-    static void Keyboard(unsigned char key, int x, int y);
-    static void KeyboardUp(unsigned char key, int x, int y);
-    static void Reshape(int width, int height);
-    static void PassiveMotion(int x, int y);
-    static void Mouse(int button, int state, int x, int y);
-    static void Special(int key, int x, int y);
-    static void SpecialUp(int key, int x, int y);
-};
+        // default event callbacks
+        static void Idle(void);
+        static void Entry(int state);
+        static void Keyboard(unsigned char key, int x, int y);
+        static void KeyboardUp(unsigned char key, int x, int y);
+        static void Reshape(int width, int height);
+        static void PassiveMotion(int x, int y);
+        static void Mouse(int button, int state, int x, int y);
+        static void Special(int key, int x, int y);
+        static void SpecialUp(int key, int x, int y);
+    };
+}
