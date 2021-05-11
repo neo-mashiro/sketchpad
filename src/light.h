@@ -7,6 +7,7 @@
 // #include <glm/gtx/perpendicular.hpp>
 //
 // namespace Sketchpad {
+//
 //     struct Textures {
 //        GLuint base{ 0 };
 //        GLuint normal{ 0 };

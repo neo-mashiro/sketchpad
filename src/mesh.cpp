@@ -1,6 +1,8 @@
 #include "mesh.h"
+#include "log.h"
 
 namespace Sketchpad {
+
     void Mesh::BindBuffer() {
         glGenVertexArrays(1, &VAO);
         glBindVertexArray(VAO);
@@ -159,7 +161,7 @@ namespace Sketchpad {
     void Mesh::CreateCylinder(float radius) {
         // TODO: recursively divide the side quads of a cube to approximate a cylinder
         auto normalize = [](glm::vec3 vertex) {
-            float k = sqrt(2) / sqrt(vertex.x * vertex.x + vertex.z * vertex.z);
+            float k = static_cast<float>(sqrt(2)) / sqrt(vertex.x * vertex.x + vertex.z * vertex.z);
             return glm::vec3(k * vertex.x, vertex.y, k * vertex.z);
         };
 
@@ -218,37 +220,36 @@ namespace Sketchpad {
             case Primitive::Plane:    CreatePlane();    break;
 
             default:
-                std::cerr << "[ERROR] Undefined primitive mesh..." << std::endl;
+                CORE_ERROR("Undefined primitive mesh...");
                 std::cin.get();  // pause the console before exiting
                 exit(EXIT_FAILURE);
         }
     }
 
-    void Mesh::SafeMoveTextures(std::vector<Texture>& textures) {
+    void Mesh::SafeMoveTextures(std::vector<Texture>& source_textures) {
         // store textures up to the GPU limit
-        int max_texture_units = Canvas::GetInstance()->gl_max_texture_units;
+        unsigned int max_texture_units = Canvas::GetInstance()->gl_max_texture_units;
 
-        if (textures.size() > max_texture_units) {
-            std::cout << "[WARNING] Exceeded maximum allowed texture units, "
-                "redundant textures are automatically discarded..." << std::endl;
+        if (source_textures.size() > max_texture_units) {
+            CORE_WARN("Exceeded maximum allowed texture units, redundant textures are discarded...");
 
-            // std::move the other vector to this vector
+            // std::move the source vector to this vector
             (this->textures).insert((this->textures).end(),
-                std::make_move_iterator(textures.begin()),
-                std::make_move_iterator(textures.begin() + max_texture_units - 1)
+                std::make_move_iterator(source_textures.begin()),
+                std::make_move_iterator(source_textures.begin() + max_texture_units - 1)
             );
 
-            // reset other vector to a clean empty state
-            for (size_t i = 0; i < textures.size(); i++) {
-                textures[i].id = 0;
+            // reset source vector to a clean empty state
+            for (size_t i = 0; i < source_textures.size(); i++) {
+                source_textures[i].id = 0;
             }
 
-            textures.clear();  // clear() calls the destructor for each element texture
+            source_textures.clear();  // clear() calls the destructor for each element texture
         }
         else {
-            this->textures = std::move(textures);
-            // for (size_t i = 0; i < textures.size(); i++) {
-            //    (this->textures).push_back(std::move(textures[i]));
+            this->textures = std::move(source_textures);
+            // for (size_t i = 0; i < source_textures.size(); i++) {
+            //    (this->textures).push_back(std::move(source_textures[i]));
             // }
         }
     }
@@ -282,7 +283,7 @@ namespace Sketchpad {
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!
         if (VAO > 0) {
-            printf("[CAUTION] Destructing mesh data (VAO = %d)!\n", VAO);
+            CORE_WARN("Destructing mesh data (VAO = {0})!", VAO);
         }
 
         for (unsigned int i = 0; i < textures.size(); i++) {

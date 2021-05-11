@@ -1,19 +1,9 @@
 #pragma once
 
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <utility>
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-
 #include "canvas.h"
 
 namespace Sketchpad {
+    
     class Shader {
       private:
         GLuint id;

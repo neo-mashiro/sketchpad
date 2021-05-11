@@ -1,9 +1,11 @@
 #include "texture.h"
+#include "log.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 namespace Sketchpad {
+    
     const std::unordered_map<GLenum, std::string> Texture::cubemap {
         { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx" },
         { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy" },
@@ -20,9 +22,10 @@ namespace Sketchpad {
 
         if (target == GL_TEXTURE_2D) {
             buffer = stbi_load(path.c_str(), &width, &height, &n_channels, 0);
+
             if (!buffer) {
-                std::cerr << "Failed to load texture: " << path << std::endl;
-                std::cerr << "stbi failure reason: " << stbi_failure_reason() << std::endl;
+                CORE_ERROR("Failed to load texture: {0}", path);
+                CORE_ERROR("stbi failure reason: {0}", stbi_failure_reason());
                 stbi_image_free(buffer);
                 return;
             }
@@ -32,8 +35,8 @@ namespace Sketchpad {
                 case 3: format = GL_RGB; break;
                 case 4: format = GL_RGBA; break;
                 default:
-                    std::cout << "Non-standard image format: " << path << std::endl;
-                    printf("This texture image has %d channels\n", n_channels);
+                    CORE_WARN("Non-standard image format: {0}", path);
+                    CORE_WARN("This texture image has {0} channels", n_channels);
                     break;
             }
 
@@ -59,10 +62,11 @@ namespace Sketchpad {
         try {
             std::string filepath = path + "posx" + extension;
             if (!stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha)) {
-                throw "incorrect file extension";
+                throw "Non-JPG image format detected";
             }
         }
         catch (const char* error_extension) {
+            CORE_INFO("{0}, inferring file extension...", error_extension);
             extension = ".png";
         }
 
@@ -71,8 +75,8 @@ namespace Sketchpad {
             buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
 
             if (!buffer) {
-                std::cerr << "Failed to load skybox: " << filepath << std::endl;
-                std::cerr << "stbi failure reason: " << stbi_failure_reason() << std::endl;
+                CORE_ERROR("Failed to load skybox: {0}", filepath);
+                CORE_ERROR("stbi failure reason: {0}", stbi_failure_reason());
                 stbi_image_free(buffer);
                 return;
             }
@@ -142,9 +146,11 @@ namespace Sketchpad {
         glBindTexture(target, id);
 
         if (target == GL_TEXTURE_CUBE_MAP && !type.compare("skybox")) {
+            CORE_INFO("Loading cubemaps in folder: {0}", path);
             LoadSkybox();
         }
         else {
+            CORE_INFO("Loading texture file: {0}", path);
             LoadTexture();
         }
 
@@ -164,7 +170,7 @@ namespace Sketchpad {
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!
         if (id > 0) {  // texture may be still in use
-            printf("[CAUTION] Destructing texture data (target = %d, id = %d)!\n", target, id);
+            CORE_WARN("Destructing texture data (target = {0}, id = {1})!", target, id);
         }
 
         glBindTexture(target, 0);

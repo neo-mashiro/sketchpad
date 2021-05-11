@@ -30,7 +30,7 @@ git clone https://github.com/neo-mashiro/sketchpad.git
 cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
-Once the solution is built, it contains multiple projects in Visual Studio, each one has its own `scene.cpp` and shader files that build a separate scene, but all projects share the same code base directly under the `src` folder. The framework was designed such that only minimal amount of work is needed in `scene.cpp` to build a custom scene, simply select a startup project in the solution's properties window and fire up the application. The executables will be built into the `bin` folder, all dependent DLLs are automatically copied over there.
+Once the solution is built, it contains multiple projects in Visual Studio, each one has its own `scene.cpp` and shader files (**client**) that build a separate scene, but all projects share the same code base directly under the `src` folder (**core**). The framework was designed such that only minimal amount of work is needed in `scene.cpp` to build a custom scene, simply select a startup project in the solution's properties window and fire up the application. The executables will be built into the `bin` folder, all dependent DLLs are automatically copied over there.
 
 As an aside, it is recommended to use spaces everywhere instead of tabs. In case the **tab size** of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, there are so many hard-to-read repos on Github that use inconsistent indentation in the same file, because they are mixing four spaces with two tabs (of size 2) in the IDE, which is then converted to eight spaces on Github...
 
@@ -45,17 +45,17 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 
 ## Sample scenes
 
-### Demo console logs
-![image]()
+#### Console Logs
+![image](media/console.png)
 
-### Basic meshes, transformations and texture mapping
-![image]()
+#### 3D Meshes, Transformations, Texture Mapping
+...
 
-### Blinn-Phong shading model and skybox reflection
-![image]()
+#### Skybox, Reflection, Blinn-Phong Shading
+...
 
-### Model loading, materials and lighting maps
-![image]()
+#### Custom Model, Lighting Maps & Casters
+...
 
 
 

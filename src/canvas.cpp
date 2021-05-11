@@ -1,4 +1,5 @@
 #include "canvas.h"
+#include "log.h"
 
 namespace Sketchpad {
     // private functions
@@ -72,7 +73,7 @@ namespace Sketchpad {
     // check if a valid OpenGL context is present, used by other modules to validate context
     void Canvas::CheckOpenGLContext(const std::string& call) {
         if (GetInstance()->opengl_context_active == false) {
-            fprintf(stderr, "[FATAL] OpenGL context is not active! Method call failed: %s()\n", call.c_str());
+            CORE_ERROR("OpenGL context is not active! Method call failed: {0}()", call.c_str());
             std::cin.get();
             exit(EXIT_FAILURE);
         }
@@ -89,19 +90,22 @@ namespace Sketchpad {
 
     // all the functions below are glut event callbacks
 
+    #pragma warning(push)
+    #pragma warning(disable : 4100)
+
     void Canvas::Idle(void) {
          GLenum err;
          while ((err = glGetError()) != GL_NO_ERROR) {
-             fprintf(stderr, "OpenGL error detected: %d", err);
+             CORE_ERROR("OpenGL internal error detected: {0}", err);
          }
     }
 
     void Canvas::Entry(int state) {
         if (state == GLUT_ENTERED) {
-            std::cout << "Cursor enters window" << std::endl;
+            CORE_INFO("Cursor enters window");
         }
         else if (state == GLUT_LEFT) {
-            std::cout << "Cursor leaves window" << std::endl;
+            CORE_INFO("Cursor leaves window");
         }
     }
 
@@ -221,4 +225,6 @@ namespace Sketchpad {
             case GLUT_KEY_RIGHT: kptr->r = false; break;
         }
     }
+
+    #pragma warning(pop)
 }

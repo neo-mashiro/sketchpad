@@ -1,6 +1,8 @@
 // #include "model.h"
+// #include "log.h"
 //
 // namespace Sketchpad {
+//
 //     unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 //
 //     enum class Primitive { Sphere, Cube, Cylinder };
@@ -44,7 +46,7 @@
 //             // check for errors
 //             if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 //             {
-//                 cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
+//                 CORE_ERROR("Assimp: {0}", importer.GetErrorString());
 //                 return;
 //             }
 //             // retrieve the directory path of the filepath
@@ -225,7 +227,7 @@
 //         }
 //         else
 //         {
-//             std::cout << "Texture failed to load at path: " << path << std::endl;
+//             CORE_WARN("Texture failed to load at path: {0}", path);
 //             stbi_image_free(data);
 //         }
 //

@@ -1,23 +1,12 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <cmath>
-#include <iostream>
-#include <iterator>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "canvas.h"
 #include "shader.h"
 #include "texture.h"
 
 namespace Sketchpad {
-    constexpr auto PI = 3.14159265358979323846;
+
+    constexpr float PI = 3.141592653589f;
 
     struct Vertex {
         glm::vec3 position;
@@ -38,7 +27,7 @@ namespace Sketchpad {
 
         // safely move assign the passed in textures vector to our class member
         // without breaking the global OpenGL texture binding states
-        void SafeMoveTextures(std::vector<Texture>& textures);
+        void SafeMoveTextures(std::vector<Texture>& source_textures);
 
         // -------------------------------------------------------------------------------------------
         // The member functions below can be used to create some primitive objects with correct vertex

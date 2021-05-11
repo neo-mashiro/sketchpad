@@ -1,17 +1,11 @@
 #pragma once
 
-#include <cmath>
-#include <iostream>
-#include <GL/glew.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "canvas.h"
 
 namespace Sketchpad {
-    enum class Direction { F, B, L, R, U, D };
     
+    enum class Direction { F, B, L, R, U, D };
+
     class Camera {
       private:
         float euler_x;       // euler angles around the x-axis

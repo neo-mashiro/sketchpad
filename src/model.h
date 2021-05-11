@@ -1,9 +1,5 @@
 // #pragma once
 //
-// #include <GL/glew.h>
-// #include <glm/glm.hpp>
-// #include <glm/gtc/type_ptr.hpp>
-// #include <glm/gtc/matrix_transform.hpp>
 //
 // #define STB_IMAGE_IMPLEMENTATION
 // #include "stb_image.h"
@@ -13,17 +9,11 @@
 // #include <assimp/scene.h>
 // #include <assimp/postprocess.h>
 //
-// #include <string>
-// #include <fstream>
-// #include <sstream>
-// #include <iostream>
-// #include <map>
-// #include <vector>
 //
 // #include "mesh.h"
-// #include "shader.h"
 //
 // namespace Sketchpad {
+//
 //     unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 //
 //     class Model {

@@ -1,6 +1,8 @@
 #include "camera.h"
+#include "log.h"
 
 namespace Sketchpad {
+
     void Camera::Spin(int delta_x, int delta_y) {
         if (delta_x == 0 && delta_y == 0) {
             return;
@@ -43,7 +45,7 @@ namespace Sketchpad {
 
             case Direction::D:
                 position.y -= move_speed * deltatime;
-                position.y = max(position.y, 0.0f);
+                position.y = std::max(position.y, 0.0f);
                 snap = false;
                 break;
     	}

@@ -1,12 +1,39 @@
 #pragma once
 
-#include <iostream>
-#include <string>
 #include <windows.h>
 #include <GL/glew.h>
+
+#pragma warning(push)
+#pragma warning(disable : 4505)
 #include <GL/freeglut.h>
+#pragma warning(pop)
+
+#include <algorithm>
+#include <cmath>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/perpendicular.hpp>
+#pragma warning(pop)
+
 
 namespace Sketchpad {
+
     struct Window {
         int id;
         const char* title;

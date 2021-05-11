@@ -1,15 +1,9 @@
 #pragma once
 
-#include <algorithm>
-#include <iostream>
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <GL/glew.h>
-
 #include "canvas.h"
 
 namespace Sketchpad {
+    
     class Texture {
       private:
         const static std::unordered_map<GLenum, std::string> cubemap;

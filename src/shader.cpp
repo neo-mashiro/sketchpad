@@ -1,6 +1,8 @@
 #include "shader.h"
+#include "log.h"
 
 namespace Sketchpad {
+    
     void Shader::LoadShader(GLenum type, const std::string& filepath) {
         // this line may cause access violation if OpenGL context is not set up
         // machine-level exceptions like this or segmentation fault cannot be caught
@@ -19,7 +21,7 @@ namespace Sketchpad {
             return;  // path does not exist, skip this shader type
         }
 
-        printf("Compiling shader file : %s\n", filepath.c_str());
+        CORE_INFO("Compiling shader file: {0}", filepath.c_str());
 
         const char* shader = shader_code.c_str();
         glShaderSource(shader_id, 1, &shader, nullptr);
@@ -35,7 +37,7 @@ namespace Sketchpad {
             GLchar* info_log = new GLchar[info_log_length + 1];
             glGetShaderInfoLog(shader_id, info_log_length, NULL, info_log);
 
-            fprintf(stderr, "Failed to compile shader : %s\n", info_log);
+            CORE_ERROR("Failed to compile shader: {0}", info_log);
             delete[] info_log;
             glDeleteShader(shader_id);  // prevent shader leak
 
@@ -47,7 +49,8 @@ namespace Sketchpad {
     }
 
     void Shader::LinkShaders() {
-        printf("Linking shader files ...\n\n");
+        CORE_INFO("Linking shader files...");
+
         GLuint program_id = glCreateProgram();
 
         for (auto&& shader : shaders) {
@@ -68,7 +71,7 @@ namespace Sketchpad {
             GLchar* info_log = new GLchar[info_log_length + 1];
             glGetProgramInfoLog(program_id, info_log_length, NULL, info_log);
 
-            fprintf(stderr, "Failed to link shaders : %s\n", info_log);
+            CORE_ERROR("Failed to link shaders: {0}", info_log);
             delete[] info_log;
         }
 
@@ -90,7 +93,7 @@ namespace Sketchpad {
         // if not found in cache, query from GPU (only the first time)
         GLint location = glGetUniformLocation(id, name.c_str());
         if (location == -1) {
-            printf("\nUniform location not found : %s, the GLSL compiler may have optimized it out\n", name.c_str());
+            CORE_WARN("Uniform location not found: {0}, the GLSL compiler may have optimized it out", name.c_str());
         }
 
         uniform_loc_cache[name] = location;  // cache location in memory (including -1)
@@ -122,7 +125,7 @@ namespace Sketchpad {
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!
         if (id > 0) {
-            printf("[CAUTION] Deleting shader program (id = %d)!\n", id);
+            CORE_WARN("Deleting shader program (id = {0})!", id);
         }
 
         shaders.clear();
@@ -156,7 +159,7 @@ namespace Sketchpad {
 
     void Shader::Bind() const {
         if (id == 0) {
-            std::cout << "[CAUTION] Attempting to use an invalid shader (id = 0)!" << std::endl;
+            CORE_WARN("Attempting to use an invalid shader (id = 0)!");
         }
         glUseProgram(id);
     }
