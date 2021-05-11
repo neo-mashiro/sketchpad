@@ -46,20 +46,28 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 ## Sample scenes
 
 <p align="center">
-  <b>Console Logs</b><br>
+  <b>CONSOLE LOGS</b>
+  <br><br>
   <img src="media/console.png">
 </p>
 
-#### 3D Meshes, Transformations, Texture Mapping
-...
+<p align="center">
+  <b>3D MESHES, TEXTURE MAPPING</b>
+  <br><br>
+  <img src="">
+</p>
 
-#### Skybox, Reflection, Blinn-Phong Shading
-...
+<p align="center">
+  <b>SKYBOX, REFLECTION MAPPING</b>
+  <br><br>
+  <img src="">
+</p>
 
-#### Custom Model, Lighting Maps & Casters
-...
-
-
+<p align="center">
+  <b>MODEL LOADING, BLINN-PHONG SHADING</b>
+  <br><br>
+  <img src="">
+</p>
 
 ## Useful References
 
