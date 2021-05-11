@@ -2,7 +2,7 @@
 #include "log.h"
 
 namespace Sketchpad {
-    
+
     void Shader::LoadShader(GLenum type, const std::string& filepath) {
         // this line may cause access violation if OpenGL context is not set up
         // machine-level exceptions like this or segmentation fault cannot be caught

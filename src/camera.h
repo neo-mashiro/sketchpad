@@ -3,7 +3,7 @@
 #include "canvas.h"
 
 namespace Sketchpad {
-    
+
     enum class Direction { F, B, L, R, U, D };
 
     class Camera {

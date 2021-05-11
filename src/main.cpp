@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     std::cout << "- Cubemap texture (width and height): " << canvas->gl_texsize_cubemap << std::endl;
 
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(canvas->gl_max_texture_units));
-    std::cout << "* Maximum number of samplers supported in the fragment shader: " <<
+    std::cout << "- Maximum number of samplers supported in the fragment shader: " <<
         canvas->gl_max_texture_units << '\n' << std::endl;
 
     SetConsoleTextAttribute(console, 15);  // full white text, transparent background

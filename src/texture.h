@@ -3,7 +3,7 @@
 #include "canvas.h"
 
 namespace Sketchpad {
-    
+
     class Texture {
       private:
         const static std::unordered_map<GLenum, std::string> cubemap;

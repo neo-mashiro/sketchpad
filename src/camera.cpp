@@ -33,9 +33,9 @@ namespace Sketchpad {
         float elevation = position.y;
 
         switch (direction) {
-        	case Direction::F: position += forward * (move_speed * deltatime); break;
+            case Direction::F: position += forward * (move_speed * deltatime); break;
             case Direction::B: position -= forward * (move_speed * deltatime); break;
-        	case Direction::L: position -= right * (move_speed * deltatime); break;
+            case Direction::L: position -= right * (move_speed * deltatime); break;
             case Direction::R: position += right * (move_speed * deltatime); break;
 
             case Direction::U:
@@ -48,7 +48,7 @@ namespace Sketchpad {
                 position.y = std::max(position.y, 0.0f);
                 snap = false;
                 break;
-    	}
+        }
 
         if (snap) {
             position.y = elevation;  // snap to the plane

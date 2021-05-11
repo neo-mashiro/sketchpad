@@ -5,7 +5,7 @@
 #include "stb_image.h"
 
 namespace Sketchpad {
-    
+
     const std::unordered_map<GLenum, std::string> Texture::cubemap {
         { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx" },
         { GL_TEXTURE_CUBE_MAP_POSITIVE_Y, "posy" },

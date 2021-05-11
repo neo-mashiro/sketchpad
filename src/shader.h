@@ -3,7 +3,7 @@
 #include "canvas.h"
 
 namespace Sketchpad {
-    
+
     class Shader {
       private:
         GLuint id;
