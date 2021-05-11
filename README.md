@@ -45,8 +45,10 @@ As an aside, it is recommended to use spaces everywhere instead of tabs. In case
 
 ## Sample scenes
 
-#### Console Logs
-![image](media/console.png)
+<p align="center">
+  <b>Console Logs</b><br>
+  <img src="media/console.png">
+</p>
 
 #### 3D Meshes, Transformations, Texture Mapping
 ...
