@@ -5,7 +5,7 @@
 #include "mesh.h"
 #include "model.h"
 
-using namespace Sketchpad;  // test
+using namespace Sketchpad;  // remove test
 
 const std::string path = std::string(__FILE__);
 const std::string cwd = path.substr(0, path.rfind("\\")) + "\\";  // current working directory
