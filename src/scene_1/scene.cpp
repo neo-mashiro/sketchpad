@@ -11,10 +11,10 @@ const std::string path = std::string(__FILE__);
 const std::string cwd = path.substr(0, path.rfind("\\")) + "\\";  // current working directory
 
 // -------------------------------------------------------------------------------------------
-// A word of caution:
+// a word of caution:
 // -------------------------------------------------------------------------------------------
-// Global class instances must not be defined here directly, declare pointers to them instead.
-// If not, they would trigger dynamic initialization at startup, which happens before main()
+// global class instances must not be defined here directly, declare pointers to them instead.
+// if not, they would trigger dynamic initialization at startup, which happens before main()
 // function is entered, so a valid OpenGL context has not yet been created. In this case, the
 // code compiles fine but the behaviors are undefined, since these class constructors depend on
 // OpenGL APIs, this could cause the program to silently crash at runtime (access violation).
