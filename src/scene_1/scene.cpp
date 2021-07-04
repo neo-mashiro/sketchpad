@@ -111,7 +111,7 @@ void Update() {
     }
     sphere_shader->Unbind();
 
-    // drawing skybox at last can save us many draw calls, because it is the farthest object in
+    // drawing skybox last can save us many draw calls, because it is the farthest object in
     // the scene, which should be rendered behind all other objects.
     // with depth test enabled, pixels that fail the test (obstructed by other objects) are skipped.
     skybox_shader->Bind();

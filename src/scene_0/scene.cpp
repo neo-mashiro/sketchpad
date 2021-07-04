@@ -5,6 +5,8 @@
 #include "mesh.h"
 #include "model.h"
 
+#include "log.h"
+
 using namespace Sketchpad;  // remove test
 
 const std::string path = std::string(__FILE__);
@@ -24,14 +26,12 @@ Canvas* canvas = nullptr;  // singleton canvas instance
 
 // global pointers are ok
 std::unique_ptr<Camera> camera;
-//std::unique_ptr<Shader> aqua_shader, box_shader, cube_shader, skybox_shader;
-std::unique_ptr<Shader> skybox_shader;
-//std::unique_ptr<Mesh> aqua, box, cube, skybox;
+std::unique_ptr<Shader> cube_shader, skybox_shader;
 std::unique_ptr<Mesh> skybox;
 
 // global containers are ok
-//std::vector<Texture> aqua_textures, box_textures, skybox_textures;
-std::vector<Texture> skybox_textures;
+std::vector<Texture> skybox_texture;
+std::vector<Mesh> cubes;
 
 // static initialization is ok
 const char* scene_title = "Sample Scene";  // name your scene here
@@ -50,26 +50,21 @@ void Start() {
 
     // skybox
     skybox_shader = std::make_unique<Shader>(cwd + "skybox\\");
-    skybox_textures.push_back(Texture(GL_TEXTURE_CUBE_MAP, "skybox", cwd + "skybox\\"));  // rvalue
-    skybox = std::make_unique<Mesh>(Primitive::Cube, skybox_textures);
+    skybox_texture.push_back(Texture(GL_TEXTURE_CUBE_MAP, "skybox", cwd + "skybox\\"));  // rvalue
+    skybox = std::make_unique<Mesh>(Primitive::Cube, skybox_texture);
 
-    //// aqua
-    //aqua_shader = std::make_unique<Shader>(cwd + "aqua\\");
-    //aqua_textures.push_back(Texture(GL_TEXTURE_2D, "albedo", cwd + "aqua\\albedo.jpg"));  // rvalue
-    //aqua = std::make_unique<Mesh>(Primitive::Sphere, aqua_textures);
-
-    //// box
-    //box_shader = std::make_unique<Shader>(cwd + "box\\");
-    //box_textures.push_back(Texture(GL_TEXTURE_2D, "albedo", cwd + "box\\albedo.jpg", true));
-    //box = std::make_unique<Mesh>(Primitive::Cube, box_textures);
-    //box->M = glm::translate(box->M, glm::vec3(3, 0, 0));
-    //box->M = glm::scale(box->M, glm::vec3(1, 0.3f, 1));
-
-    //// cube
-    //cube_shader = std::make_unique<Shader>(cwd + "cube\\");
-    //cube = std::make_unique<Mesh>(Primitive::Cube);  // no textures, use color interpolation
-    //cube->M = glm::translate(cube->M, glm::vec3(3, 2, -2));
-    //cube->M = glm::scale(cube->M, glm::vec3(0.8f, 0.8f, 0.8f));
+    // cubes
+    cube_shader = std::make_unique<Shader>(cwd + "cube\\");
+    for (int x = -3; x <= 3; x++) {
+        for (int y = -3; y <= 3; y++) {
+            for (int z = -3; z <= 3; z++) {
+                Mesh cube = Mesh(Primitive::Cube);
+                cube.M = glm::translate(cube.M, glm::vec3(x, y, z) * 0.7f);
+                cube.M = glm::scale(cube.M, glm::vec3(0.1f));
+                cubes.push_back(std::move(cube));
+            }
+        }
+    }
 
     // enable face culling
     glEnable(GL_CULL_FACE);
@@ -96,33 +91,18 @@ void Update() {
     glm::mat4 V = camera->GetViewMatrix();
     glm::mat4 P = camera->GetProjectionMatrix((canvas->window).aspect_ratio);
 
-    // draw aqua
-    //aqua_shader->Bind();
-    //{
-    //    aqua->M = glm::rotate(aqua->M, glm::radians(0.1f), glm::vec3(0, 1, 0));
-    //    aqua_shader->SetMat4("u_MVP", P * V * aqua->M);
-    //    aqua->Draw(*aqua_shader);
-    //}
-    //aqua_shader->Unbind();
+    // draw cubes
+    cube_shader->Bind();
+    {
+        for (int i = 0; i < cubes.size(); i++) {
+            cube_shader->SetMat4("u_MVP", P * V * cubes[i].M);
+            cube_shader->SetVec4("u_color", cubes[i].M[3] / 1.6f + 0.5f);
+            cubes[i].Draw(*cube_shader);
+        }
+    }
+    cube_shader->Unbind();
 
-    // draw box
-    //box_shader->Bind();
-    //{
-    //    box_shader->SetMat4("u_MVP", P * V * box->M);
-    //    box->Draw(*box_shader);
-    //}
-    //box_shader->Unbind();
-
-    // draw colorful cube
-    //cube_shader->Bind();
-    //{
-    //    cube->M = glm::rotate(cube->M, glm::radians(0.5f), glm::vec3(1, 0, 0));
-    //    cube_shader->SetMat4("u_MVP", P * V * cube->M);
-    //    cube->Draw(*cube_shader);
-    //}
-    //cube_shader->Unbind();
-
-    // drawing skybox at last can save us many draw calls, because it is the farthest object in
+    // drawing skybox last can save us many draw calls, because it is the farthest object in
     // the scene, which should be rendered behind all other objects.
     // with depth test enabled, pixels that fail the test (obstructed by other objects) are skipped.
     skybox_shader->Bind();
