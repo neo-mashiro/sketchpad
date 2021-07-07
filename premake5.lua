@@ -61,10 +61,54 @@ local function setup_solution()
 
             linkoptions {
                 "/ignore:4099",  -- ignore library pdb warnings when running in debug
+                "/ignore:4217",  -- symbol '___glewxxx' defined in 'glew32s.lib' is imported by 'ImGui.lib'
                 "/NODEFAULTLIB:libcmt.lib"  -- fix LNK4098 warnings
             }
 
         filter {}  -- clear filter
+end
+
+--------------------------------------------------------------------------------
+-- [ STATIC LIBRARY CONFIG ]
+
+-- ImGui is not a header-only library, and does not have binaries, we need to
+-- compile from sources ourselves. I don't want to mess up my own source tree
+-- by including their scripts directly, so we setup a standalone project that
+-- would build the ImGui sources into a static lib file, which can then be
+-- linked by our own projects.
+--------------------------------------------------------------------------------
+local function setup_library()
+    project "ImGui"
+        kind "StaticLib"
+        language "C++"
+        cppdialect "C++17"
+
+        -- place the project files (.vcxproj) in the action folder under root dir
+        location(root_dir .. premake_action .. "/")
+
+        local imgui_dir = "./vendor/imgui/"
+
+        files {
+            imgui_dir .. "*.h",
+            imgui_dir .. "*.cpp"
+        }
+
+        vpaths {
+            ["Sources/*"] = {
+                imgui_dir .. "*.h",
+                imgui_dir .. "*.cpp"
+            }
+        }
+
+        -- dependencies for compiling ImGui backends
+        includedirs {
+            "./vendor/GLEW/include",
+            "./vendor/GLUT/include"
+        }
+
+        -- build into the same folder as other sandboxes so that it can be linked
+        objdir("./build/intermediates/" .. "ImGui" .. "/%{cfg.buildcfg}/%{cfg.platform}")
+        targetdir("./build/bin/" .. "ImGui" .. "/%{cfg.buildcfg}/%{cfg.platform}")
 end
 
 --------------------------------------------------------------------------------
@@ -74,7 +118,7 @@ end
 -- inside this function, the working directory will be the project's folder, so be aware of relative paths.
 -- [ CAVEAT: EXCEPTION ] any pre/post command must still use the root dir as the working directory.
 
-function setup_project()
+function setup_project(link_imgui)
     project(project_name)
         kind "ConsoleApp"
         language "C++"
@@ -90,13 +134,13 @@ function setup_project()
         if (project_name == "sketchpad") then
             objdir("../../build/intermediates/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
             targetdir("../../app/")
-            targetname "z-sketchpad"  -- application name = z-sketchpad.exe
+            targetname "sketchpad"  -- application name = sketchpad.exe
 
         -- build all other sandbox chapters into the build folder
         else
             objdir("../../build/intermediates/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
             targetdir("../../build/bin/" .. project_name .. "/%{cfg.buildcfg}/%{cfg.platform}")
-            targetname "Sandbox"
+            targetname "Sandbox"  -- sandbox.exe
         end
 
         -- use main() instead of WinMain() as the application entry point
@@ -191,6 +235,7 @@ function setup_project()
             vendor_dir .. "GLEW/include",
             vendor_dir .. "GLFW/include",
             vendor_dir .. "GLUT/include",
+            vendor_dir .. "imgui",
 
             -- header only libraries
             "../../vendor",
@@ -216,6 +261,10 @@ function setup_project()
             "glu32", "opengl32", "gdi32", "winmm", "user32"  -- Windows 10
         }
 
+        if (link_imgui) then
+            links {"ImGui"}
+        end
+
         ------------------------------------------------------------------------
         -- [ POST BUILD ACTIONS ]
         ------------------------------------------------------------------------
@@ -240,6 +289,7 @@ end
 --------------------------------------------------------------------------------
 local function main()
     setup_solution()
+    setup_library()
 
     local dirs = os.matchdirs("src/*")
 

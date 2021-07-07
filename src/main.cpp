@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
         exit(EXIT_FAILURE);
     }
 
+    canvas->CreateImGuiContext();
     canvas->opengl_context_active = true;
 
     glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
@@ -99,21 +100,24 @@ int main(int argc, char** argv) {
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
     glDebugMessageCallback(MessageCallback, 0);
 
-    Start();
-
-    glutDisplayFunc(Update);
-
     glutIdleFunc(Canvas::Idle);
     glutEntryFunc(Canvas::Entry);
     glutKeyboardFunc(Canvas::Keyboard);
     glutKeyboardUpFunc(Canvas::KeyboardUp);
     glutMouseFunc(Canvas::Mouse);
     glutReshapeFunc(Canvas::Reshape);
+    glutMotionFunc(Canvas::Motion);
     glutPassiveMotionFunc(Canvas::PassiveMotion);
     glutSpecialFunc(Canvas::Special);
     glutSpecialUpFunc(Canvas::SpecialUp);
 
+    Start();
+
+    glutDisplayFunc(Update);
+
     glutMainLoop();
+
+    canvas->Clear();
 
     return 0;
 }

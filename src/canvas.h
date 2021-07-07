@@ -31,8 +31,14 @@
 #include <glm/gtx/perpendicular.hpp>
 #pragma warning(pop)
 
+#include "imgui.h"
+#include "imgui_impl_glut.h"
+#include "imgui_impl_opengl3.h"
+
 
 namespace Sketchpad {
+
+    enum class WindowLayer { scene, imgui, win32 };
 
     struct Window {
         int id;
@@ -42,7 +48,7 @@ namespace Sketchpad {
         float aspect_ratio;
         int zoom, pos_x, pos_y;
         GLuint display_mode;
-        bool on_top_layer;
+        WindowLayer current_layer;
     };
 
     struct FrameCounter {
@@ -81,11 +87,17 @@ namespace Sketchpad {
 
         static Canvas* GetInstance();
 
+        // initialize ImGui backends and setup options
+        static void CreateImGuiContext();
+
         // check if a valid OpenGL context is present, used by other modules to validate context
         static void CheckOpenGLContext(const std::string& call);
 
         // keep track of the frame statistics, all scene updates depend on this
         static void Update();
+
+        // clean up the canvas
+        static void Clear();
 
         // default event callbacks
         static void Idle(void);
@@ -93,6 +105,7 @@ namespace Sketchpad {
         static void Keyboard(unsigned char key, int x, int y);
         static void KeyboardUp(unsigned char key, int x, int y);
         static void Reshape(int width, int height);
+        static void Motion(int x, int y);
         static void PassiveMotion(int x, int y);
         static void Mouse(int button, int state, int x, int y);
         static void Special(int key, int x, int y);

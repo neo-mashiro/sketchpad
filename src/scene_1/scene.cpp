@@ -125,6 +125,20 @@ void Update() {
     glFrontFace(GL_CCW);  // reset the global winding order to draw only outer faces
     skybox_shader->Unbind();
 
+    if ((canvas->window).current_layer == WindowLayer::imgui) {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGLUT_NewFrame();
+
+        //ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+        //ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+        //ImGui::End();
+
+        ImGui::ShowDemoWindow();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
     glutSwapBuffers();
     glutPostRedisplay();
 }

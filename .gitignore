@@ -3,6 +3,7 @@ build/
 
 # Visual Studio
 .vs/
+vs*/
 **.sln
 **.vcxproj
 **.vcxproj.filters

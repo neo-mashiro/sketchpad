@@ -3,13 +3,11 @@
 
 namespace Sketchpad {
     // private functions
-    void OnExitConfirm(Window* wptr) {
-        bool was_on_top = wptr->on_top_layer;
+    static void OnExitConfirm(Window* wptr) {
+        WindowLayer layer = wptr->current_layer;
+        wptr->current_layer = WindowLayer::win32;
 
-        if (was_on_top) {
-            wptr->on_top_layer = false;
-            glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
-        }
+        glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
 
         int button_id = MessageBox(NULL,
             (LPCWSTR)L"Do you want to close the window?",
@@ -22,24 +20,22 @@ namespace Sketchpad {
                 glutLeaveMainLoop();
                 break;
             case IDCANCEL:
-                if (was_on_top) {
-                    wptr->on_top_layer = true;
+                wptr->current_layer = layer;  // recover layer
+                if (layer == WindowLayer::scene) {
                     glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
                 }
                 break;
         }
     }
 
-    void ToggleControlMenu(Window* wptr) {
-        if (wptr->on_top_layer) {
-            wptr->on_top_layer = false;
-            glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
-            // TODO: open ImGUI control menu
+    static void ToggleControlMenu(Window* wptr) {
+        if (wptr->current_layer == WindowLayer::imgui) {
+            wptr->current_layer = WindowLayer::scene;
+            glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
         }
         else {
-            wptr->on_top_layer = true;
-            glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
-            // TODO: close ImGUI control menu
+            wptr->current_layer = WindowLayer::imgui;
+            glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
         }
     }
 
@@ -54,7 +50,7 @@ namespace Sketchpad {
         window.pos_x = (window.full_width - 1280) / 2;
         window.pos_y = (window.full_height - 720) / 2;
         window.display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
-        window.on_top_layer = true;
+        window.current_layer = WindowLayer::scene;
 
         frame_counter = { 0.0f, 0.0f, 0.0f, 0.0f };
         mouse = { 1280 / 2, 720 / 2, 0, 0 };
@@ -68,6 +64,17 @@ namespace Sketchpad {
     Canvas* Canvas::GetInstance() {
         static Canvas instance;
         return &instance;
+    }
+
+    // initialize imgui backends and setup options
+    void Canvas::CreateImGuiContext() {
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO();
+
+        ImGui::StyleColorsDark();
+
+        ImGui_ImplGLUT_Init();
+        ImGui_ImplOpenGL3_Init();
     }
 
     // check if a valid OpenGL context is present, used by other modules to validate context
@@ -86,6 +93,13 @@ namespace Sketchpad {
         counter->delta_time = counter->this_frame - counter->last_frame;
         counter->last_frame = counter->this_frame;
         counter->time += counter->delta_time;
+    }
+
+    // clean up the canvas
+    void Canvas::Clear() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGLUT_Shutdown();
+        ImGui::DestroyContext();
     }
 
     // all the functions below are glut event callbacks
@@ -110,48 +124,55 @@ namespace Sketchpad {
     }
 
     void Canvas::Keyboard(unsigned char key, int x, int y) {
-        if (key == VK_ESCAPE) {
-            OnExitConfirm(&(GetInstance()->window));
-        }
-        else if (key == VK_RETURN) {
-            ToggleControlMenu(&(GetInstance()->window));
-        }
-        else if (key == VK_SPACE) {
-            auto* kptr = &(GetInstance()->keystate);
-            kptr->u = true;
-        }
-        else if (key == 'z') {
-            auto* kptr = &(GetInstance()->keystate);
-            kptr->d = true;
-        }
-        else {
-            auto* kptr = &(GetInstance()->keystate);
+        auto* wptr = &(GetInstance()->window);
+        auto* kptr = &(GetInstance()->keystate);
+
+        // imgui menu is the current layer, enable imgui input control
+        if (wptr->current_layer == WindowLayer::imgui) {
             switch (key) {
+                case VK_ESCAPE: OnExitConfirm(wptr); break;
+                case VK_RETURN: ToggleControlMenu(wptr); break;
+                default: ImGui_ImplGLUT_KeyboardFunc(key, x, y); break;
+            }
+        }
+        // for the scene view, use our own input control
+        else if (wptr->current_layer == WindowLayer::scene) {
+            switch (key) {
+                case VK_ESCAPE: OnExitConfirm(wptr); break;
+                case VK_RETURN: ToggleControlMenu(wptr); break;
+                case VK_SPACE: kptr->u = true; break;
+                case 'z': kptr->d = true; break;
                 case 'w': kptr->f = true; break;
                 case 's': kptr->b = true; break;
                 case 'a': kptr->l = true; break;
                 case 'd': kptr->r = true; break;
             }
         }
+        // when the windows api is on top, yield input control to the operating system
+        else if (wptr->current_layer == WindowLayer::win32) {
+            (void)x; (void)y;  // do nothing
+        }
     }
 
     void Canvas::KeyboardUp(unsigned char key, int x, int y) {
-        if (key == VK_SPACE) {
-            auto* kptr = &(GetInstance()->keystate);
-            kptr->u = false;
+        auto* wptr = &(GetInstance()->window);
+        auto* kptr = &(GetInstance()->keystate);
+
+        if (wptr->current_layer == WindowLayer::imgui) {
+            ImGui_ImplGLUT_KeyboardUpFunc(key, x, y);
         }
-        else if (key == 'z') {
-            auto* kptr = &(GetInstance()->keystate);
-            kptr->d = false;
-        }
-        else {
-            auto* kptr = &(GetInstance()->keystate);
+        else if (wptr->current_layer == WindowLayer::scene) {
             switch (key) {
+                case VK_SPACE: kptr->u = false; break;
+                case 'z': kptr->d = false; break;
                 case 'w': kptr->f = false; break;
                 case 's': kptr->b = false; break;
                 case 'a': kptr->l = false; break;
                 case 'd': kptr->r = false; break;
             }
+        }
+        else if (wptr->current_layer == WindowLayer::win32) {
+            (void)x; (void)y;  // do nothing
         }
     }
 
@@ -162,6 +183,8 @@ namespace Sketchpad {
         glutPositionWindow(wptr->pos_x, wptr->pos_y);
         glutReshapeWindow(wptr->width, wptr->height);
 
+        ImGui_ImplGLUT_ReshapeFunc(wptr->width, wptr->height);
+
         // if you want to have different behaviors, you can change the window attributes
         // from your scene source code, by accessing Canvas::GetInstance()->window.param
 
@@ -169,12 +192,21 @@ namespace Sketchpad {
         // with window management, it's also platform-dependent, so just keep it simple
     }
 
+    void Canvas::Motion(int x, int y) {
+        // this callback responds to mouse drag-and-move events, which is only used
+        // when the current layer is ImGui (for moving, resizing & docking widgets)
+        auto* wptr = &(GetInstance()->window);
+        if (wptr->current_layer == WindowLayer::imgui) {
+            ImGui_ImplGLUT_MotionFunc(x, y);
+        }
+    }
+
     void Canvas::PassiveMotion(int x, int y) {
         auto* mptr = &(GetInstance()->mouse);
         auto* wptr = &(GetInstance()->window);
 
-        // when scene is on top layer, detect mouse movement and keep cursor position fixed
-        if (wptr->on_top_layer) {
+        // scene is the current layer, detect mouse movement and keep cursor position fixed
+        if (wptr->current_layer == WindowLayer::scene) {
             // x, y are measured in pixels in screen space, with the origin at the top-left corner
             // but OpenGL uses a world coordinate system with the origin at the bottom-left corner
             mptr->delta_x = x - mptr->pos_x;
@@ -182,22 +214,29 @@ namespace Sketchpad {
 
             glutWarpPointer(mptr->pos_x, mptr->pos_y);
         }
-        // when control menu is on top, cursor is visible, update cursor position each frame
-        else {
+        // imgui layer is on top, cursor is visible, update cursor position each frame
+        else if (wptr->current_layer == WindowLayer::imgui) {
             mptr->pos_x = x;
             mptr->pos_y = y;
+
+            ImGui_ImplGLUT_MotionFunc(x, y);
         }
     }
 
     void Canvas::Mouse(int button, int state, int x, int y) {
         auto* wptr = &(GetInstance()->window);
 
-        // in freeglut, each scrollwheel event is reported as a button click
-        if (button == 3 && state == GLUT_DOWN) {  // scroll up
-            wptr->zoom = -1;
+        if (wptr->current_layer == WindowLayer::imgui) {
+            ImGui_ImplGLUT_MouseFunc(button, state, x, y);
         }
-        else if (button == 4 && state == GLUT_DOWN) {  // scroll down
-            wptr->zoom = +1;
+        else if (wptr->current_layer == WindowLayer::scene) {
+            // in freeglut, each scrollwheel event is reported as a button click
+            if (button == 3 && state == GLUT_DOWN) {  // scroll up
+                wptr->zoom = -1;
+            }
+            else if (button == 4 && state == GLUT_DOWN) {  // scroll down
+                wptr->zoom = +1;
+            }
         }
     }
 
@@ -206,23 +245,37 @@ namespace Sketchpad {
     // do here will not be smooth, so this should only be used to set canvas states or flags.
     // updates must be done in the idle/display callback to avoid noticeable jerky movement.
     void Canvas::Special(int key, int x, int y) {
+        auto* wptr = &(GetInstance()->window);
         auto* kptr = &(GetInstance()->keystate);
-        switch (key) {
-            case GLUT_KEY_UP:    kptr->f = true; break;
-            case GLUT_KEY_DOWN:  kptr->b = true; break;
-            case GLUT_KEY_LEFT:  kptr->l = true; break;
-            case GLUT_KEY_RIGHT: kptr->r = true; break;
+
+        if (wptr->current_layer == WindowLayer::imgui) {
+            ImGui_ImplGLUT_SpecialFunc(key, x, y);
+        }
+        else if (wptr->current_layer == WindowLayer::scene) {
+            switch (key) {
+                case GLUT_KEY_UP:    kptr->f = true; break;
+                case GLUT_KEY_DOWN:  kptr->b = true; break;
+                case GLUT_KEY_LEFT:  kptr->l = true; break;
+                case GLUT_KEY_RIGHT: kptr->r = true; break;
+            }
         }
     }
 
     // this callback responds to special key releasing events
     void Canvas::SpecialUp(int key, int x, int y) {
+        auto* wptr = &(GetInstance()->window);
         auto* kptr = &(GetInstance()->keystate);
-        switch (key) {
-            case GLUT_KEY_UP:    kptr->f = false; break;
-            case GLUT_KEY_DOWN:  kptr->b = false; break;
-            case GLUT_KEY_LEFT:  kptr->l = false; break;
-            case GLUT_KEY_RIGHT: kptr->r = false; break;
+
+        if (wptr->current_layer == WindowLayer::imgui) {
+            ImGui_ImplGLUT_SpecialUpFunc(key, x, y);
+        }
+        else if (wptr->current_layer == WindowLayer::scene) {
+            switch (key) {
+                case GLUT_KEY_UP:    kptr->f = false; break;
+                case GLUT_KEY_DOWN:  kptr->b = false; break;
+                case GLUT_KEY_LEFT:  kptr->l = false; break;
+                case GLUT_KEY_RIGHT: kptr->r = false; break;
+            }
         }
     }
 
