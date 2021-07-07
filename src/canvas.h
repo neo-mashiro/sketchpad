@@ -99,6 +99,9 @@ namespace Sketchpad {
         // clean up the canvas
         static void Clear();
 
+        // switch to another scene
+        static void SwitchScene();
+
         // default event callbacks
         static void Idle(void);
         static void Entry(int state);

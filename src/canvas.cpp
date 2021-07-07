@@ -102,6 +102,15 @@ namespace Sketchpad {
         ImGui::DestroyContext();
     }
 
+    // switch to another scene
+    void Canvas::SwitchScene() {
+        // TODO tomorrow
+        // smoothly switch scenes by using a loading screen
+        // change callbacks
+        // make sure to clear the imgui states as well
+        // make sure to sfaely clear the OpenGL states held by previous scene objects
+    }
+
     // all the functions below are glut event callbacks
 
     #pragma warning(push)
