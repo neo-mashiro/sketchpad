@@ -1,10 +1,15 @@
-#include "texture.h"
-#include "log.h"
+#include "pch.h"
+
+#include "core/app.h"
+#include "core/log.h"
+#include "scene/texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-namespace Sketchpad {
+using namespace core;
+
+namespace scene {
 
     const std::unordered_map<GLenum, std::string> Texture::cubemap {
         { GL_TEXTURE_CUBE_MAP_POSITIVE_X, "posx" },
@@ -140,7 +145,7 @@ namespace Sketchpad {
     Texture::Texture(GLenum target, const std::string& type, const std::string& path, bool anisotropic)
         : target(target), type(type), path(path) {
 
-        Canvas::CheckOpenGLContext("Texture");
+        Application::GetInstance().CheckOpenGLContext("Texture");
 
         glGenTextures(1, &id);
         glBindTexture(target, id);
@@ -165,7 +170,7 @@ namespace Sketchpad {
         // with the object oriented approach in C++, because class instances have their own scope.
         // chances are you don't want this to be called, unless you have removed the mesh from the scene.
 
-        Canvas::CheckOpenGLContext("~Texture");
+        Application::GetInstance().CheckOpenGLContext("~Texture");
 
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!

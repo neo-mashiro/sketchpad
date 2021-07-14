@@ -1,8 +1,15 @@
 #pragma once
 
-#include "canvas.h"
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/perpendicular.hpp>
+#pragma warning(pop)
 
-namespace Sketchpad {
+namespace scene {
 
     enum class Direction { F, B, L, R, U, D };
 
@@ -12,15 +19,15 @@ namespace Sketchpad {
         float euler_y;       // euler angles around the y-axis
 
         void Spin(int delta_x, int delta_y);
-        void Zoom(int zoom);
+        void Zoom(float zoom);
         void Move(Direction direction, float deltatime, bool snap);
 
       public:
         float fov;           // vertical field of view (fovy)
         float near_clip;     // near clipping distance
         float far_clip;      // far clipping distance
-        float move_speed;    // keypress translates the camera
         float zoom_speed;    // scrollwheel zooms in/out the FoV
+        float move_speed;    // keypress translates the camera
         float sensitivity;   // mouse movement rotates the camera
 
         glm::vec3 position;  // camera position in world space
@@ -32,8 +39,8 @@ namespace Sketchpad {
             float euler_x = 0.0f, float euler_y = -90.0f);
 
         glm::mat4 GetViewMatrix(void) const;
-        glm::mat4 GetProjectionMatrix(float aspect_ratio = 1.77777777f) const;  // default 16:9 window
+        glm::mat4 GetProjectionMatrix() const;
 
-        void Update(MouseState& mouse, Window& window, KeyState& keystate, float deltatime, bool snap = true);
+        void Update(bool snap = false);
     };
 }

@@ -1,8 +1,17 @@
 #pragma once
 
-#include "canvas.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
-namespace Sketchpad {
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+
+namespace scene {
 
     class Shader {
       private:

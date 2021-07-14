@@ -1,60 +1,28 @@
-#include "canvas.h"
-#include "camera.h"
-#include "shader.h"
-#include "texture.h"
-#include "mesh.h"
-#include "model.h"
+#include "pch.h"
 
-using namespace Sketchpad;
+#include "core/window.h"
+#include "scene_01.h"
 
-namespace Scene_01 {
+using namespace core;
 
-    const std::string path = std::string(__FILE__);
-    const std::string cwd = path.substr(0, path.rfind("\\")) + "\\";  // current working directory
+namespace scene {
 
-    // -------------------------------------------------------------------------------------------
-    // a word of caution:
-    // -------------------------------------------------------------------------------------------
-    // global class instances must not be defined here directly, declare pointers to them instead.
-    // if not, they would trigger dynamic initialization at startup, which happens before main()
-    // function is entered, so a valid OpenGL context has not yet been created. In this case, the
-    // code compiles fine but the behaviors are undefined, since these class constructors depend on
-    // OpenGL APIs, this could cause the program to silently crash at runtime (access violation).
-    // -------------------------------------------------------------------------------------------
+    // this is called before the first frame, use this function to initialize
+    // your scene configuration, setup shaders, textures, lights, models, etc.
+    void Scene01::Init() {
+        glutSetWindowTitle("Colorful Cubes");
+        Window::layer = Layer::Scene;
 
-    Canvas* canvas = nullptr;  // singleton canvas instance
-
-    // global pointers are ok
-    std::unique_ptr<Camera> camera;
-    std::unique_ptr<Shader> cube_shader, skybox_shader;
-    std::unique_ptr<Mesh> skybox;
-
-    // global containers are ok
-    std::vector<Texture> skybox_texture;
-    std::vector<Mesh> cubes;
-
-    // static initialization is ok
-    const char* scene_title = "Sample Scene";  // name your scene here
-
-
-    // event function: this is called right after the OpenGL context has been established
-    // use this function to initialize your scene configuration, shaders, models, etc.
-    void Start() {
-        glutSetWindowTitle(scene_title);
-
-        // retrieve the global canvas instance
-        canvas = Canvas::GetInstance();
-
-        // create main camera
+        // main camera
         camera = std::make_unique<Camera>();
 
         // skybox
-        skybox_shader = std::make_unique<Shader>(cwd + "skybox\\");
-        skybox_texture.push_back(Texture(GL_TEXTURE_CUBE_MAP, "skybox", cwd + "skybox\\"));  // rvalue
+        skybox_shader = std::make_unique<Shader>(CWD + "skybox\\");
+        skybox_texture.push_back(Texture(GL_TEXTURE_CUBE_MAP, "skybox", CWD + "skybox\\"));  // rvalue
         skybox = std::make_unique<Mesh>(Primitive::Cube, skybox_texture);
 
         // cubes
-        cube_shader = std::make_unique<Shader>(cwd + "cube\\");
+        cube_shader = std::make_unique<Shader>(CWD + "cube\\");
         for (int x = -3; x <= 3; x++) {
             for (int y = -3; y <= 3; y++) {
                 for (int z = -3; z <= 3; z++) {
@@ -78,18 +46,16 @@ namespace Scene_01 {
         glDepthRange(0.0f, 1.0f);
     }
 
-    // event function: this is registered as the OpenGL display callback, which is to be
-    // invoked every frame, place your draw calls and framebuffer updates here
-    void Update() {
+    // this is called every frame, place your scene updates and draw calls here
+    void Scene01::OnSceneRender() {
         glClearColor(0.0f, 0.0f, 1.0f, 0.0f);
         glClearDepth(1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        canvas->Update();
-        camera->Update(canvas->mouse, canvas->window, canvas->keystate, (canvas->frame_counter).delta_time, false);
+        camera->Update();
 
         glm::mat4 V = camera->GetViewMatrix();
-        glm::mat4 P = camera->GetProjectionMatrix((canvas->window).aspect_ratio);
+        glm::mat4 P = camera->GetProjectionMatrix();
 
         // draw cubes
         cube_shader->Bind();
@@ -102,9 +68,10 @@ namespace Scene_01 {
         }
         cube_shader->Unbind();
 
-        // drawing skybox last can save us many draw calls, because it is the farthest object in
-        // the scene, which should be rendered behind all other objects.
-        // with depth test enabled, pixels that fail the test (obstructed by other objects) are skipped.
+        // drawing skybox last can save us many draw calls, because it is the farthest
+        // object in the scene, which should be rendered behind all other objects.
+        // with depth test enabled, pixels that failed the test are skipped over, only
+        // those that passed the test (not obstructed by other objects) are drawn.
         skybox_shader->Bind();
         glFrontFace(GL_CW);  // skybox has reversed winding order, we only draw the inner faces
         {
@@ -113,10 +80,12 @@ namespace Scene_01 {
             skybox_shader->SetMat4("u_MVP", P * glm::mat4(glm::mat3(V)) * skybox->M);
             skybox->Draw(*skybox_shader, true);
         }
-        glFrontFace(GL_CCW);  // reset the global winding order to draw only outer faces
+        glFrontFace(GL_CCW);  // recover the global winding order
         skybox_shader->Unbind();
+    }
 
-        glutSwapBuffers();
-        glutPostRedisplay();
+    // this is called every frame, place your ImGui updates and draw calls here
+    void Scene01::OnImGuiRender() {
+        ImGui::ShowDemoWindow();
     }
 }

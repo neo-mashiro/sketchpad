@@ -10,9 +10,9 @@
 // #include <assimp/postprocess.h>
 //
 //
-// #include "mesh.h"
+// #include "scene/mesh.h"
 //
-// namespace Sketchpad {
+// namespace scene {
 //
 //     unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 //

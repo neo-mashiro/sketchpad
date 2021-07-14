@@ -1,7 +1,8 @@
-// #include "model.h"
-// #include "log.h"
+#include "pch.h"
+// #include "core/log.h"
+// #include "scene/model.h"
 //
-// namespace Sketchpad {
+// namespace scene {
 //
 //     unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 //

@@ -1,8 +1,7 @@
+#include "pch.h"
 #include "log.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
-
-namespace Sketchpad {
+namespace core {
 
     // each sink writes the log to a single target (console, file, database, etc.)
     // each sink has its own private instance of formatter object

@@ -1,10 +1,14 @@
 #pragma once
 
-#include "canvas.h"
-#include "shader.h"
-#include "texture.h"
+#include <vector>
 
-namespace Sketchpad {
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+
+#include "scene/shader.h"
+#include "scene/texture.h"
+
+namespace scene {
 
     constexpr float PI = 3.141592653589f;
 

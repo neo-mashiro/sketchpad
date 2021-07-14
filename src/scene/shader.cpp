@@ -1,7 +1,12 @@
-#include "shader.h"
-#include "log.h"
+#include "pch.h"
 
-namespace Sketchpad {
+#include "core/app.h"
+#include "core/log.h"
+#include "scene/shader.h"
+
+using namespace core;
+
+namespace scene {
 
     void Shader::LoadShader(GLenum type, const std::string& filepath) {
         // this line may cause access violation if OpenGL context is not set up
@@ -104,7 +109,7 @@ namespace Sketchpad {
     }
 
     Shader::Shader(const std::string& filepath) {
-        Canvas::CheckOpenGLContext("Shader");
+        Application::GetInstance().CheckOpenGLContext("Shader");
 
         // load all shaders from the given path
         LoadShader(GL_VERTEX_SHADER, filepath + "vertex.glsl");
@@ -120,7 +125,7 @@ namespace Sketchpad {
     }
 
     Shader::~Shader() {
-        Canvas::CheckOpenGLContext("~Shader");
+        Application::GetInstance().CheckOpenGLContext("~Shader");
 
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!

@@ -1,7 +1,14 @@
-#include "mesh.h"
-#include "log.h"
+#include "pch.h"
 
-namespace Sketchpad {
+#include <utility>
+
+#include "core/app.h"
+#include "core/log.h"
+#include "scene/mesh.h"
+
+using namespace core;
+
+namespace scene {
 
     void Mesh::BindBuffer() {
         glGenVertexArrays(1, &VAO);
@@ -159,7 +166,7 @@ namespace Sketchpad {
     }
 
     void Mesh::CreateCylinder(float radius) {
-        // TODO: recursively divide the side quads of a cube to approximate a cylinder
+        // todo: recursively divide the side quads of a cube to approximate a cylinder
         auto normalize = [](glm::vec3 vertex) {
             float k = static_cast<float>(sqrt(2)) / sqrt(vertex.x * vertex.x + vertex.z * vertex.z);
             return glm::vec3(k * vertex.x, vertex.y, k * vertex.z);
@@ -182,7 +189,9 @@ namespace Sketchpad {
         //     }
         // }
 
-        // TODO: loop through vertices in circular order, find indices of triangles of the top/bottom circle
+        // for each quad of a cube {
+        //     divide_quad(4 vertices of the quad, 10);
+        // }
     }
 
     void Mesh::CreatePlane(float size, float elevation) {
@@ -228,7 +237,7 @@ namespace Sketchpad {
 
     void Mesh::SafeMoveTextures(std::vector<Texture>& source_textures) {
         // store textures up to the GPU limit
-        unsigned int max_texture_units = Canvas::GetInstance()->gl_max_texture_units;
+        unsigned int max_texture_units = Application::GetInstance().gl_max_texture_units;
 
         if (source_textures.size() > max_texture_units) {
             CORE_WARN("Exceeded maximum allowed texture units, redundant textures are discarded...");
@@ -258,7 +267,7 @@ namespace Sketchpad {
         std::vector<Texture>& textures)
         : vertices(vertices), indices(indices), M(glm::mat4(1.0f)) {
 
-        Canvas::CheckOpenGLContext("Mesh");
+        Application::GetInstance().CheckOpenGLContext("Mesh");
         BindBuffer();
         SafeMoveTextures(textures);
     }
@@ -268,7 +277,7 @@ namespace Sketchpad {
     }
 
     Mesh::Mesh(Primitive object) : M(glm::mat4(1.0f)) {
-        Canvas::CheckOpenGLContext("Mesh");
+        Application::GetInstance().CheckOpenGLContext("Mesh");
         CreatePrimitive(object);  // populate vertices and indices vector
         BindBuffer();
     }
@@ -278,7 +287,7 @@ namespace Sketchpad {
         // with the object oriented approach in C++, because class instances have their own scope.
         // chances are you don't want this to be called, unless you have removed the mesh from the scene.
 
-        Canvas::CheckOpenGLContext("~Mesh");
+        Application::GetInstance().CheckOpenGLContext("~Mesh");
 
         // log friendly message to the console, so that we are aware of the *hidden* destructor calls
         // this is super useful in case our data accidentally goes out of scope, debugging made easier!

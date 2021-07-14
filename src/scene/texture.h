@@ -1,8 +1,12 @@
 #pragma once
 
-#include "canvas.h"
+#include <string>
+#include <unordered_map>
+#include <utility>
 
-namespace Sketchpad {
+#include <GL/glew.h>
+
+namespace scene {
 
     class Texture {
       private:
