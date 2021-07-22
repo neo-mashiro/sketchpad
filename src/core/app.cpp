@@ -1,26 +1,30 @@
 #include "pch.h"
 
-#include <windows.h>
+#include <future>
 
 #include "core/app.h"
 #include "core/clock.h"
 #include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
-
-#include "scene_01/scene_01.h"
-#include "scene_02/scene_02.h"
+#include "utils/ui.h"
+#include "utils/factory.h"
 
 namespace core {
 
+    #ifdef MULTI_THREAD
+    static std::future<void> _load_task;
+    #endif
+
     // singleton instance accessor
     Application& Application::GetInstance() {
+        // since c++11, this will be thread-safe, there's no need for manual locking
         static Application instance;
         return instance;
     }
 
     // check if a valid OpenGL context is present, used by other modules to validate context
-    void Application::CheckOpenGLContext(const std::string& call) {
+    void Application::CheckOpenGLContext(const std::string& call) const {
         if (opengl_context_active == false) {
             CORE_ERROR("OpenGL context is not active! Method call failed: {0}()", call.c_str());
             std::cin.get();
@@ -86,52 +90,19 @@ namespace core {
 
         // functional keys have the highest priority (application/window level)
         if (Input::IsKeyPressed(VK_ESCAPE)) {
-            // pop up the exit confirmation message box
-            Layer layer = Window::layer;
-            Window::layer = Layer::Win32;
-
-            glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
-
-            int button_id = MessageBox(NULL,
-                (LPCWSTR)L"Do you want to close the window?",
-                (LPCWSTR)L"Sketchpad.exe",
-                MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON1 | MB_SETFOREGROUND
-            );
-
-            if (button_id == IDOK) {
-                glutLeaveMainLoop();
-                CORE_INFO("Shutting down application ...");
-                exit(EXIT_SUCCESS);
-            }
-            else if (button_id == IDCANCEL) {
-                Input::SetKeyState(VK_ESCAPE, false);  // release Enter key
-                Window::layer = layer;  // recover layer
-
-                if (layer == Layer::Scene) {
-                    glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
-                }
-            }
-
+            Window::ConfirmExit();  // if user confirmed exit, the program will terminate
+            Input::SetKeyState(VK_ESCAPE, false);  // exit is cancelled, release esc key
             return;
         }
 
         if (Input::IsKeyPressed(VK_RETURN)) {
-            // toggle the ImGui menu layer
-            if (Window::layer == Layer::ImGui) {
-                Window::layer = Layer::Scene;
-                glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
-            }
-            else {
-                Window::layer = Layer::ImGui;
-                glutSetCursor(GLUT_CURSOR_INHERIT);  // show cursor
-            }
-
+            Window::ToggleImGui();
             return;
         }
 
         // gameplay control keys have lower priority (scene/layer level)
         if (Window::layer == Layer::ImGui) {
-            // current layer is ImGui, transfer input control to ImGui
+            // current layer is ImGui, dispatch input control to ImGui
             ImGui_ImplGLUT_KeyboardFunc(key, x, y);
 
             // disable our own scene input control, we don't want objects to
@@ -229,31 +200,30 @@ namespace core {
     // core event functions
     // -------------------------------------------------------------------------
     // application initializer
-    void Application::Init(Scene* scene) {
+    void Application::Init() {
         gl_vendor = gl_renderer = gl_version = glsl_version = "";
         gl_texsize = gl_texsize_3d = gl_texsize_cubemap = gl_max_texture_units = 0;
 
         opengl_context_active = false;
+        last_scene = nullptr;
         active_scene = nullptr;
 
-        // initialize spdlog logger
+        // initialize spdlog logger, window attributes
         Log::Init();
-
-        // create the main window
         Window::Init();
+
+        // create the main freeglut window
         glutInitDisplayMode(Window::display_mode);
         glutInitWindowSize(Window::width, Window::height);
         glutInitWindowPosition(Window::pos_x, Window::pos_y);
 
         Window::id = glutCreateWindow(Window::title);
+        Input::HideCursor();
 
         if (Window::id <= 0) {
             CORE_ERROR("Failed to create a window...");
             exit(EXIT_FAILURE);
         }
-
-        // hide cursor inside the window
-        glutSetCursor(GLUT_CURSOR_NONE);
 
         // load opengl core library from hardware
         if (glewInit() != GLEW_OK) {
@@ -262,12 +232,7 @@ namespace core {
         }
 
         // initialize ImGui backends, create ImGui context
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        ImGui::StyleColorsDark();
-
-        ImGui_ImplGLUT_Init();
-        ImGui_ImplOpenGL3_Init();
+        ui::Init();
 
         // register the debug message callback
         glEnable(GL_DEBUG_OUTPUT);
@@ -289,73 +254,109 @@ namespace core {
 
         // opengl context is now active
         opengl_context_active = true;
+    }
 
-        // initialize the active scene
-        active_scene = scene;
+    // kick start the default scene
+    void Application::Start() {
+        CORE_INFO("Initializing welcome screen ......");
+        active_scene = factory::LoadScene("Welcome Screen");
         active_scene->Init();
         Clock::Reset();
     }
 
     // post-update after each iteration of the freeglut event loop
     void Application::PostEventUpdate() {
+        std::string new_title = "";
+
         Clock::Update();
+        ui::NewFrame();
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGLUT_NewFrame();
+        // draw application-level widget: the top menu bar
+        ui::DrawMenuBar(active_scene->title, new_title);
 
-        // the upper left menu bar is always rendered on top of all scenes and layers,
-        // which allows us to have application level control over the scenes (switch)
-        ImGui::Begin("Test Switch Scene", 0, ImGuiWindowFlags_MenuBar);
-
-        if (ImGui::BeginMenuBar()) {
-            if (ImGui::BeginMenu("Open Scene")) {
-                if (ImGui::MenuItem("Colorful Cubes", "Ctrl+O")) {
-                    Switch(new Scene01());
-                }
-
-                if (ImGui::MenuItem("Skybox Reflection", "Ctrl+S")) {
-                    Switch(new Scene02());
-                }
-
-                ImGui::EndMenu();
-            }
-
-            ImGui::EndMenuBar();
-        }
-
-        ImGui::End();
-
-        if (Window::layer == Layer::ImGui) {
+        // draw scene-level widgets if the current layer is ImGui
+        if (Window::layer == Layer::ImGui && new_title.empty()) {
             active_scene->OnImGuiRender();
         }
 
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // draw application-level widget: the bottom status bar
+        ui::DrawStatusBar();
 
-        glutSwapBuffers();
-        glutPostRedisplay();
+        // switching scenes will block the main thread, but here we have a chance
+        // to draw the loading screen before refreshing the window display buffer.
+        if (!new_title.empty()) {
+            ui::DrawLoadingScreen();
+        }
+
+        ui::EndFrame();
+        Window::Refresh();
+
+        if (!new_title.empty()) {
+            Switch(new_title);  // blocking call
+        }
     }
 
-    // switch to a new scene
-    void Application::Switch(Scene* scene) {
-        // make sure to safely clear the OpenGL states held by previous scene objects
-        // the Scene object should be created using the new operator and then delete
-        // explicitly so that its destructor will call all other class destructors which
-        // will safely clean up the internal OpenGL states
+    // switch to a new scene, return only after the new scene is loaded
+    void Application::Switch(const std::string& title) {
+        last_scene = active_scene;
+        active_scene = nullptr;
 
-        // TODO:
-        // smoothly switch scenes by using a loading screen
+        // at any given time, there should be only one active scene, no two scenes
+        // can be alive at the same time in the opengl context, so, each time we
+        // switch scenes, we must delete the previous one first to safely clean up
+        // global opengl states, before creating the new one from factory.
 
-        delete active_scene;
-        active_scene = scene;
-        active_scene->Init();
+        // the new scene must be fully loaded and initialized before being assigned
+        // to active_scene, otherwise, active_scene could be pointing to a scene
+        // that has dirty states, so a subsequent draw call could possibly throw an
+        // access violation exception that crashes the program.
+
+        // cleaning and loading scenes can take quite a while, especially when there
+        // are complicated meshes. Ideally, this function should be scheduled as an
+        // asynchronous background task that runs in another thread, so as not to
+        // block and freeze the window. To do so, we can wrap the task in std::async,
+        // and then query the result from the std::future object, c++ will handle
+        // concurrency for us, just make sure that the lifespan of the future extend
+        // beyond the calling function. Sadly though, multi-threading in OpenGL is a
+        // pain, you can't multithread OpenGL calls easily without using complex
+        // context switching, because lots of buffer data cannot be shared between
+        // threads, and freeglut or your graphics card driver may not be supporting
+        // it. Sharing context and resources between threads is not worth the effort,
+        // if at all possible, but you sure can load images and compute textures
+        // concurrently. If you must use multiple threads, consider using DirectX.
+
+        #ifdef MULTI_THREAD
+
+        auto safe_load = [this](std::string title) {
+            delete last_scene;
+            last_scene = nullptr;
+            Scene* new_scene = factory::LoadScene(title);
+            new_scene->Init();
+            active_scene = new_scene;
+        };
+
+        _load_task = std::async(std::launch::async, safe_load, title);
+
+        #else
+
+        delete last_scene;  // each object in the scene will be destructed
+        last_scene = nullptr;
+        Scene* new_scene = factory::LoadScene(title);
+        new_scene->Init();
+        active_scene = new_scene;
+
+        #endif
     }
 
     // clean up after the last frame
     void Application::Clear() {
+        delete active_scene;
+        last_scene = nullptr;
         active_scene = nullptr;
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGLUT_Shutdown();
-        ImGui::DestroyContext();
+
+        ui::Clear();
+
+        Clock::Reset();
+        Window::Clear();
     }
 }

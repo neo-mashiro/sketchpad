@@ -27,5 +27,9 @@ namespace core {
         static void SetKeyState(unsigned char key, bool pressed);
         static void SetMouseMove(int new_x, int new_y);
         static void SetMouseZoom(float delta_zoom);
+
+        static void ShowCursor(void);
+        static void HideCursor(void);
+        static void ResetCursor(void);
     };
 }

@@ -7,7 +7,6 @@
 #pragma execution_character_set("utf-8")
 
 using namespace core;
-using namespace scene;
 
 int main(int argc, char** argv) {
     // set the console code page to utf-8
@@ -15,9 +14,8 @@ int main(int argc, char** argv) {
 
     glutInit(&argc, argv);
 
-    Application& app = Application::GetInstance();
-    Scene* splash_scene = new Scene();
-    app.Init(splash_scene);
+    auto& app = Application::GetInstance();
+    app.Init();
 
     HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(console, 3);  // water blue text, transparent background
@@ -61,13 +59,15 @@ int main(int argc, char** argv) {
     // from now on, font/color/style of the console text printed by `printf, fprintf, cout, cerr`
     // will be solid white, but those printed by the application core are controlled by spdlog.
 
+    app.Start();  // start the default scene
+
     // main event loop
     while (true) {
         glutMainLoopEvent();    // resolve all pending freeglut events (scene level), then return to us
         app.PostEventUpdate();  // now we have a chance to do our own update stuff (application level)
     }
 
-    app.Clear();
+    app.Clear();  // clean up context and data
 
     return 0;
 }

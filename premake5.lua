@@ -186,10 +186,11 @@ local function setup_project()
             "TIXML_USE_STL",
 
             -- automatically handled by visual studio between debug/release builds
-            -- "DEBUG", "_DEBUG", "NDEBUG"
+            -- "DEBUG", "_DEBUG", "NDEBUG",
 
             -- custom macros for custom uses, you name it ......
-            "CORE_ENABLE_LOG", "LOG_LEVEL=3"  -- just examples, not really used
+            "CORE_ENABLE_LOG", "LOG_TRACE",
+            -- "MULTI_THREAD"  -- if defined, consider using DirectX instead
         }
 
         -- precompiled headers
@@ -319,6 +320,11 @@ local function main()
 
         if (os.isfile(scene_file)) then
             printf("Attaching scene: %s", scene_file)
+            -- implement the Lua generation c++ code
+            -- this should be in a separate Lua file
+            -- class = scene_file.format("some pattern that gives the class name of the cpp file")
+            -- dofile(...)
+            -- io.writefile(filename, content)
         end
     end
 

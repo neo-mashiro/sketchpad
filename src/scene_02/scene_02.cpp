@@ -8,10 +8,26 @@ using namespace core;
 
 namespace scene {
 
+    // define your global variables here that are used by this scene (internal linkage)
+    // global variables serve to link the two rendering functions below, so that we can
+    // interact with game objects in the scene by manipulating UI widgets, for example,
+    // changing the alpha channel using a float slider, or picking a different color
+    // via the color editor popup, etc.
+
+    // most of your global variables should be POD types such as floats, pointers or
+    // simple math vectors, they must be independent from each other since static
+    // initialization order is undefined. You must avoid types here that would trigger
+    // dynamic initialization, which occurs before the OpenGL context has been created.
+
+    static float smoothness = 0.0f;
+    static float metalness = 0.5f;
+    static glm::vec4 color_tint = glm::vec4(1.0f);
+
     // this is called before the first frame, use this function to initialize
     // your scene configuration, setup shaders, textures, lights, models, etc.
     void Scene02::Init() {
         glutSetWindowTitle("Skybox Reflection");
+        glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
         Window::layer = Layer::Scene;
 
         // main camera

@@ -1,7 +1,9 @@
 #include "pch.h"
 
+#include "core/clock.h"
 #include "core/window.h"
 #include "scene_01.h"
+#include "utils/ui.h"
 
 using namespace core;
 
@@ -11,6 +13,7 @@ namespace scene {
     // your scene configuration, setup shaders, textures, lights, models, etc.
     void Scene01::Init() {
         glutSetWindowTitle("Colorful Cubes");
+        glutSetCursor(GLUT_CURSOR_NONE);  // hide cursor
         Window::layer = Layer::Scene;
 
         // main camera
@@ -60,7 +63,7 @@ namespace scene {
         // draw cubes
         cube_shader->Bind();
         {
-            for (int i = 0; i < cubes.size(); i++) {
+            for (unsigned int i = 0; i < cubes.size(); i++) {
                 cube_shader->SetMat4("u_MVP", P * V * cubes[i].M);
                 cube_shader->SetVec4("u_color", cubes[i].M[3] / 1.6f + 0.5f);
                 cubes[i].Draw(*cube_shader);

@@ -3,10 +3,10 @@
 #include <string>
 #include "scene/scene.h"
 
+using namespace scene;
+
 // whenever possible, place your #includes in the cpp file instead of header, this helps
 // reduce compilation time and size of other translation units that include this header.
-
-using namespace scene;
 
 namespace core {
 
@@ -25,15 +25,16 @@ namespace core {
         std::string gl_vendor, gl_renderer, gl_version, glsl_version;
         int gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
 
-        bool opengl_context_active;
-        Scene* active_scene;
+        bool opengl_context_active = false;
+        Scene* last_scene = nullptr;
+        Scene* active_scene = nullptr;
 
         static Application& GetInstance();               // singleton instance accessor
         Application(Application& application) = delete;  // delete copy constructor
         void operator=(const Application&) = delete;     // delete assignment operator
 
         // check if a valid OpenGL context is present, used by other modules to validate context
-        void CheckOpenGLContext(const std::string& call);
+        void CheckOpenGLContext(const std::string& call) const;
 
         // freeglut event callbacks
         static void Idle(void);
@@ -49,9 +50,10 @@ namespace core {
         static void SpecialUp(int key, int x, int y);
 
         // core event functions
-        void Init(Scene* scene);
+        void Init(void);
+        void Start(void);
         void PostEventUpdate(void);
-        void Switch(Scene* scene);
+        void Switch(const std::string& title);
         void Clear(void);
     };
 }

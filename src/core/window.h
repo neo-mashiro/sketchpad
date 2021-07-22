@@ -20,5 +20,10 @@ namespace core {
 
         static void Init();
         static void Reshape();
+        static void Refresh();
+        static void Clear();
+
+        static void ConfirmExit();
+        static void ToggleImGui();
     };
 }

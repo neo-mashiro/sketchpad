@@ -10,14 +10,14 @@
 namespace scene {
 
     class Scene01 : public Scene {
-        // ----------------------------------------------------------------------------
+
+        using Scene::Scene;  // inherit the base constructor
+
         // declare your scene objects here in the header
-        // ----------------------------------------------------------------------------
         // use pointers to avoid dynamic initialization at startup, which happens
         // before main() is entered and so the OpenGL context has not yet been created.
         // most of our class constructors depend on the OpenGL context, without such
         // context, constructor calls will throw an exception to the console.
-        // ----------------------------------------------------------------------------
 
         // main camera
         std::unique_ptr<Camera> camera;

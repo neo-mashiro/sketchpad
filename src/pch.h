@@ -24,6 +24,7 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -40,6 +41,14 @@
 #include <GL/freeglut.h>
 #pragma warning(pop)
 
+#define IMGUI_DISABLE_METRICS_WINDOW
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_glut.h"
 #include "imgui_impl_opengl3.h"
+
+#include "imstb_rectpack.h"
+#include "imstb_textedit.h"
+#include "imstb_truetype.h"

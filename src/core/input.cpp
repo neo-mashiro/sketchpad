@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "input.h"
+#include "core/input.h"
 
 namespace core {
 
@@ -86,4 +86,17 @@ namespace core {
     }
 
     #pragma warning(pop)
+
+    void Input::ShowCursor() {
+        glutSetCursor(GLUT_CURSOR_INHERIT);
+    }
+
+    void Input::HideCursor() {
+        glutSetCursor(GLUT_CURSOR_NONE);
+    }
+
+    // reset cursor position to the center of window
+    void Input::ResetCursor() {
+        glutWarpPointer(mouse_pos_x, mouse_pos_y);
+    }
 }
