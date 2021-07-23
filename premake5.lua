@@ -6,9 +6,14 @@
 -- global namespace and causing bugs.
 
 -- names starting with an underscore followed by uppercase letters (_ACTION,
--- _VERSION) are reserved for internal global variables used by Lua.
+-- _VERSION, _G) are reserved for internal global variables used by Lua.
 
--- as a best practice, always prefix a global variable with the letter "g".
+-- global variables are not only global in this file, but are globally shared
+-- across all Lua scripts in the same environment. Lua internally maintains a
+-- table `_G` that stores all global variables in the current environment, so
+-- we can query them via `_G[key]`, but using `require()` is a better option.
+
+-- as a best practice, always prefix your own global variable with letter "g".
 --------------------------------------------------------------------------------
 g_ide_software = "none"
 
@@ -307,40 +312,47 @@ end
 --------------------------------------------------------------------------------
 local function main()
     ----------------------------------------------------------------------------
-    -- scan all the scenes to make sure we don't miss anything
+    -- scan all scenes to make sure we don't miss anything
     ----------------------------------------------------------------------------
     local dirs = os.matchdirs(g_source_dir .. "scene_*")  -- non-recursive match
+
+    g_config = {}          -- global config table
+    g_config.files = {}    -- store the file names of all scenes
+    g_config.titles = {}   -- store the titles of all scenes
+    g_config.classes = {}  -- store the class names of all scenes
 
     for index, folder in ipairs(dirs) do
         -- folder is relative path: e.g. "src/scene_01"
         -- index in Lua starts from 1, not 0 ...
         local pos = #folder - folder:reverse():find("/", 1) + 1  -- position of the last slash "/"
-        local scene = string.sub(folder, pos + 1)
-        local scene_file = string.format("%s/%s.cpp", folder, scene)
+        local file = string.sub(folder, pos + 1)
+        local path = string.format("%s/%s.cpp", folder, file)
 
-        if (os.isfile(scene_file)) then
-            printf("Attaching scene: %s", scene_file)
-            -- implement the Lua generation c++ code
-            -- this should be in a separate Lua file
-            -- class = scene_file.format("some pattern that gives the class name of the cpp file")
-            -- dofile(...)
-            -- io.writefile(filename, content)
+        if (os.isfile(path)) then
+            printf("Attaching scene: \"%s\"", path)
+            local source_code = io.readfile(path)
+            local title = source_code:match('glutSetWindowTitle%((.-)%)')
+            local class = source_code:match('%svoid%s(.-)::Init%(%)')
+
+            g_config.files[index] = file
+            g_config.titles[index] = title
+            g_config.classes[index] = class
         end
     end
 
     ----------------------------------------------------------------------------
     -- if there are other `.lua` build files nested in "/src", run them 1 by 1.
-    -- these files, if present, should be used to setup configuration on a more
+    -- these files, if exist, should be used to setup configuration on a more
     -- detailed level, reserved for future extension.
-    -- for example, later we may have a "./src/utils/" folder that groups all
-    -- the utility scripts, and contains a `build.lua` file to build them into
-    -- our own static library that we can link to.
+    -- for example, we can have subfolders inside "./src/" that are independent
+    -- custom modules, each may contain a `build.lua` file that serves to build
+    -- the module into our own static library so we can link to it.
     ----------------------------------------------------------------------------
     local build_files = os.matchfiles("src/**.lua")  -- recursive match
 
     for _, build_file in ipairs(build_files) do
         if (os.isfile(build_file)) then
-            printf("Running build file: %s", build_file)
+            printf("Running build file: \"%s\"", build_file)
             dofile(build_file)
         end
     end
