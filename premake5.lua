@@ -315,6 +315,7 @@ local function main()
     -- scan all scenes to make sure we don't miss anything
     ----------------------------------------------------------------------------
     local dirs = os.matchdirs(g_source_dir .. "scene_*")  -- non-recursive match
+    table.sort(dirs)  -- sort the array so that scene ids are numbered in order
 
     g_config = {}          -- global config table
     g_config.files = {}    -- store the file names of all scenes
@@ -331,7 +332,7 @@ local function main()
         if (os.isfile(path)) then
             printf("Attaching scene: \"%s\"", path)
             local source_code = io.readfile(path)
-            local title = source_code:match('glutSetWindowTitle%((.-)%)')
+            local title = source_code:match('Window::Rename%((.-)%)')
             local class = source_code:match('%svoid%s(.-)::Init%(%)')
 
             g_config.files[index] = file

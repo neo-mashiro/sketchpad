@@ -11,19 +11,22 @@
 
 #include "scene_01/scene_01.h"
 #include "scene_02/scene_02.h"
+#include "scene_03/scene_03.h"
 
 namespace factory {
 
     const std::vector<std::string> titles {
         "Welcome Screen",
-        "Colorful Cubes",
-        "Skybox Reflection"
+        "Blinn Phong Reflection",
+        "Skybox Reflection",
+        "Colorful Cubes"
     };
 
     Scene* LoadScene(const std::string& title) {
         if (title == "Welcome Screen") return new Scene(title);
-        if (title == "Colorful Cubes") return new Scene01(title);
+        if (title == "Blinn Phong Reflection") return new Scene01(title);
         if (title == "Skybox Reflection") return new Scene02(title);
+        if (title == "Colorful Cubes") return new Scene03(title);
 
         CORE_ERROR("Scene \"{0}\" is not registered in the factory ...", title);
         std::cin.get();
