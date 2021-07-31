@@ -164,34 +164,22 @@ namespace core {
     }
 
     void Application::Special(int key, int x, int y) {
-        // this callback responds to special keys pressing events (f1, f2, numpads)
-        // it's only invoked every few frames, not each frame, so the update here
-        // won't be smooth, this callback should only be used to set input states.
-        // in contrast, the idle and display callback is guaranteed to be called
-        // every frame, place your continuous updates there to avoid jerkiness.
-        if (Window::layer == Layer::Win32) {
-            return;
-        }
-
-        if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_SpecialFunc(key, x, y);
-        }
-        else if (Window::layer == Layer::Scene) {
-            Input::SetKeyState(key, true);
-        }
+        // this callback responds to special keys pressing events (f1, f2, numpads, direction keys)
+        // note that this is only invoked every few frames, not each frame, so the update here
+        // won't be smooth, you should place your continuous updates in the idle and display
+        // callback to avoid jerkiness, this callback should only be reserved for setting flags.
+        
+        // also be aware that the keyboard callback in freeglut uses `unsigned char` for key types,
+        // while the special callback uses `int` instead, so there are potential conflicts if you
+        // use both callbacks for registering input key states due to unsafe type conversion.
+        // for example, key "d", NumPad 4 and the left arrow key all have a value of 100 when
+        // converted to `uint8_t`, if you press "d" to move right, the left arrow key will be
+        // activated at the same time so the movements would cancel each other.
     }
 
     void Application::SpecialUp(int key, int x, int y) {
-        // this callback responds to special keys releasing events (f1, f2, numpads)
-        if (Window::layer == Layer::Win32) {
-            return;
-        }
-
-        Input::SetKeyState(key, false);
-
-        if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_SpecialUpFunc(key, x, y);
-        }
+        // this callback responds to special keys releasing events (f1, f2, numpads, direction keys)
+        // take notice of discrete updates and potential conflicts as in the special callback above
     }
 
     #pragma warning(pop)
@@ -217,7 +205,7 @@ namespace core {
         glutInitWindowSize(Window::width, Window::height);
         glutInitWindowPosition(Window::pos_x, Window::pos_y);
 
-        Window::id = glutCreateWindow(Window::title);
+        Window::id = glutCreateWindow((Window::title).c_str());
         Input::HideCursor();
 
         if (Window::id <= 0) {
@@ -266,21 +254,20 @@ namespace core {
 
     // post-update after each iteration of the freeglut event loop
     void Application::PostEventUpdate() {
-        std::string new_title = "";
-
         Clock::Update();
         ui::NewFrame();
 
         // draw application-level widget: the top menu bar
+        std::string new_title = "";
         ui::DrawMenuBar(active_scene->title, new_title);
+
+        // draw application-level widget: the bottom status bar
+        ui::DrawStatusBar();
 
         // draw scene-level widgets if the current layer is ImGui
         if (Window::layer == Layer::ImGui && new_title.empty()) {
             active_scene->OnImGuiRender();
         }
-
-        // draw application-level widget: the bottom status bar
-        ui::DrawStatusBar();
 
         // switching scenes will block the main thread, but here we have a chance
         // to draw the loading screen before refreshing the window display buffer.

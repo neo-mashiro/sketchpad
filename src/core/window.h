@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
@@ -9,7 +10,7 @@ namespace core {
 
     class Window {
       public:
-        static inline const char* title = "sketchpad";
+        static inline std::string title = "sketchpad";
         static inline int id = -1;
 
         static inline GLuint width = 1280, height = 720;
@@ -19,9 +20,11 @@ namespace core {
         static inline Layer layer = Layer::Scene;
 
         static void Init();
+        static void Clear();
+
+        static void Rename(const std::string& new_title);
         static void Reshape();
         static void Refresh();
-        static void Clear();
 
         static void ConfirmExit();
         static void ToggleImGui();

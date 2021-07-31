@@ -15,6 +15,18 @@ namespace core {
         display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
     }
 
+    void Window::Clear() {
+        if (id >= 0) {
+            glutDestroyWindow(id);
+            id = -1;
+        }
+    }
+
+    void Window::Rename(const std::string& new_title) {
+        title = new_title;
+        glutSetWindowTitle(title.c_str());
+    }
+
     void Window::Reshape() {
         // in this demo, we simply lock window position, size and aspect ratio
         // if you want different behaviors, change the window attributes in your own scene code
@@ -25,13 +37,6 @@ namespace core {
     void Window::Refresh() {
         glutSwapBuffers();
         glutPostRedisplay();
-    }
-
-    void Window::Clear() {
-        if (id >= 0) {
-            glutDestroyWindow(id);
-            id = -1;
-        }
     }
 
     void Window::ConfirmExit() {

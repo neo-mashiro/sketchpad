@@ -6,21 +6,10 @@ namespace core {
     #pragma warning(push)
     #pragma warning(disable : 4244)
 
-    // keybook is a global variable (internal linkage), only visible in this translation unit.
-    // the reason we define it here in the cpp file, rather than the header, is to prevent
-    // other translation units from having their own separate copies of this variable.
-
-    // keybook, being an application-level state table, is essentially independent of our
-    // input class, so it should not be declared as a member variable of the class.
-    static std::unordered_map<uint8_t, bool> keybook {
+    std::unordered_map<uint8_t, bool> Input::keybook {
         { 'w', 0 }, { 's', 0 }, { 'a', 0 }, { 'd', 0 }, { 'z', 0 },  // WASD + Z
-        { GLUT_KEY_UP, 0 }, { GLUT_KEY_DOWN, 0 }, { GLUT_KEY_LEFT, 0 }, { GLUT_KEY_RIGHT, 0 },  // arrow keys
         { VK_SPACE, 0 }, { VK_RETURN, 0 }, { VK_ESCAPE, 0 }  // space, enter, escape
     };
-
-    // if we need to access keybook in other translation units, we can define it with
-    // the `extern` keyword so that it has external linkage.
-    extern std::unordered_map<uint8_t, bool> another_keybook {};
 
     bool Input::IsKeyPressed(unsigned char key) {
         return keybook[key];
@@ -36,14 +25,14 @@ namespace core {
     }
 
     // read mouse movement in the last frame (on axis x and y), reset after read
-    GLuint Input::ReadMouseAxis(Axis axis) {
+    int Input::GetMouseAxis(Axis axis) {
         int offset = 0;
 
-        if (axis == Axis::X) {
+        if (axis == Axis::Horizontal) {
             offset = mouse_delta_x;
             mouse_delta_x = 0;  // recover mouse offset
         }
-        else if (axis == Axis::Y) {
+        else if (axis == Axis::Vertical) {
             offset = mouse_delta_y;
             mouse_delta_y = 0;  // recover mouse offset
         }
@@ -52,7 +41,7 @@ namespace core {
     }
 
     // read mouse zoom in the last frame, reset after read
-    float Input::ReadMouseZoom() {
+    float Input::GetMouseZoom() {
         float zoom = mouse_zoom;
         mouse_zoom = 0.0f;  // recover zoom to 0
         return zoom;
