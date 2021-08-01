@@ -12,9 +12,9 @@ namespace scene {
         constexpr glm::vec3 zero    = glm::vec3(0.0f);
         constexpr glm::vec3 unit    = glm::vec3(1.0f);
         constexpr glm::mat4 eye     = glm::mat4(1.0f);
-        constexpr glm::vec3 up      = glm::vec3(0.0f, 1.0f, 0.0f);
-        constexpr glm::vec3 forward = glm::vec3(0.0f, 0.0f, 1.0f);
-        constexpr glm::vec3 right   = glm::vec3(-1.0f, 0.0f, 0.0f);
+        constexpr glm::vec3 up      = { 0.0f, 1.0f, 0.0f };
+        constexpr glm::vec3 forward = { 0.0f, 0.0f, 1.0f };
+        constexpr glm::vec3 right   = { -1.0f, 0.0f, 0.0f };
     }
 
     class Transform {

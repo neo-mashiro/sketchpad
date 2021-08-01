@@ -39,15 +39,24 @@ namespace scene {
         this->scale *= factor;
     }
 
-    // rotations in 3D do not commute, when using euler angles, our convention is that
-    // a positive angle corresponds to counter-clockwise rotation about an axis, and
-    // we apply rotations about the 3 axes in the order of yawn->pitch->roll (y->x->z).
     // we have provided two rotate functions here, but keep in mind that euler angles
     // are evil, whenever possible, you should use the first function. The second one
     // is intended for setting rotations directly (absolute change), such as when you
     // want to set an object's initial orientation. In this demo, it is primarily used
-    // by our camera class, because camera rotation needs to be clamped on the vertical
+    // by our camera class because camera rotation needs to be clamped on the vertical
     // axis, and euler angles are easier to clamp than matrices or quaternions.
+
+    // using the second function could be dangerous as rotations in 3D usually do not
+    // commute. Also, unlike matrices or quaternions, people like to use different
+    // conventions for euler angles and they are not unique, for example, (0, 90, 0)
+    // and (-180, 90, 180) could be the same rotation if you follow a specific order.
+
+    // for euler angles, our convention is that a positive angle always corresponds to
+    // a counter-clockwise rotation about an axis, and the rotations are applied in
+    // the order of yawn->pitch->roll (y->x->z). You should also limit the range of
+    // angles to avoid ambiguity, which must work with the glm functions used here.
+    // since the order of rotation is y->x->z, the middle one is pitch, pitch should
+    // be between (-90, 90) degrees, and yawn and roll should be within (-180, 180).
 
     // rotation around a given axis (incremental change applied on the current rotation)
     void Transform::Rotate(float radians, const glm::vec3& axis) {

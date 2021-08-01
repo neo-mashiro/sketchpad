@@ -5,8 +5,10 @@
 #include <sstream>
 
 #include "core/clock.h"
+#include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
+#include "scene/camera.h"
 #include "utils/ui.h"
 #include "utils/factory.h"
 
@@ -24,6 +26,19 @@ namespace ui {
 
     ImFont* truetype_font;  // default font: TrueType, QuickSand-Regular, 17pt
     ImFont* opentype_font;  // reserved font: OpenType, Palatino Linotype, 15pt
+
+    // private global variables
+    static ImVec4 red           = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+    static ImVec4 yellow        = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+    static ImVec4 green         = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+    static ImVec4 blue          = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
+    static ImVec4 cyan          = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
+    static ImVec2 window_center = ImVec2(640.0f, 360.0f);
+    static ImVec2 window_size   = ImVec2(1280.0f, 720.0f);
+    static ImVec2 window_offset = ImVec2(0.0f, 0.0f);
+
+    static ImGuiWindowFlags invisible_window_flags =
+        ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 
     void Init() {
         ImGui::CreateContext();
@@ -136,6 +151,16 @@ namespace ui {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
+    // --------------------------------------------------------------------------------------------
+    // window-level helper functions, use them to facilitate drawing in your own scene
+    // --------------------------------------------------------------------------------------------
+    void LoadInspectorConfig() {
+        float width = 256.0f;
+        float height = 612.0f;
+        ImGui::SetNextWindowPos(ImVec2(Window::width - width, (Window::height - height) * 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(width, height));
+    }
+
     void DrawVerticalLine() {
         ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
     }
@@ -155,6 +180,111 @@ namespace ui {
         }
     }
 
+    void DrawRainbowBar(const ImVec2& offset, float height) {
+        // draw a rainbow bar of the given height in the current window
+        // the width will be automatically adjusted to center the bar in the window
+        // offset is measured in pixels relative to the upper left corner of the window
+
+        // this function is borrowed and modified from the unknown cheats forum
+        // source: https://www.unknowncheats.me/forum/2550901-post1.html
+
+        float speed = 0.0006f;
+        static float static_hue = 0.0f;
+
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        ImVec2 pos = ImGui::GetWindowPos() + offset;
+        float width = ImGui::GetWindowWidth() - offset.x * 2.0f;
+
+        static_hue -= speed;
+        if (static_hue < -1.0f) {
+            static_hue += 1.0f;
+        }
+
+        for (int i = 0; i < width; i++) {
+            float hue = static_hue + (1.0f / width) * i;
+            if (hue < 0.0f) hue += 1.0f;
+            ImColor color = ImColor::HSV(hue, 1.0f, 1.0f);
+            draw_list->AddRectFilled(ImVec2(pos.x + i, pos.y), ImVec2(pos.x + i + 1, pos.y + height), color);
+        }
+    }
+
+    void DrawGizmo(const Camera& camera, const Transform& transform) {
+        glm::mat4 V = camera.GetViewMatrix();
+        glm::mat4 P = camera.GetProjectionMatrix();
+
+        glm::vec3 point3[4] {};  // 3D world coordinates
+        glm::vec2 point2[4] {};  // 2D window coordinates
+        ImVec2 pixels[4] {};     // convert to ImGui type
+
+        point3[0] = transform.position;
+        point3[1] = point3[0] + transform.forward;
+        point3[2] = point3[0] + transform.right;
+        point3[3] = point3[0] + transform.up;
+
+        glm::vec2 vector[3] {};  // direction vectors in 2D window space
+
+        float vector_length = 128.0f;
+        float vector_width = 2.0f;
+        float vector_arrow_size = 16.0f;
+        constexpr float vector_arrow_base_angle = glm::radians(75.0f);
+        ImU32 vector_color[3] = {
+            ImGui::ColorConvertFloat4ToU32(blue),
+            ImGui::ColorConvertFloat4ToU32(red),
+            ImGui::ColorConvertFloat4ToU32(green)
+        };
+
+        // convert 3D world coordinates to 2D window coordinates
+        for (int i = 0; i < 4; i++) {
+            glm::vec4 clip_pos = P * (V * glm::vec4(point3[i], 1.0f));  // world space -> clip space
+            glm::vec3 ndc_pos = glm::vec3(clip_pos) / clip_pos.w;  // clip space -> NDC space
+
+            // NDC space -> window space
+            point2[i] = glm::vec2(
+                ((ndc_pos.x + 1.0f) / 2.0f) * Window::width,
+                ((1.0f - ndc_pos.y) / 2.0f) * Window::height
+            );
+
+            // normalize the direction vectors in 2D window space so that they have equal length
+            if (i > 0) {
+                vector[i - 1] = glm::normalize(point2[i] - point2[0]);
+                point2[i] = point2[0] + vector[i - 1] * vector_length;
+            }
+
+            pixels[i] = ImVec2(point2[i].x, point2[i].y);
+        }
+
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 50.0f));  // below the menu bar
+        ImGui::SetNextWindowSize(ImVec2(window_size.x, window_size.y - 82.0f));  // above the status bar
+
+        char unique_id[64];  // every gizmo uses a unique internal identifier to avoid conflicts
+        std::memset(unique_id, 0, sizeof(unique_id));
+        sprintf(unique_id, "##Gizmo (%.2f, %.2f, %.2f)", point3[0].x, point3[0].y, point3[0].z);
+
+        ImGui::Begin(unique_id, 0, invisible_window_flags);
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+        for (int i = 0; i < 3; i++) {
+            glm::vec2 perp1 = glm::vec2(-vector[i].y, vector[i].x);  // perpendicular vector
+            glm::vec2 perp2 = glm::vec2(vector[i].y, -vector[i].x);  // perpendicular vector
+
+            glm::vec2 pt1 = point2[i + 1];
+            glm::vec2 pt2 = pt1 - (vector[i] + perp1 * glm::cot(vector_arrow_base_angle)) * vector_arrow_size;
+            glm::vec2 pt3 = pt1 - (vector[i] + perp2 * glm::cot(vector_arrow_base_angle)) * vector_arrow_size;
+
+            ImVec2 px1 = pixels[i + 1];
+            ImVec2 px2 = ImVec2(pt2.x, pt2.y);
+            ImVec2 px3 = ImVec2(pt3.x, pt3.y);
+
+            draw_list->AddLine(pixels[0], pixels[i + 1], vector_color[i], vector_width);  // draw vector
+            draw_list->AddTriangleFilled(px1, px2, px3, vector_color[i]);  // draw arrow at the end point
+        }
+
+        ImGui::End();
+    }
+
+    // --------------------------------------------------------------------------------------------
+    // application-level drawing functions, used by the core module, don't touch
+    // --------------------------------------------------------------------------------------------
     static void DrawAboutWindow(const char* version, bool* show) {
         if (Window::layer == Layer::Scene) {
             return;
@@ -331,14 +461,9 @@ namespace ui {
         ImGui::PushFont(opentype_font);
 
         {
-            ImVec4 cyan = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
-            ImVec4 red = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
-            ImVec4 yellow = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
-            ImVec4 green = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-
             ImGui::TextColored(cyan, "Cursor");
             ImGui::SameLine(0.0f, 5.0f);
-            ImVec2 pos = ImGui::GetMousePos();
+            ImVec2 pos = Window::layer == Layer::ImGui ? ImGui::GetMousePos() : window_center;
             ImGui::Text("(%d, %d)", (int)pos.x, (int)pos.y);
             DrawTooltip("Current mouse position in window space.");
 
@@ -389,7 +514,7 @@ namespace ui {
         ImGui::PushFont(opentype_font);  // font size cannot be changed after loading
         ImGui::Begin("Loading Bar", 0, ImGuiWindowFlags_NoDecoration);
 
-        DrawRainbowBar(ImVec2(128.0f, 270.0f), 2.0f);
+        // RainbowBar(ImVec2(128.0f, 270.0f), 2.0f);
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 1.3f,
@@ -408,38 +533,9 @@ namespace ui {
                 ImVec2(x + size, y), IM_COL32(r * 255, g * 255, b * 255, 255.0f));
         }
 
-        DrawRainbowBar(ImVec2(128.0f, y + 0.5f * size + 50.0f), 2.0f);
+        // RainbowBar(ImVec2(128.0f, y + 0.5f * size + 50.0f), 2.0f);
 
         ImGui::End();
         ImGui::PopFont();
     }
-
-    void DrawRainbowBar(const ImVec2& offset, float height) {
-        // draw a rainbow bar of the given height in the current window
-        // the width will be automatically adjusted to center the bar in the window
-        // offset is measured in pixels relative to the upper left corner of the window
-
-        // this function is borrowed and modified from the unknown cheats forum
-        // source: https://www.unknowncheats.me/forum/2550901-post1.html
-
-        float speed = 0.0006f;
-        static float static_hue = 0.0f;
-
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        ImVec2 pos = ImGui::GetWindowPos() + offset;
-        float width = ImGui::GetWindowWidth() - offset.x * 2.0f;
-
-        static_hue -= speed;
-        if (static_hue < -1.0f) {
-            static_hue += 1.0f;
-        }
-
-        for (int i = 0; i < width; i++) {
-            float hue = static_hue + (1.0f / width) * i;
-            if (hue < 0.0f) hue += 1.0f;
-            ImColor color = ImColor::HSV(hue, 1.0f, 1.0f);
-            draw_list->AddRectFilled(ImVec2(pos.x + i, pos.y), ImVec2(pos.x + i + 1, pos.y + height), color);
-        }
-    }
-
 }
