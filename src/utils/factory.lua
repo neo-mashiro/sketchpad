@@ -1,10 +1,10 @@
 --------------------------------------------------------------------------------
 -- This file is used to generate c++ code and overwrite `src/utils/factory.cpp`.
--- Information about all scenes are stored in the global variable `g_config`,
+-- Information about all scenes are stored in the global variable `CONFIG`,
 -- which will be referenced by this file to create our factory pattern script.
 --------------------------------------------------------------------------------
-local config = _G["g_config"]
-local count = #(config.titles)
+local config = _G["CONFIG"]
+local count = #(config.title)
 
 print("Generating C++ code for the factory pattern")
 
@@ -34,7 +34,7 @@ namespace factory {
         "Welcome Screen"]]
 
 for i = 1, count do
-    code = code .. ",\n        " .. config.titles[i]
+    code = code .. ",\n        " .. config.title[i]
 end
 
 code = code .. "\n    };\n\n" .. [[
@@ -43,8 +43,8 @@ code = code .. "\n    };\n\n" .. [[
 ]]
 
 for i = 1, count do
-    local title = config.titles[i]
-    local class = config.classes[i]
+    local title = config.title[i]
+    local class = config.class[i]
 
     code = code .. "        if (title == " .. title
     code = code .. ") return new " .. class .. "(title);\n"

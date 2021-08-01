@@ -3,27 +3,61 @@
 --------------------------------------------------------------------------------
 -- Lua variables are global by default unless the local keyword is specified,
 -- whenever possible, use local to declare variables to avoid polluting the
--- global namespace and causing bugs.
-
--- names starting with an underscore followed by uppercase letters (_ACTION,
--- _VERSION, _G) are reserved for internal global variables used by Lua.
-
--- global variables are not only global in this file, but are globally shared
--- across all Lua scripts in the same environment. Lua internally maintains a
--- table `_G` that stores all global variables in the current environment, so
--- we can query them via `_G[key]`, but using `require()` is a better option.
-
--- as a best practice, always prefix your own global variable with letter "g".
+-- global namespace and causing bugs. Names starting with an "_" followed by
+-- uppercase letters (_ACTION, _VERSION, _G) are reserved for internal global
+-- variables used by Lua. Global variables are not only global in this file,
+-- but also visible to other scripts in the same environment. Lua internally
+-- maintains a `_G` table that stores all global variables, we can query them
+-- via `_G[key]`, but using `require()` is a generally better option.
 --------------------------------------------------------------------------------
-g_ide_software = "none"
+WIN_IDE = "none"
 
-g_root_dir = "./"
-g_source_dir = "./src/"
-g_vendor_dir = "./vendor/"
+ROOT_DIR = "./"
+SOURCE_DIR = "./src/"
+VENDOR_DIR = "./vendor/"
 
-g_object_dir = "./build/intermediates/"
-g_target_dir = "./build/bin/"
-g_output_dir = "%{cfg.buildcfg}/%{cfg.platform}"
+OBJECT_DIR = "./build/intermediates/"
+TARGET_DIR = "./build/bin/"
+OUTPUT_DIR = "%{cfg.buildcfg}/%{cfg.platform}"
+
+CONFIG = {}          -- configuration table
+CONFIG.files = {}    -- store the file names of all scene scripts
+CONFIG.title = {}    -- store the titles of all scenes
+CONFIG.class = {}    -- store the class names of all scene classes
+
+--------------------------------------------------------------------------------
+-- register premake override for adding solution scope items.
+-- [source] https://github.com/premake/premake-core/issues/1061
+--------------------------------------------------------------------------------
+require('vstudio')
+premake.api.register {
+    name = "solution_items",
+    scope = "workspace",
+    kind = "list:string",
+}
+
+premake.override(
+    premake.vstudio.sln2005, "projects",
+    function(base, wks)
+        if wks.solution_items and #wks.solution_items > 0 then
+            premake.push(
+                "Project(\"{2150E333-8FDC-42A3-9474-1A3956D46DE8}\") = \"Solution Items\", "
+                .. "\"Solution Items\", \"{" .. os.uuid("Solution Items:" .. wks.name) .. '}"'
+            )
+            premake.push("ProjectSection(SolutionItems) = preProject")
+
+            for _, file in ipairs(wks.solution_items) do
+                file = path.rebase(file, ".", wks.location)
+                premake.w(file .. " = " .. file)
+            end
+
+            premake.pop("EndProjectSection")
+            premake.pop("EndProject")
+        end
+
+        base(wks)
+    end
+)
 
 --------------------------------------------------------------------------------
 -- [ WORKSPACE / SOLUTION CONFIG ]
@@ -31,14 +65,13 @@ g_output_dir = "%{cfg.buildcfg}/%{cfg.platform}"
 -- functions marked as "local" are only meant to be called inside this script.
 -- functions not marked as "local" have global scope, which can be called from
 -- other build scripts, in that case, be cautious of the working directory as
--- it depends on the caller's relative path, however, pre/post commands are
+-- it depends on the caller's relative path. However, pre/post commands are
 -- global, they always use the configuration root folder (where .vcxproj files
 -- are actually stored) as working directory, regardless of where the function
--- is being called from.
-
--- why do pre/post build/link commands always have global scope? that's due to
--- the delay execution of shell commands, which only occurs after a visual
--- studio build (c++ sources compilation), rather than now (in premake).
+-- is being called from. A pre build/link command will be executed before an
+-- actual build in visual studio, while a post build/link command will only be
+-- executed after a successful build, but both of them are executed afterwards
+-- by the visual studio console, not here in premake.
 --------------------------------------------------------------------------------
 local function setup_solution()
     workspace "sketchpad"
@@ -47,13 +80,16 @@ local function setup_solution()
 
         -- _ACTION is the command line argument following premake5 (e.g. vs2019)
         if _ACTION ~= nil then
-            g_ide_software = _ACTION
+            WIN_IDE = _ACTION
         else
             error("Please specify an action! (e.g. vs2019)")
         end
 
         -- where to place the solution files (.sln)
-        location(g_root_dir)  -- place under root
+        location(ROOT_DIR)  -- place under root
+
+        -- add these configuration files to the solution scope
+        solution_items { ROOT_DIR .. ".editorconfig" }
 
         ------------------------------------------------------------------------
         -- [ COMPILER / LINKER CONFIG ]
@@ -121,29 +157,29 @@ local function setup_vendor_library()
             cppdialect "C++17"
 
             -- place the project files (.vcxproj) in the configuration folder under root
-            location(g_root_dir .. g_ide_software .. "/")
+            location(ROOT_DIR .. WIN_IDE .. "/")
 
             files {
-                g_vendor_dir .. "imgui/" .. "*.h",
-                g_vendor_dir .. "imgui/" .. "*.cpp"
+                VENDOR_DIR .. "imgui/" .. "*.h",
+                VENDOR_DIR .. "imgui/" .. "*.cpp"
             }
 
             vpaths {
                 ["Sources/*"] = {
-                    g_vendor_dir .. "imgui/" .. "*.h",
-                    g_vendor_dir .. "imgui/" .. "*.cpp"
+                    VENDOR_DIR .. "imgui/" .. "*.h",
+                    VENDOR_DIR .. "imgui/" .. "*.cpp"
                 }
             }
 
             -- dependencies for compiling ImGui backends
             includedirs {
-                g_vendor_dir .. "GLEW/include",
-                g_vendor_dir .. "GLUT/include"
+                VENDOR_DIR .. "GLEW/include",
+                VENDOR_DIR .. "GLUT/include"
             }
 
             -- build into the same folder as our application so that it can be linked
-            objdir(g_object_dir .. "%{prj.name}/" .. g_output_dir)
-            targetdir(g_target_dir .. "%{prj.name}/" .. g_output_dir)
+            objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
+            targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
 
         -- include more vendor libraries that you want to compile from source code
         --[[
@@ -167,11 +203,11 @@ local function setup_project()
         cppdialect "C++17"
 
         -- place the project files (.vcxproj) in the configuration folder under root
-        location(g_root_dir .. g_ide_software .. "/")
+        location(ROOT_DIR .. WIN_IDE .. "/")
 
         -- build all binaries into the build folder
-        objdir(g_object_dir .. "%{prj.name}/" .. g_output_dir)
-        targetdir(g_target_dir .. "%{prj.name}/" .. g_output_dir)
+        objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
+        targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
         targetname "sketchpad"  -- sketchpad.exe
 
         -- use main() instead of WinMain() as the application entry point
@@ -207,12 +243,12 @@ local function setup_project()
         ------------------------------------------------------------------------
         files {
             -- recursive search in "src/"
-            g_source_dir .. "**.h",
-            g_source_dir .. "**.hpp",
-            g_source_dir .. "**.c",
-            g_source_dir .. "**.cpp",
-            g_source_dir .. "**.tpp",
-            g_source_dir .. "**.glsl"
+            SOURCE_DIR .. "**.h",
+            SOURCE_DIR .. "**.hpp",
+            SOURCE_DIR .. "**.c",
+            SOURCE_DIR .. "**.cpp",
+            SOURCE_DIR .. "**.tpp",
+            SOURCE_DIR .. "**.glsl"
         }
 
         -- exclude template files from build so that they are not compiled
@@ -228,38 +264,38 @@ local function setup_project()
         -- set up visual studio virtual folders
         vpaths {
             ["Headers/*"] = {
-                g_source_dir .. "**.h",
-                g_source_dir .. "**.hpp"
+                SOURCE_DIR .. "**.h",
+                SOURCE_DIR .. "**.hpp"
             },
 
             ["Sources/*"] = {
-                g_source_dir .. "**.c",
-                g_source_dir .. "**.cc",
-                g_source_dir .. "**.cpp"
+                SOURCE_DIR .. "**.c",
+                SOURCE_DIR .. "**.cc",
+                SOURCE_DIR .. "**.cpp"
             },
 
             ["Shaders/*"] = {
-                g_source_dir .. "**.glsl"
+                SOURCE_DIR .. "**.glsl"
             },
 
             ["Templates/*"] = {
-                g_source_dir .. "**.ipp",
-                g_source_dir .. "**.tpp"
+                SOURCE_DIR .. "**.ipp",
+                SOURCE_DIR .. "**.tpp"
             }
         }
 
         -- header files include directories
         includedirs {
-            g_source_dir,
-            g_vendor_dir .. "GLEW/include",
-            g_vendor_dir .. "GLFW/include",
-            g_vendor_dir .. "GLUT/include",
-            g_vendor_dir .. "imgui",
+            SOURCE_DIR,
+            VENDOR_DIR .. "GLEW/include",
+            VENDOR_DIR .. "GLFW/include",
+            VENDOR_DIR .. "GLUT/include",
+            VENDOR_DIR .. "imgui",
 
             -- header only libraries
-            g_vendor_dir,
-            g_vendor_dir .. "GLM/include",
-            g_vendor_dir .. "spdlog/include"
+            VENDOR_DIR,
+            VENDOR_DIR .. "GLM/include",
+            VENDOR_DIR .. "spdlog/include"
         }
 
         ------------------------------------------------------------------------
@@ -267,19 +303,19 @@ local function setup_project()
         ------------------------------------------------------------------------
         -- paths for libraries (libs/dlls/etc) that are required when compiling
         libdirs {
-            g_vendor_dir .. "GLEW/lib/%{cfg.platform}",         -- GLEW: use the static library
-            g_vendor_dir .. "GLFW/lib-vc2019/%{cfg.platform}",  -- GLFW: use the static library
+            VENDOR_DIR .. "GLEW/lib/%{cfg.platform}",         -- GLEW: use the static library
+            VENDOR_DIR .. "GLFW/lib-vc2019/%{cfg.platform}",  -- GLFW: use the static library
 
             -- GLUT v3.0.0 MSVC Package: only the dynamic library is available.
             -- --------------------------------------------------------------------------------
             -- to load a dynamic library, first link to the static import library (a `.lib`
             -- file of the same name as the dynamic library `.dll`), then copy the `.dll` file
-            -- to the target build folder using post-build command below.
+            -- to the target build folder using post-build commands.
             -- --------------------------------------------------------------------------------
             -- the import library is used to automate the process of loading routines and
             -- functionality from the `.dll` file at runtime, it's typically small in size.
             -- --------------------------------------------------------------------------------
-            g_vendor_dir .. "GLUT/lib/%{cfg.platform}"
+            VENDOR_DIR .. "GLUT/lib/%{cfg.platform}"
         }
 
         -- specific library files (.lib .dll) to include
@@ -300,11 +336,15 @@ local function setup_project()
             "{COPY} ../vendor/GLUT/bin/%{cfg.platform}/freeglut.dll %{cfg.targetdir}"
         }
 
-        -- keep the `.obj` files after a build, we still need them for debugging
-        -- postbuildmessage "Cleaning up intermediate files ..."
-        -- postbuildcommands {
-        --     "{RMDIR} %{cfg.objdir}"
-        -- }
+        filter "configurations:Release"
+            -- after a release build, clean up all intermediate object files
+            -- after a debug build, we should keep the `.obj` files for debugging
+            postbuildmessage "Cleaning up intermediate files ..."
+            postbuildcommands {
+                "{RMDIR} %{cfg.objdir}"
+            }
+
+        filter {}
 end
 
 --------------------------------------------------------------------------------
@@ -312,15 +352,10 @@ end
 --------------------------------------------------------------------------------
 local function main()
     ----------------------------------------------------------------------------
-    -- scan all scenes to make sure we don't miss anything
+    -- scan all scene files and store them into the configuration table
     ----------------------------------------------------------------------------
-    local dirs = os.matchdirs(g_source_dir .. "scene_*")  -- non-recursive match
+    local dirs = os.matchdirs(SOURCE_DIR .. "scene_*")  -- non-recursive match
     table.sort(dirs)  -- sort the array so that scene ids are numbered in order
-
-    g_config = {}          -- global config table
-    g_config.files = {}    -- store the file names of all scenes
-    g_config.titles = {}   -- store the titles of all scenes
-    g_config.classes = {}  -- store the class names of all scenes
 
     for index, folder in ipairs(dirs) do
         -- folder is relative path: e.g. "src/scene_01"
@@ -335,9 +370,9 @@ local function main()
             local title = source_code:match('Window::Rename%((.-)%)')
             local class = source_code:match('%svoid%s(.-)::Init%(%)')
 
-            g_config.files[index] = file
-            g_config.titles[index] = title
-            g_config.classes[index] = class
+            CONFIG.files[index] = file
+            CONFIG.title[index] = title
+            CONFIG.class[index] = class
         end
     end
 
