@@ -1,21 +1,23 @@
 #pragma once
 
 #include <string>
-#include <memory>
-
-#define PATH std::string(__FILE__)
-#define CWD PATH.substr(0, PATH.rfind("\\")) + "\\"
-#define SRC PATH.substr(0, PATH.rfind("\\src")) + "\\src\\"
-#define RES PATH.substr(0, PATH.rfind("\\src")) + "\\res\\"
+#include "scene/entity.h"
 
 namespace scene {
 
     class Scene {
+      private:
+        entt::registry registry;
+
+      protected:
+        Entity CreateEntity(const std::string& name);
+        void DestroyEntity(Entity entity);
+
       public:
         std::string title;
 
         explicit Scene(const std::string& title) : title(title) {}
-        virtual ~Scene() {}
+        virtual ~Scene() { registry.clear(); }
 
         // these virtual functions should be overridden by each derived class
         // here in the base class, they are used to render the welcome screen

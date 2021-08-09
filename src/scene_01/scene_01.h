@@ -1,11 +1,6 @@
 #pragma once
 
 #include "scene/scene.h"
-#include "scene/camera.h"
-#include "scene/shader.h"
-#include "scene/texture.h"
-#include "scene/mesh.h"
-#include "scene/model.h"
 
 namespace scene {
 
@@ -13,23 +8,25 @@ namespace scene {
 
         using Scene::Scene;  // inherit the base constructor
 
-        // declare your scene objects here in the header
-        // use pointers to avoid dynamic initialization at startup, which happens
-        // before main() is entered and so the OpenGL context has not yet been created.
-        // most of our class constructors depend on the OpenGL context, without such
-        // context, constructor calls will throw an exception to the console.
+        struct Material {
+            glm::vec3 ambient;
+            glm::vec3 diffuse;
+            glm::vec3 specular;
+            float shininess;
+        };
 
-        // main camera
-        std::unique_ptr<Camera> camera;
+        struct Light {
+            glm::vec3 ambient;
+            glm::vec3 diffuse;
+            glm::vec3 specular;
+        };
 
-        // skybox
-        std::unique_ptr<Mesh> skybox;
-        std::unique_ptr<Shader> skybox_shader;
-        std::vector<Texture> skybox_texture;
-
-        // color cubes
-        std::vector<Mesh> cubes;
-        std::unique_ptr<Shader> cube_shader;
+        Entity camera;
+        Entity skybox;
+        Entity light;
+        Entity sphere;
+        Entity ball;
+        Entity plane;
 
         // override these functions in the cpp file to render your scene
         void Init(void) override;

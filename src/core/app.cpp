@@ -1,19 +1,20 @@
 #include "pch.h"
 
-#include <future>
-
 #include "core/app.h"
 #include "core/clock.h"
 #include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
-#include "utils/ui.h"
-#include "utils/factory.h"
+#include "scene/scene.h"
+#include "scene/factory.h"
+#include "scene/ui.h"
+
+using namespace scene;
 
 namespace core {
 
     #ifdef MULTI_THREAD
-    static std::future<void> _load_task;
+        static std::future<void> _load_task;
     #endif
 
     // singleton instance accessor
@@ -23,14 +24,8 @@ namespace core {
         return instance;
     }
 
-    // check if a valid OpenGL context is present, used by other modules to validate context
-    void Application::CheckOpenGLContext(const std::string& call) const {
-        if (opengl_context_active == false) {
-            CORE_ERROR("OpenGL context is not active! Method call failed: {0}()", call.c_str());
-            std::cin.get();
-            exit(EXIT_FAILURE);
-        }
-    }
+    // check if the OpenGL context is active
+    bool Application::IsContextActive() { return GetInstance().opengl_context_active; }
 
     #pragma warning(push)
     #pragma warning(disable : 4100)
@@ -187,7 +182,6 @@ namespace core {
     // -------------------------------------------------------------------------
     // core event functions
     // -------------------------------------------------------------------------
-    // application initializer
     void Application::Init() {
         gl_vendor = gl_renderer = gl_version = glsl_version = "";
         gl_texsize = gl_texsize_3d = gl_texsize_cubemap = gl_max_texture_units = 0;
@@ -244,7 +238,6 @@ namespace core {
         opengl_context_active = true;
     }
 
-    // kick start the default scene
     void Application::Start() {
         CORE_INFO("Initializing welcome screen ......");
         active_scene = factory::LoadScene("Welcome Screen");
@@ -252,7 +245,6 @@ namespace core {
         Clock::Reset();
     }
 
-    // post-update after each iteration of the freeglut event loop
     void Application::PostEventUpdate() {
         Clock::Update();
         ui::NewFrame();
@@ -283,7 +275,6 @@ namespace core {
         }
     }
 
-    // switch to a new scene, return only after the new scene is loaded
     void Application::Switch(const std::string& title) {
         last_scene = active_scene;
         active_scene = nullptr;
@@ -335,7 +326,6 @@ namespace core {
         #endif
     }
 
-    // clean up after the last frame
     void Application::Clear() {
         delete active_scene;
         last_scene = nullptr;

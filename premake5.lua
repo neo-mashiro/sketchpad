@@ -295,7 +295,8 @@ local function setup_project()
             -- header only libraries
             VENDOR_DIR,
             VENDOR_DIR .. "GLM/include",
-            VENDOR_DIR .. "spdlog/include"
+            VENDOR_DIR .. "spdlog/include",
+            VENDOR_DIR .. "EnTT/include"
         }
 
         ------------------------------------------------------------------------

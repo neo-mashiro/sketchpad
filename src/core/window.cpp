@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#include <windows.h>  // Windows API
+#include <windows.h>
 
 #include "core/clock.h"
 #include "core/input.h"

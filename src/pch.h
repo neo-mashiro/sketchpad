@@ -20,11 +20,15 @@
 #include <chrono>
 #include <cmath>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <functional>
+#include <future>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -34,11 +38,24 @@
 #include <utility>
 #include <vector>
 
-#include <GL/glew.h>
-
 #pragma warning(push)
 #pragma warning(disable : 4505)
+#include <GL/glew.h>
 #include <GL/freeglut.h>
+#pragma warning(pop)
+
+#define GLM_ENABLE_EXPERIMENTAL
+
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#include <glm/glm.hpp>
+#include <glm/ext.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/perpendicular.hpp>
 #pragma warning(pop)
 
 #define IMGUI_DISABLE_METRICS_WINDOW
