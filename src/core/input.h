@@ -14,13 +14,17 @@ namespace core {
     class Input {
       private:
         static std::unordered_map<uint8_t, bool> keybook;
-        static inline int mouse_pos_x = 1280 / 2;
-        static inline int mouse_pos_y = 720 / 2;
+
+        static inline int mouse_pos_x = 0;
+        static inline int mouse_pos_y = 0;
         static inline int mouse_delta_x = 0;
         static inline int mouse_delta_y = 0;
         static inline float mouse_zoom = 0.0f;
 
       public:
+        static void Init();
+        static void Clear();
+
         static bool IsKeyPressed(unsigned char key);
         static bool IsScrollWheelDown(int button, int state);
         static bool IsScrollWheelUp(int button, int state);

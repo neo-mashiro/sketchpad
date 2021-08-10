@@ -9,9 +9,8 @@
 
 namespace core {
 
-    void Window::Init() {
-        pos_x = (glutGet(GLUT_SCREEN_WIDTH) - width) / 2;
-        pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - height) / 2;
+    void Window::Init(Resolution res) {
+        Resize(res);
         display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
     }
 
@@ -27,11 +26,31 @@ namespace core {
         glutSetWindowTitle(title.c_str());
     }
 
+    void Window::Resize(Resolution res) {
+        resolution = res;
+
+        if (res == Resolution::Large) {
+            width = 1600;
+            height = 900;
+        }
+        else if (res == Resolution::Normal) {
+            width = 1280;
+            height = 720;
+        }
+
+        pos_x = (glutGet(GLUT_SCREEN_WIDTH) - width) / 2;
+        pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - height) / 2;
+    }
+
     void Window::Reshape() {
         // in this demo, we simply lock window position, size and aspect ratio
-        // if you want different behaviors, change the window attributes in your own scene code
         glutPositionWindow(pos_x, pos_y);
         glutReshapeWindow(width, height);
+
+        // while window position is measured in pixels in the screen space, viewport position is
+        // relative to the window space, both of them use the bottom-left corner as the origin.
+        // on reshape, we should place the viewport at position (0, 0) instead of (pos_x, pos_y).
+        glViewport(0, 0, width, height);
     }
 
     void Window::Refresh() {

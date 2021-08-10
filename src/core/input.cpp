@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "core/input.h"
+#include "core/window.h"
 
 namespace core {
 
@@ -11,7 +12,22 @@ namespace core {
         { VK_SPACE, 0 }, { VK_RETURN, 0 }, { VK_ESCAPE, 0 }  // space, enter, escape
     };
 
+    void Input::Init() {
+        Clear();
+        ResetCursor();
+    }
+
+    void Input::Clear() {
+        for (auto& keystate : keybook) {
+            keystate.second = 0;
+        }
+    }
+
     bool Input::IsKeyPressed(unsigned char key) {
+        // ignore keys that are not registered in the keybook
+        if (keybook.find(key) == keybook.end()) {
+            return false;
+        }
         return keybook[key];
     }
 
@@ -86,6 +102,11 @@ namespace core {
 
     // reset cursor position to the center of window
     void Input::ResetCursor() {
+        mouse_pos_x = Window::width / 2;
+        mouse_pos_y = Window::height / 2;
+        mouse_delta_x = mouse_delta_y = 0;
+        mouse_zoom = 0.0f;
+
         glutWarpPointer(mouse_pos_x, mouse_pos_y);
     }
 }

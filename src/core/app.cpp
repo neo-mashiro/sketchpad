@@ -250,7 +250,7 @@ namespace core {
         std::cout << ".........\n" << std::endl;
 
         Log::Init();
-        Window::Init();
+        Window::Init(Resolution::Normal);
 
         CORE_INFO("Initializing console logger ...");
         CORE_INFO("Initializing application window ...");
@@ -261,8 +261,6 @@ namespace core {
         glutInitWindowPosition(Window::pos_x, Window::pos_y);
 
         Window::id = glutCreateWindow((Window::title).c_str());
-        Input::HideCursor();
-
         if (Window::id <= 0) {
             CORE_ERROR("Failed to create a window...");
             exit(EXIT_FAILURE);
@@ -272,6 +270,10 @@ namespace core {
             CORE_ERROR("Failed to initialize GLEW...");
             exit(EXIT_FAILURE);
         }
+
+        CORE_INFO("Initializing input control system ...");
+        Input::Init();
+        Input::HideCursor();
 
         CORE_INFO("Initializing graphical user interface backends ...");
         ui::Init();
