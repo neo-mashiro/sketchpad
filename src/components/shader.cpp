@@ -428,45 +428,57 @@ namespace components {
         std::cout << std::endl;
     }
 
-    // todo: add UBO
-
-    // print the list of active uniform block members in the shader program (for debugging)
+    // print the list of active uniform blocks in the shader program (for debugging)
     void Shader::GetActiveUniformBlockList() {
         GLint n_blocks = 0;
-
         glGetProgramInterfaceiv(id, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &n_blocks);
-        GLenum blockProps[] = { GL_NUM_ACTIVE_VARIABLES, GL_NAME_LENGTH };
-        GLenum blockIndex[] = { GL_ACTIVE_VARIABLES };
+
+        GLenum block_props[] = { GL_NUM_ACTIVE_VARIABLES, GL_NAME_LENGTH, GL_BUFFER_BINDING };
+        GLenum block_index[] = { GL_ACTIVE_VARIABLES };
         GLenum props[] = { GL_NAME_LENGTH, GL_TYPE, GL_BLOCK_INDEX };
 
+        std::cout << std::endl;
+        CORE_TRACE("List of active uniform blocks in shader: (id = {0})", id);
+
+        // iterate over each uniform block
         for (int i = 0; i < n_blocks; ++i) {
-            GLint blockInfo[2];
-            glGetProgramResourceiv(id, GL_UNIFORM_BLOCK, i, 2, blockProps, 2, NULL, blockInfo);
-            GLint numUnis = blockInfo[0];
+            GLint block_info[3];
+            glGetProgramResourceiv(id, GL_UNIFORM_BLOCK, i, 3, block_props, 3, NULL, block_info);
 
-            char* blockName = new char[blockInfo[1] + 1];
-            glGetProgramResourceName(id, GL_UNIFORM_BLOCK, i, blockInfo[1] + 1, NULL, blockName);
-            printf("Uniform block \"%s\":\n", blockName);
-            delete[] blockName;
+            char* block_name = new char[block_info[1] + 1];
+            glGetProgramResourceName(id, GL_UNIFORM_BLOCK, i, block_info[1] + 1, NULL, block_name);
 
-            GLint* unifIndexes = new GLint[numUnis];
-            glGetProgramResourceiv(id, GL_UNIFORM_BLOCK, i, 1, blockIndex, numUnis, NULL, unifIndexes);
+            GLint n_uniforms = block_info[0];
+            GLint* indices = new GLint[n_uniforms];
+            glGetProgramResourceiv(id, GL_UNIFORM_BLOCK, i, 1, block_index, n_uniforms, NULL, indices);
 
-            for (int unif = 0; unif < numUnis; ++unif) {
-                GLint uniIndex = unifIndexes[unif];
-                GLint results[3];
-                glGetProgramResourceiv(id, GL_UNIFORM, uniIndex, 3, props, 3, NULL, results);
+            // in spdlog, curly brace '{' needs to be escaped by using '{{'
+            CORE_TRACE("--------------------------------------------------------------------");
+            CORE_TRACE("layout(binding = {0}) uniform {1} {{", block_info[2], block_name);
 
-                GLint nameBufSize = results[0] + 1;
-                char* name = new char[nameBufSize];
-                glGetProgramResourceName(id, GL_UNIFORM, uniIndex, nameBufSize, NULL, name);
-                printf("    %s (%s)\n", name, GlslType(results[1]));
+            // iterate over each uniform member in the block
+            for (int j = 0; j < n_uniforms; ++j) {
+                GLint index = indices[j];
+                GLint values[3];
+                glGetProgramResourceiv(id, GL_UNIFORM, index, 3, props, 3, NULL, values);
+
+                GLint name_length = values[0] + 1;
+                char* name = new char[name_length];
+                glGetProgramResourceName(id, GL_UNIFORM, index, name_length, NULL, name);
+                CORE_TRACE("    {0} {1};  // block index {2}", GlslType(values[1]), name, values[2]);
                 delete[] name;
             }
 
-            delete[] unifIndexes;
+            CORE_TRACE("};");
+
+            delete[] block_name;
+            delete[] indices;
         }
+
+        std::cout << std::endl;
     }
+
+    // todo: add UBO
 
     const char* Shader::GlslType(GLenum gl_type) {
         switch (gl_type) {

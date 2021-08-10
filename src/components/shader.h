@@ -57,5 +57,6 @@ namespace components {
 
       public:
         void GetActiveUniformList();
+        void GetActiveUniformBlockList();
     };
 }
