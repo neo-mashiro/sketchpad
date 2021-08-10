@@ -8,6 +8,12 @@
 
 using namespace core;
 
+extern "C" {
+    // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
+}
+
 int main(int argc, char** argv) {
     // set the console code page to utf-8
     SetConsoleOutputCP(65001);
@@ -21,7 +27,7 @@ int main(int argc, char** argv) {
     SetConsoleTextAttribute(console, 3);  // water blue text, transparent background
 
     std::cout << "=====================================================================\n";
-    std::cout << "| v(^_^)v Welcome to sketchpad! OpenGL context is now active! (~.^) |\n";
+    std::cout << "  v(^_^)v Welcome to sketchpad! OpenGL context is now active! (~.^)  \n";
     std::cout << "=====================================================================\n";
 
     SetConsoleTextAttribute(console, 8);  // light gray text, transparent background
@@ -42,17 +48,25 @@ int main(int argc, char** argv) {
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &(app.gl_texsize));
     glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &(app.gl_texsize_3d));
     glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &(app.gl_texsize_cubemap));
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(app.gl_max_texture_units));
 
     std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* Maximum GPU-supported texture size: " << std::endl;
+    std::cout << "* Maximum supported texture size: " << std::endl;
     std::cout << "---------------------------------------------------------------------\n";
     std::cout << "- 1D / 2D texture (width and height): " << app.gl_texsize << std::endl;
     std::cout << "- 3D texture (width, height & depth): " << app.gl_texsize_3d << std::endl;
     std::cout << "- Cubemap texture (width and height): " << app.gl_texsize_cubemap << std::endl;
+    std::cout << "- Maximum number of samplers supported in the fragment shader: " <<
+        app.gl_max_texture_units << '\n' << std::endl;
 
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(app.gl_max_texture_units));
-    std::cout << "- Maximum number of samplers supported in the fragment shader: "
-        << app.gl_max_texture_units << '\n' << std::endl;
+    glGetIntegerv(GL_SAMPLES, &(app.gl_msaa_buffer_size));
+    glGetIntegerv(GL_SAMPLE_BUFFERS, &(app.gl_n_msaa_buffers));
+
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "* Multisample anti-aliasing: " << std::endl;
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "- MSAA buffers available: " << app.gl_n_msaa_buffers << std::endl;
+    std::cout << "- MSAA buffer size (samples per pixel): " << app.gl_msaa_buffer_size << '\n' << std::endl;
 
     SetConsoleTextAttribute(console, 15);  // full white text, transparent background
 
