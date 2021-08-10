@@ -31,19 +31,76 @@ namespace core {
     #pragma warning(disable : 4100)
 
     // OpenGL debug message callback
-    static void GLAPIENTRY OnErrorMessage(GLenum source, GLenum type,
-        GLuint id, GLenum severity, GLsizei length,
-        const GLchar* message, const void* userParam) {
+    static void GLAPIENTRY OnErrorMessage(GLenum source, GLenum type, GLuint id,
+        GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
 
-        fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+        if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+            return;  // silently ignore notifications
+        }
+
+        std::string err_code;
+        GLenum err;
+
+        while ((err = glGetError()) != GL_NO_ERROR) {
+            switch (err) {
+                case GL_INVALID_ENUM:                  err_code = "invalid enumeration";      break;
+                case GL_INVALID_VALUE:                 err_code = "invalid parameter value";  break;
+                case GL_INVALID_OPERATION:             err_code = "invalid operation";        break;
+                case GL_INVALID_FRAMEBUFFER_OPERATION: err_code = "invalid framebuffer";      break;
+                case GL_OUT_OF_MEMORY:                 err_code = "cannot allocate memory";   break;
+                case GL_CONTEXT_LOST:                  err_code = "OpenGL context lost";      break;
+                case GL_STACK_OVERFLOW:                err_code = "stack overflow";           break;
+                case GL_STACK_UNDERFLOW:               err_code = "stack underflow";          break;
+                default:                               err_code = "unknown error";            break;
+            }
+
+            CORE_ERROR("Internal error detected! {0:x}: {1}", err, err_code);
+        }
+
+        std::string err_source, err_type, err_level;
+
+        switch (source) {
+            case GL_DEBUG_SOURCE_API:             err_source = "OpenGL API calls";  break;
+            case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   err_source = "Windows API calls"; break;
+            case GL_DEBUG_SOURCE_SHADER_COMPILER: err_source = "shader compiler";   break;
+            case GL_DEBUG_SOURCE_THIRD_PARTY:     err_source = "third party";       break;
+            case GL_DEBUG_SOURCE_APPLICATION:     err_source = "main application";  break;
+            case GL_DEBUG_SOURCE_OTHER:           err_source = "other";             break;
+            default:                              err_source = "???";               break;
+        }
+
+        switch (type) {
+            case GL_DEBUG_TYPE_ERROR:               err_type = "error";               break;
+            case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: err_type = "deprecated behavior"; break;
+            case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  err_type = "undefined behavior";  break;
+            case GL_DEBUG_TYPE_PORTABILITY:         err_type = "portability";         break;
+            case GL_DEBUG_TYPE_PERFORMANCE:         err_type = "performance";         break;
+            case GL_DEBUG_TYPE_OTHER:               err_type = "other";               break;
+            default:                                err_type = "???";                 break;
+        }
+
+        switch (severity) {
+            case GL_DEBUG_SEVERITY_HIGH:         err_level = "high";         break;
+            case GL_DEBUG_SEVERITY_MEDIUM:       err_level = "medium";       break;
+            case GL_DEBUG_SEVERITY_LOW:          err_level = "low";          break;
+            default:                             err_level = "???";          break;
+        }
+
+        CORE_ERROR("Debug message callback has been triggered!");
+        CORE_ERROR("Error source:   {0}", err_source);
+        CORE_ERROR("Error type:     {0}", err_type);
+        CORE_ERROR("Error severity: {0}", err_level);
+        CORE_TRACE("Error message:  {0}", message);
 
         // if the breakpoint is triggered, check the "Stack Frame" dropdown list above
-        // to find out exactly which source file and line number has caused the error,
-        // also read the error message and error code in the console, then reference:
+        // to find out exactly which source file and line number has caused the error.
+        // please also read the detailede error code and message in the console, FAQ:
         // https://www.khronos.org/opengl/wiki/OpenGL_Error
+
         #ifdef _DEBUG
-            __debugbreak();  // this is the MSVC intrinsic
+            if (err_level == "High") {
+                __debugbreak();  // this is the MSVC intrinsic
+            }
         #endif
     }
 
@@ -56,10 +113,9 @@ namespace core {
     #pragma warning(disable : 4100)
 
     void Application::Idle() {
-        GLenum err;
-        while ((err = glGetError()) != GL_NO_ERROR) {
-            CORE_ERROR("OpenGL internal error detected: {0}", err);
-        }
+        // this callback is ideal for continuous updates that need to be smooth.
+        // this can be useful for continuous animation, physics updates and other
+        // lightweight routines but the amount of computation should be minimized
     }
 
     void Application::Display() {
@@ -185,14 +241,19 @@ namespace core {
     void Application::Init() {
         gl_vendor = gl_renderer = gl_version = glsl_version = "";
         gl_texsize = gl_texsize_3d = gl_texsize_cubemap = gl_max_texture_units = 0;
+        gl_n_msaa_buffers = gl_msaa_buffer_size = 0;
 
         opengl_context_active = false;
         last_scene = nullptr;
         active_scene = nullptr;
 
-        // initialize spdlog logger, window attributes
+        std::cout << ".........\n" << std::endl;
+
         Log::Init();
         Window::Init();
+
+        CORE_INFO("Initializing console logger ...");
+        CORE_INFO("Initializing application window ...");
 
         // create the main freeglut window
         glutInitDisplayMode(Window::display_mode);
@@ -207,19 +268,21 @@ namespace core {
             exit(EXIT_FAILURE);
         }
 
-        // load opengl core library from hardware
         if (glewInit() != GLEW_OK) {
             CORE_ERROR("Failed to initialize GLEW...");
             exit(EXIT_FAILURE);
         }
 
-        // initialize ImGui backends, create ImGui context
+        CORE_INFO("Initializing graphical user interface backends ...");
         ui::Init();
+
+        CORE_INFO("Starting application debug session ...");
 
         // register the debug message callback
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(OnErrorMessage, 0);
+        glDebugMessageCallback(OnErrorMessage, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
 
         // register freeglut event callbacks
         glutIdleFunc(Idle);
@@ -236,11 +299,12 @@ namespace core {
 
         // opengl context is now active
         opengl_context_active = true;
+        std::cout << std::endl;
     }
 
     void Application::Start() {
         CORE_INFO("Initializing welcome screen ......");
-        active_scene = factory::LoadScene("Welcome Screen");
+        active_scene = scene::factory::LoadScene("Welcome Screen");
         active_scene->Init();
         Clock::Reset();
     }
@@ -308,7 +372,7 @@ namespace core {
         auto safe_load = [this](std::string title) {
             delete last_scene;
             last_scene = nullptr;
-            Scene* new_scene = factory::LoadScene(title);
+            Scene* new_scene = scene::factory::LoadScene(title);
             new_scene->Init();
             active_scene = new_scene;
         };
@@ -319,7 +383,7 @@ namespace core {
 
         delete last_scene;  // each object in the scene will be destructed
         last_scene = nullptr;
-        Scene* new_scene = factory::LoadScene(title);
+        Scene* new_scene = scene::factory::LoadScene(title);
         new_scene->Init();
         active_scene = new_scene;
 
@@ -327,6 +391,8 @@ namespace core {
     }
 
     void Application::Clear() {
+        CORE_TRACE("Shutting down application ...");
+
         delete active_scene;
         last_scene = nullptr;
         active_scene = nullptr;

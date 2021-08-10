@@ -19,6 +19,7 @@ namespace core {
         // hardware information
         std::string gl_vendor, gl_renderer, gl_version, glsl_version;
         int gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
+        int gl_n_msaa_buffers, gl_msaa_buffer_size;
 
         bool opengl_context_active = false;
         scene::Scene* last_scene = nullptr;
