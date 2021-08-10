@@ -45,6 +45,6 @@ namespace components {
         Mesh(Mesh&& other) noexcept;
         Mesh& operator=(Mesh&& other) noexcept;
 
-        void Draw(void) const;
+        void Draw() const;
     };
 }

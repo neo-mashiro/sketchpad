@@ -22,7 +22,6 @@ namespace components {
 
         void LoadShader(GLenum type);
         void LinkShaders();
-
         GLint GetUniformLocation(const std::string& name) const;
 
       public:
@@ -38,10 +37,8 @@ namespace components {
 
         void PushTexture(GLuint unit, GLenum target, const std::string& path);
         void PopTexture(GLuint unit);
-
         bool Bind() const;
         void Unbind() const;
-
         void Save() const;
 
         // set shader uniforms
@@ -54,5 +51,11 @@ namespace components {
         void SetMat2(const std::string& name, const glm::mat2& value) const;
         void SetMat3(const std::string& name, const glm::mat3& value) const;
         void SetMat4(const std::string& name, const glm::mat4& value) const;
+
+      private:
+        const char* GlslType(GLenum gl_type);
+
+      public:
+        void GetActiveUniformList();
     };
 }
