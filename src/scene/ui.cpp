@@ -6,6 +6,7 @@
 #include "core/window.h"
 #include "components/all.h"
 #include "scene/factory.h"
+#include "scene/renderer.h"
 #include "scene/ui.h"
 
 #include "imgui_internal.h"
@@ -29,12 +30,10 @@ namespace ui {
     static ImVec4 green         = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
     static ImVec4 blue          = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
     static ImVec4 cyan          = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
-    static ImVec2 window_center = ImVec2(640.0f, 360.0f);
-    static ImVec2 window_size   = ImVec2(1280.0f, 720.0f);
-    static ImVec2 window_offset = ImVec2(0.0f, 0.0f);
 
     static ImGuiWindowFlags invisible_window_flags =
         ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+
 
     void Init() {
         ImGui::CreateContext();
@@ -47,8 +46,8 @@ namespace ui {
         config.OversampleV = 1;
         config.GlyphExtraSpacing.x = 0.0f;
         
-        truetype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\quicksand.ttf").c_str(), 17.0f);
-        opentype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\palatino.ttf").c_str(), 15.0f, &config);
+        truetype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\Lato.ttf").c_str(), 18.0f);
+        opentype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\palatino.ttf").c_str(), 17.0f, &config);
 
         // build font textures
         unsigned char* pixels;
@@ -88,6 +87,10 @@ namespace ui {
         style.ButtonTextAlign = ImVec2(0.5f, 0.5f);
         style.WindowTitleAlign = ImVec2(0.0f, 0.5f);
         style.SelectableTextAlign = ImVec2(0.0f, 0.0f);
+
+        style.AntiAliasedLines = true;
+        style.AntiAliasedFill = true;
+        style.AntiAliasedLinesUseTex = true;
 
         // setup custom colors
         auto& c = ImGui::GetStyle().Colors;
@@ -151,10 +154,14 @@ namespace ui {
     // window-level helper functions, use them to facilitate drawing in your own scene
     // --------------------------------------------------------------------------------------------
     void LoadInspectorConfig() {
-        float width = 256.0f;
-        float height = 612.0f;
-        ImGui::SetNextWindowPos(ImVec2(Window::width - width, (Window::height - height) * 0.5f));
-        ImGui::SetNextWindowSize(ImVec2(width, height));
+        GLuint win_w = Window::width;
+        GLuint win_h = Window::height;
+
+        float w = win_w == 1280 ? 256.0f : 256.0f * 1.25f;
+        float h = win_w == 1280 ? 612.0f : 612.0f * 1.25f;
+
+        ImGui::SetNextWindowPos(ImVec2(win_w - w, (win_h - h) * 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(w, h));
     }
 
     void DrawVerticalLine() {
@@ -247,7 +254,7 @@ namespace ui {
         }
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 50.0f));  // below the menu bar
-        ImGui::SetNextWindowSize(ImVec2(window_size.x, window_size.y - 82.0f));  // above the status bar
+        ImGui::SetNextWindowSize(ImVec2((float)Window::width, (float)Window::height - 82.0f));  // above the status bar
 
         char unique_id[64];  // every gizmo uses a unique internal identifier to avoid conflicts
         std::memset(unique_id, 0, sizeof(unique_id));
@@ -320,7 +327,7 @@ namespace ui {
             return;
         }
 
-        ImGui::SetNextWindowSize(ImVec2(Window::width / 2.9f, Window::height / 2.5f));
+        ImGui::SetNextWindowSize(ImVec2(1280.0f / 2.82f, 720.0f / 1.6f));
 
         if (!ImGui::Begin("How To Use", show, ImGuiWindowFlags_NoResize)) {
             ImGui::End();
@@ -339,7 +346,7 @@ namespace ui {
         if (ImGui::TreeNode("Basic Guide")) {
             ImGui::Spacing();
             ImGui::InputTextMultiline("##instructions", instructions, IM_ARRAYSIZE(instructions),
-                ImVec2(Window::width / 3.36f, ImGui::GetTextLineHeight() * 6.0f), ImGuiInputTextFlags_ReadOnly);
+                ImVec2(1280.0f / 3.2f, ImGui::GetTextLineHeight() * 6.0f), ImGuiInputTextFlags_ReadOnly);
             ImGui::TreePop();
         }
 
@@ -381,7 +388,7 @@ namespace ui {
         if (ImGui::TreeNode("Menus")) {
             ImGui::Spacing();
             ImGui::InputTextMultiline("##menus_guide", menus_guide, IM_ARRAYSIZE(menus_guide),
-                ImVec2(Window::width / 3.36f, ImGui::GetTextLineHeight() * 6.0f), ImGuiInputTextFlags_ReadOnly);
+                ImVec2(1280.0f / 3.2f, ImGui::GetTextLineHeight() * 6.0f), ImGuiInputTextFlags_ReadOnly);
             ImGui::TreePop();
         }
 
@@ -390,10 +397,12 @@ namespace ui {
     }
 
     void DrawMenuBar(const std::string& active_title, std::string& new_title) {
-        static bool show_about_window, show_instructions;
+        static bool show_about_window;
+        static bool show_instructions;
+        float win_w = (float)Window::width;
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::SetNextWindowSize(ImVec2((float)Window::width, 0.01f));
+        ImGui::SetNextWindowSize(ImVec2(win_w, 0.01f));
         ImGui::SetNextWindowBgAlpha(0.0f);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
@@ -401,19 +410,22 @@ namespace ui {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(12, 10));
 
         ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, 0.75f));
-        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.2f, 0.2f, 0.75f));
-        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.75f));
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.0f, 0.0f, 0.0f, 0.55f));
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.22f, 0.39f, 0.61f, 0.8f));
+        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.24f, 0.54f, 0.89f, 0.8f));
 
         ImGui::Begin("Menu Bar", 0, ImGuiWindowFlags_MenuBar
             | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
         if (ImGui::BeginMenuBar()) {
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.7f, 0.7f, 0.7f, 0.3f));
+            ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0.3f, 0.3f, 0.3f, 0.3f));
+
             if (ImGui::BeginMenu("Open")) {
                 for (unsigned int i = 0; i < scene::factory::titles.size(); i++) {
                     std::string title = scene::factory::titles[i];
                     std::ostringstream id;
-                    id << "  " << std::setfill('0') << std::setw(2) << i;
+                    id << " " << std::setfill('0') << std::setw(2) << i;
                     bool selected = (active_title == title);
 
                     if (ImGui::MenuItem((" " + title).c_str(), id.str().c_str(), selected)) {
@@ -424,14 +436,38 @@ namespace ui {
                 }
                 ImGui::EndMenu();
             }
-            if (ImGui::BeginMenu("Help")) {
-                // bitwise or: if these windows are already open, we keep the booleans to true
-                show_instructions |= ImGui::MenuItem("How To Use", "F1");
-                show_about_window |= ImGui::MenuItem("About", "F8");
+
+            if (ImGui::BeginMenu("Options")) {
+                if (ImGui::BeginMenu(" Window Resolution")) {
+                    bool active = (win_w == 1280);
+                    if (ImGui::MenuItem(" 1280 x 720", NULL, active) && !active) {
+                        Window::Resize(Resolution::Normal);
+                        Window::Reshape();
+                        Input::ResetCursor();
+                    }
+
+                    active = (win_w == 1600);
+                    if (ImGui::MenuItem(" 1600 x 900", NULL, active) && !active) {
+                        Window::Resize(Resolution::Large);
+                        Window::Reshape();
+                        Input::ResetCursor();
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::EndMenu();
             }
+
+            if (ImGui::BeginMenu("Help")) {
+                // bitwise or: if these windows are already open, we keep the booleans to true
+                show_instructions |= ImGui::MenuItem(" How To Use", "F1");
+                show_about_window |= ImGui::MenuItem(" About", "F8");
+                ImGui::EndMenu();
+            }
+
+            ImGui::PopStyleColor(2);
             ImGui::EndMenuBar();
         }
+
         ImGui::End();
 
         ImGui::PopStyleColor(4);
@@ -446,14 +482,17 @@ namespace ui {
     }
 
     void DrawStatusBar() {
-        ImGui::SetNextWindowPos(ImVec2(0.0f, Window::height - 30.0f));
-        ImGui::SetNextWindowSize(ImVec2((float)Window::width, 30.0f));
+        ImGui::SetNextWindowPos(ImVec2(0.0f, Window::height - 32.0f));
+        ImGui::SetNextWindowSize(ImVec2((float)Window::width, 32.0f));
         ImGui::SetNextWindowBgAlpha(0.75f);
 
         ImGui::Begin("Status Bar", 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::PushFont(opentype_font);
 
+        ImVec2 window_center = ImVec2((float)Window::width, (float)Window::height) * 0.5f;
+
         {
+            ImGui::SameLine(0.0f, 9.0f);
             ImGui::TextColored(cyan, "Cursor");
             ImGui::SameLine(0.0f, 5.0f);
             ImVec2 pos = Window::layer == Layer::ImGui ? ImGui::GetMousePos() : window_center;
@@ -472,7 +511,7 @@ namespace ui {
             DrawTooltip("Time elapsed since application startup.");
 
             ImGui::SameLine(0.0f, 15.0f); DrawVerticalLine(); ImGui::SameLine(0.0f, 15.0f);
-            ImGui::SameLine(ImGui::GetWindowWidth() - 330);
+            ImGui::SameLine(ImGui::GetWindowWidth() - 355);
 
             ImGui::TextColored(cyan, "FPS");
             ImGui::SameLine(0.0f, 5.0f);
@@ -492,28 +531,35 @@ namespace ui {
         ImGui::End();
     }
 
-    void DrawLoadingScreen() {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClearDepth(1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    void DrawWelcomeScreen(ImTextureID id) {
+        ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+        float win_w = (float)Window::width;
+        float win_h = (float)Window::height;
+        draw_list->AddImage(id, ImVec2(0.0f, 0.0f), ImVec2(win_w, win_h));
+    }
 
+    void DrawLoadingScreen() {
         float win_w = (float) Window::width;
         float win_h = (float) Window::height;
+        float bar_w = 268.0f;
+        float bar_h = 80.0f;
+
+        scene::Renderer::ClearBuffer();
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2(win_w, win_h));
         ImGui::SetNextWindowBgAlpha(1.0f);
 
-        ImGui::PushFont(opentype_font);  // font size cannot be changed after loading
+        ImGui::PushFont(opentype_font);
         ImGui::Begin("Loading Bar", 0, ImGuiWindowFlags_NoDecoration);
-
-        // RainbowBar(ImVec2(128.0f, 270.0f), 2.0f);
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         draw_list->AddText(ImGui::GetFont(), ImGui::GetFontSize() * 1.3f,
-            ImVec2(506, 320), ImColor(255, 255, 0, 255), "LOADING, PLEASE WAIT ......");
+            ImVec2(win_w - bar_w, win_h - bar_h) * 0.5f,
+            ImGui::ColorConvertFloat4ToU32(yellow), "LOADING, PLEASE WAIT ......");
 
-        float x = 345.0f, y = 385.0f;
+        float x = Window::width == 1280 ? 345.0f : 505.0f;  // not magic number, it's simple math!
+        float y = Window::width == 1280 ? 385.0f : 465.0f;  // not magic number, it's simple math!
         float size = 20.0f;
         float r, g, b;
 
@@ -525,8 +571,6 @@ namespace ui {
             draw_list->AddTriangleFilled(ImVec2(x, y - 0.5f * size), ImVec2(x, y + 0.5f * size),
                 ImVec2(x + size, y), IM_COL32(r * 255, g * 255, b * 255, 255.0f));
         }
-
-        // RainbowBar(ImVec2(128.0f, y + 0.5f * size + 50.0f), 2.0f);
 
         ImGui::End();
         ImGui::PopFont();

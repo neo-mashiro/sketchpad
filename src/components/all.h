@@ -6,6 +6,7 @@
 #define RES CWF.substr(0, CWF.rfind("\\src")) + "\\res\\"
 
 #define GLSL    SRC + "GLSL\\"
+#define IMAGE   RES + "image\\"
 #define SKYBOX  RES + "skybox\\"
 #define TEXTURE RES + "texture\\"
 

@@ -33,5 +33,6 @@ namespace ui {
     // application-level drawing functions, used by the core module, don't touch
     void DrawMenuBar(const std::string& active_title, std::string& new_title);
     void DrawStatusBar(void);
+    void DrawWelcomeScreen(ImTextureID id);
     void DrawLoadingScreen(void);
 }
