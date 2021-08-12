@@ -4,6 +4,8 @@
 #include "core/window.h"
 #include "components/all.h"
 #include "scene/scene.h"
+#include "scene/renderer.h"
+#include "scene/ui.h"
 
 using namespace core;
 using namespace components;
@@ -20,28 +22,25 @@ namespace scene {
         registry.destroy(entity.id);
     }
 
+    // this base class is being used to render our welcome screen
     static std::unique_ptr<Texture> welcome_screen;
+    static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
         Window::Rename("Welcome Screen");
         Window::layer = Layer::ImGui;
         Input::ShowCursor();
-        welcome_screen = std::make_unique<Texture>(GL_TEXTURE_2D, TEXTURE + "0\\welcome.jpg");
+
+        welcome_screen = std::make_unique<Texture>(GL_TEXTURE_2D, IMAGE + "welcome.png");
+        welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->id);
     }
 
     void Scene::OnSceneRender() {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClearDepth(1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Renderer::ClearBuffer();
     }
 
     void Scene::OnImGuiRender() {
-        // this base class is being used to render our welcome screen
-        ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-        ImTextureID id = (void*)(intptr_t)(welcome_screen->id);
-        float win_w = (float)Window::width;
-        float win_h = (float)Window::height;
-        draw_list->AddImage(id, ImVec2(0.0f, 0.0f), ImVec2(win_w, win_h));
+        ui::DrawWelcomeScreen(welcome_screen_texture_id);
     }
 
 }
