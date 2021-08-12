@@ -40,6 +40,8 @@ namespace core {
 
         pos_x = (glutGet(GLUT_SCREEN_WIDTH) - width) / 2;
         pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - height) / 2;
+
+        CORE_TRACE("Window resolution changed to {0}x{1} ...", width, height);
     }
 
     void Window::Reshape() {

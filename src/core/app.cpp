@@ -250,10 +250,11 @@ namespace core {
         std::cout << ".........\n" << std::endl;
 
         Log::Init();
-        Window::Init(Resolution::Normal);
 
         CORE_INFO("Initializing console logger ...");
         CORE_INFO("Initializing application window ...");
+
+        Window::Init(Resolution::Normal);
 
         // create the main freeglut window
         glutInitDisplayMode(Window::display_mode);
@@ -266,6 +267,22 @@ namespace core {
             exit(EXIT_FAILURE);
         }
 
+        // convert the window name from char* to wchar_t* in order to call the Win32 API
+        // this step is necessary because we are compiling with Unicode rather than ANSI
+        const char* win_char = (Window::title).c_str();
+        const size_t n_char = strlen(win_char) + 1;
+        std::wstring win_wchar = std::wstring(n_char, L'#');
+        mbstowcs(&win_wchar[0], win_char, n_char);
+        LPCWSTR win_ptr = (LPCWSTR)(wchar_t*)win_wchar.c_str();
+
+        // set custom style for the freeglut window
+        // https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
+        HWND win_handle = WIN32::FindWindow(NULL, win_ptr);  // find the handle to the glut window
+        LONG style = GetWindowLong(win_handle, GWL_STYLE);   // find the current window style
+        style = style ^ WS_MAXIMIZEBOX ^ WS_MINIMIZEBOX;     // disable the maximize and minimize button
+        SetWindowLong(win_handle, GWL_STYLE, style);         // apply the new window style
+
+        // loading OpenGL function pointers
         if (glewInit() != GLEW_OK) {
             CORE_ERROR("Failed to initialize GLEW...");
             exit(EXIT_FAILURE);
