@@ -1,2 +1,5 @@
 vendor/* linguist-vendored
 doc/math_review.tex -linguist-documentation=true
+
+*.tpp linguist-language=c++
+*.ipp linguist-language=c++
