@@ -5,26 +5,8 @@
 namespace components {
 
     Transform::Transform() :
-        position(world::origin), rotation(world::zero), scale(world::unit), transform(world::eye),
-        up(world::up), forward(world::forward), right(world::right) {}
-
-    Transform::Transform(Transform&& other) noexcept {
-        *this = std::move(other);
-    }
-
-    Transform& Transform::operator=(Transform&& other) noexcept {
-        if (this != &other) {
-            std::swap(position, other.position);
-            std::swap(rotation, other.rotation);
-            std::swap(scale, other.scale);
-            std::swap(transform, other.transform);
-            std::swap(up, other.up);
-            std::swap(forward, other.forward);
-            std::swap(right, other.right);
-        }
-
-        return *this;
-    }
+        position(0.0f), rotation(0.0f), scale(1.0f), transform(1.0f),
+        up(0.0f, 1.0f, 0.0f), forward(0.0f, 0.0f, 1.0f), right(-1.0f, 0.0f, 0.0f) { }
 
     void Transform::Translate(const glm::vec3& vec) {
         // be aware that the amount of translation will be scaled if scale factor is not 1
@@ -74,7 +56,7 @@ namespace components {
     void Transform::Rotate(const glm::vec3& degrees) {
         rotation = degrees;  // overwrites the current euler angles
 
-        // the 4ž4 transform matrix is stored in column-major order as below
+        // the 4x4 transform matrix is stored in column-major order as below
         // where translation, rotation and scaling components are T, R and S
         // [ R11 * S, R12 * S, R13 * S, TX ]
         // [ R21 * S, R22 * S, R23 * S, TY ]
@@ -88,7 +70,7 @@ namespace components {
         // [ 0,  0,  0,  1  ]
 
         glm::vec4 translation = transform[3];
-        transform = world::eye * scale.x;
+        transform = glm::mat4(1.0f) * scale.x;
         transform[3] = translation;
 
         // now we can apply the new rotation matrix
@@ -101,8 +83,11 @@ namespace components {
     // recalculate the basis vectors based on the rotation matrix (this is more robust than
     // using trigonometric functions, which rely on the conventions of euler angles)
     void Transform::RecalculateBasis() {
-        forward = glm::normalize(glm::vec3(transform * glm::vec4(world::forward, 0.0f)));
-        right = glm::normalize(glm::cross(forward, world::up));
+        static constexpr glm::vec3 world_up      = { 0.0f, 1.0f, 0.0f };
+        static constexpr glm::vec4 world_forward = { 0.0f, 0.0f, 1.0f, 0.0f };
+
+        forward = glm::normalize(glm::vec3(transform * world_forward));
+        right = glm::normalize(glm::cross(forward, world_up));
         up = glm::normalize(glm::cross(right, forward));
     }
 }

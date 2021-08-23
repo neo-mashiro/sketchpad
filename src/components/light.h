@@ -1,60 +1,78 @@
-//#pragma once
-//
-//#include <string>
-//#include <GL/glew.h>
-//
-//namespace scene {
-//
-//
-//    
-//    light = { glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f) };
-//
-//    light_shader->Bind();
-//    {
-//        static const auto initial_transform = light_cube->M;
-//        if (rotate_light) {
-//            float delta_x = radius * sin(rotation_time * rotate_speed);
-//            float delta_z = radius * (cos(rotation_time * rotate_speed) - 1.0f);
-//            rotation_time += Clock::delta_time;
-//            light_cube->M = glm::translate(initial_transform, glm::vec3(delta_x, 0.0f, delta_z));
-//        }
-//        light_shader->SetMat4("u_MVP", P * V * light_cube->M);
-//        light_cube->Draw(*light_shader);
-//    }
-//    light_shader->Unbind();
-//
-//    enum class LightType { Directional, Point, Spotlight };
-//
-//    class Light {
-//      private:
-//        void LoadTexture() const;
-//        void LoadSkybox() const;
-//        void SetWrapMode() const;
-//        void SetFilterMode(bool anisotropic) const;
-//
-//      public:
-//        LightType type;
-//        Mesh mesh;
-//        Shader shader;
-//
-//        Light(LightType type, TexMap type, const std::string& path, bool anisotropic = false);
-//        ~Light();
-//
-//        // forbid the copying of instances because they encapsulate global OpenGL resources and states.
-//        // when that happens, the old instance would probably be destructed and ruin the global states,
-//        // so we end up with a copy that points to an OpenGL object that has already been destroyed.
-//        // compiler-provided copy constructor and assignment operator only perform shallow copy.
-//
-//        Light(const Light&) = delete;             // delete the copy constructor
-//        Light& operator=(const Light&) = delete;  // delete the assignment operator
-//
-//        // it may be possible to override the copy constructor and assignment operator to make deep
-//        // copies and put certain constraints on the destructor, so as to keep the OpenGL states alive,
-//        // but that could be incredibly expensive or even impractical.
-//
-//        // a better option is to use move semantics:
-//        Light(Light&& other) noexcept;             // move constructor
-//        Light& operator=(Light&& other) noexcept;  // move assignment operator
-//    };
-//
-//}
+#pragma once
+
+#include <limits>
+#include <glm/glm.hpp>
+
+namespace components {
+
+    class Light {
+      public:
+        glm::vec3 color;
+        float intensity;
+
+        Light(const glm::vec3& color, float intensity = 1.0f)
+            : color(color), intensity(intensity) {}
+    };
+
+    class DirectionLight : public Light {
+      public:
+        using Light::Light;
+
+        DirectionLight(DirectionLight&& other) = default;
+        DirectionLight& operator=(DirectionLight&& other) = default;
+    };
+
+    class PointLight : public Light {
+      public:
+        float linear;
+        float quadratic;
+        float range = std::numeric_limits<float>::max();
+        
+        using Light::Light;
+        
+        void SetAttenuation(float linear, float quadratic);
+        float GetAttenuation(float distance) const;
+
+        PointLight(PointLight&& other) = default;
+        PointLight& operator=(PointLight&& other) = default;
+    };
+
+    class Spotlight : public Light {
+      private:
+        float inner_cutoff;  // angle in degrees at the base of the inner cone
+        float outer_cutoff;  // angle in degrees at the base of the outer cone
+
+      public:
+        float range = std::numeric_limits<float>::max();
+
+        using Light::Light;
+
+        void SetCutoff(float range, float inner_cutoff = 30.0f, float outer_cutoff = 60.0f);
+        float GetInnerCosine() const;
+        float GetOuterCosine() const;
+        float GetAttenuation(float distance) const;
+
+        Spotlight(Spotlight&& other) = default;
+        Spotlight& operator=(Spotlight&& other) = default;
+    };
+
+    class AreaLight : public Light {
+      public:
+        using Light::Light;
+
+        // to be implemented
+
+        AreaLight(AreaLight&& other) = default;
+        AreaLight& operator=(AreaLight&& other) = default;
+    };
+
+    class VolumeLight : public Light {
+      public:
+        using Light::Light;
+
+        // to be implemented
+
+        VolumeLight(VolumeLight&& other) = default;
+        VolumeLight& operator=(VolumeLight&& other) = default;
+    };
+}

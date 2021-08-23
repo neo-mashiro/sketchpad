@@ -14,24 +14,6 @@ namespace components {
         : fov(90.0f), near_clip(0.1f), far_clip(100.0f),
           T(t), view(view), move_speed(3.0f), rotate_speed(0.3f) {}
 
-    Camera::Camera(Camera&& other) noexcept {
-        *this = std::move(other);
-    }
-
-    Camera& Camera::operator=(Camera&& other) noexcept {
-        if (this != &other) {
-            std::swap(view, other.view);
-            std::swap(T, other.T);
-            std::swap(fov, other.fov);
-            std::swap(near_clip, other.near_clip);
-            std::swap(far_clip, other.far_clip);
-            std::swap(move_speed, other.move_speed);
-            std::swap(rotate_speed, other.rotate_speed);
-        }
-
-        return *this;
-    }
-
     glm::mat4 Camera::GetViewMatrix() const {
         return glm::lookAt(T->position, T->position + T->forward, T->up);
     }

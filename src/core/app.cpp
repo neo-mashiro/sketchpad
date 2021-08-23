@@ -5,17 +5,12 @@
 #include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
-#include "scene/scene.h"
-#include "scene/factory.h"
+#include "scene/renderer.h"
 #include "scene/ui.h"
 
 using namespace scene;
 
 namespace core {
-
-    #ifdef MULTI_THREAD
-        static std::future<void> _load_task;
-    #endif
 
     // singleton instance accessor
     Application& Application::GetInstance() {
@@ -119,7 +114,7 @@ namespace core {
     }
 
     void Application::Display() {
-        GetInstance().active_scene->OnSceneRender();
+        Renderer::DrawScene();
     }
 
     void Application::Entry(int state) {
@@ -244,8 +239,6 @@ namespace core {
         gl_n_msaa_buffers = gl_msaa_buffer_size = 0;
 
         opengl_context_active = false;
-        last_scene = nullptr;
-        active_scene = nullptr;
 
         std::cout << ".........\n" << std::endl;
 
@@ -292,7 +285,7 @@ namespace core {
         Input::Init();
         Input::HideCursor();
 
-        CORE_INFO("Initializing graphical user interface backends ...");
+        CORE_INFO("Initializing ImGui backends ...");
         ui::Init();
 
         CORE_INFO("Starting application debug session ...");
@@ -322,103 +315,22 @@ namespace core {
     }
 
     void Application::Start() {
-        CORE_INFO("Initializing welcome screen ......");
-        active_scene = scene::factory::LoadScene("Welcome Screen");
-        active_scene->Init();
         Clock::Reset();
+        Renderer::Attach("Welcome Screen");
     }
 
     void Application::PostEventUpdate() {
         Clock::Update();
-        ui::NewFrame();
-
-        // draw application-level widget: the top menu bar
-        std::string new_title = "";
-        ui::DrawMenuBar(active_scene->title, new_title);
-
-        // draw application-level widget: the bottom status bar
-        ui::DrawStatusBar();
-
-        // draw scene-level widgets if the current layer is ImGui
-        if (Window::layer == Layer::ImGui && new_title.empty()) {
-            active_scene->OnImGuiRender();
-        }
-
-        // switching scenes will block the main thread, but here we have a chance
-        // to draw the loading screen before refreshing the window display buffer.
-        if (!new_title.empty()) {
-            ui::DrawLoadingScreen();
-        }
-
-        ui::EndFrame();
-        Window::Refresh();
-
-        if (!new_title.empty()) {
-            Switch(new_title);  // blocking call
-        }
-    }
-
-    void Application::Switch(const std::string& title) {
-        last_scene = active_scene;
-        active_scene = nullptr;
-
-        // at any given time, there should be only one active scene, no two scenes
-        // can be alive at the same time in the opengl context, so, each time we
-        // switch scenes, we must delete the previous one first to safely clean up
-        // global opengl states, before creating the new one from factory.
-
-        // the new scene must be fully loaded and initialized before being assigned
-        // to active_scene, otherwise, active_scene could be pointing to a scene
-        // that has dirty states, so a subsequent draw call could possibly throw an
-        // access violation exception that crashes the program.
-
-        // cleaning and loading scenes can take quite a while, especially when there
-        // are complicated meshes. Ideally, this function should be scheduled as an
-        // asynchronous background task that runs in another thread, so as not to
-        // block and freeze the window. To do so, we can wrap the task in std::async,
-        // and then query the result from the std::future object, c++ will handle
-        // concurrency for us, just make sure that the lifespan of the future extend
-        // beyond the calling function. Sadly though, multi-threading in OpenGL is a
-        // pain, you can't multithread OpenGL calls easily without using complex
-        // context switching, because lots of buffer data cannot be shared between
-        // threads, and freeglut or your graphics card driver may not be supporting
-        // it. Sharing context and resources between threads is not worth the effort,
-        // if at all possible, but you sure can load images and compute textures
-        // concurrently. If you must use multiple threads, consider using DirectX.
-
-        #ifdef MULTI_THREAD
-
-        auto safe_load = [this](std::string title) {
-            delete last_scene;
-            last_scene = nullptr;
-            Scene* new_scene = scene::factory::LoadScene(title);
-            new_scene->Init();
-            active_scene = new_scene;
-        };
-
-        _load_task = std::async(std::launch::async, safe_load, title);
-
-        #else
-
-        delete last_scene;  // each object in the scene will be destructed
-        last_scene = nullptr;
-        Scene* new_scene = scene::factory::LoadScene(title);
-        new_scene->Init();
-        active_scene = new_scene;
-
-        #endif
+        Renderer::DrawImGui();
     }
 
     void Application::Clear() {
         CORE_TRACE("Shutting down application ...");
 
-        delete active_scene;
-        last_scene = nullptr;
-        active_scene = nullptr;
-
         ui::Clear();
 
         Clock::Reset();
+        Renderer::Detach();
         Window::Clear();
     }
 }

@@ -28,8 +28,8 @@ namespace components {
         Camera(const Camera&) = delete;
         Camera& operator=(const Camera&) = delete;
 
-        Camera(Camera&& other) noexcept;
-        Camera& operator=(Camera&& other) noexcept;
+        Camera(Camera&& other) = default;
+        Camera& operator=(Camera&& other) = default;
 
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;

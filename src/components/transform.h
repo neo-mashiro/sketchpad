@@ -4,17 +4,6 @@
 
 namespace components {
 
-    // wrap a list of constants in the world space (OpenGL adopts a right-handed coordinate system)
-    namespace world {
-        constexpr glm::vec3 origin  = glm::vec3(0.0f);
-        constexpr glm::vec3 zero    = glm::vec3(0.0f);
-        constexpr glm::vec3 unit    = glm::vec3(1.0f);
-        constexpr glm::mat4 eye     = glm::mat4(1.0f);
-        constexpr glm::vec3 up      = { 0.0f, 1.0f, 0.0f };
-        constexpr glm::vec3 forward = { 0.0f, 0.0f, 1.0f };
-        constexpr glm::vec3 right   = { -1.0f, 0.0f, 0.0f };
-    }
-
     // when working with the transform component, it should be noted that affine transforms may not
     // preserve orthogonality, while rotations and translations are always orthogonal, non-uniform
     // scaling and shearing are not. In particular, if the transform matrix is not orthogonal, the
@@ -33,8 +22,8 @@ namespace components {
         Transform(const Transform&) = delete;
         Transform& operator=(const Transform&) = delete;
 
-        Transform(Transform&& other) noexcept;
-        Transform& operator=(Transform&& other) noexcept;
+        Transform(Transform&& other) = default;
+        Transform& operator=(Transform&& other) = default;
 
       public:
         glm::vec3 position;

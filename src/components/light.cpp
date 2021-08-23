@@ -1,204 +1,66 @@
 #include "pch.h"
-//
-//#include "core/app.h"
-//#include "core/log.h"
-//#include "scene/mesh.h"
-//#include "scene/light.h"
-//#include "scene/shader.h"
-//
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "stb_image.h"
-//
-//using namespace core;
-//
-//namespace scene {
-//
-//    void Texture::LoadTexture() const {
-//        stbi_set_flip_vertically_on_load(false);
-//        int width, height, n_channels;
-//        unsigned char* buffer = nullptr;
-//
-//        if (target == GL_TEXTURE_2D) {
-//            buffer = stbi_load(path.c_str(), &width, &height, &n_channels, 0);
-//
-//            if (!buffer) {
-//                CORE_ERROR("Failed to load texture: {0}", path);
-//                CORE_ERROR("stbi failure reason: {0}", stbi_failure_reason());
-//                stbi_image_free(buffer);
-//                return;
-//            }
-//
-//            GLint format = 0;
-//            switch (n_channels) {
-//                case 3: format = GL_RGB; break;
-//                case 4: format = GL_RGBA; break;
-//                default:
-//                    CORE_WARN("Non-standard image format: {0}", path);
-//                    CORE_WARN("This texture image has {0} channels", n_channels);
-//                    break;
-//            }
-//
-//            glTexImage2D(target, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, buffer);
-//
-//            glGenerateMipmap(target);
-//            stbi_image_free(buffer);
-//        }
-//        else if (target == GL_TEXTURE_3D) {
-//            // solid textures, volume simulations, to be implemented...
-//        }
-//        else if (target == GL_TEXTURE_CUBE_MAP) {
-//            // skylight illumination, dynamic reflection, to be implemented...
-//        }
-//    }
-//
-//    void Texture::LoadSkybox() const {
-//        stbi_set_flip_vertically_on_load(false);
-//        int width, height, n_channels;
-//        unsigned char* buffer = nullptr;
-//        std::string extension = ".jpg";
-//
-//        try {
-//            std::string filepath = path + "posx" + extension;
-//            if (!stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha)) {
-//                throw "Non-JPG image format detected";
-//            }
-//        }
-//        catch (const char* error_extension) {
-//            CORE_INFO("{0}, inferring file extension...", error_extension);
-//            extension = ".png";
-//        }
-//
-//        for (const auto& face : cubemap) {
-//            std::string filepath = path + face.second + extension;
-//            buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
-//
-//            if (!buffer) {
-//                CORE_ERROR("Failed to load skybox: {0}", filepath);
-//                CORE_ERROR("stbi failure reason: {0}", stbi_failure_reason());
-//                stbi_image_free(buffer);
-//                return;
-//            }
-//            else {
-//                assert(n_channels == 3 || n_channels == 4);
-//                glTexImage2D(face.first, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-//            }
-//
-//            stbi_image_free(buffer);
-//        }
-//    }
-//
-//    void Texture::SetWrapMode() const {
-//        if (target == GL_TEXTURE_2D) {
-//            // repeat the texture image (recommend to use seamless textures)
-//            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//        }
-//        else {
-//            // repeat the last pixels when s/t/r coordinates fall off the edge
-//            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//            glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-//        }
-//    }
-//
-//    void Texture::SetFilterMode(bool anisotropic) const {
-//        // -------------------------------------------------------------------------------------------
-//        // [1] -> [4]: (from cheapest to most expensive, from worst to best visual quality)
-//        // -------------------------------------------------------------------------------------------
-//        // [1] point filtering produces a blocked pattern (individual pixels more visible)
-//        // [2] bilinear filtering produces a smooth pattern (texel colors are sampled from neighbors)
-//        // [3] trilinear filtering linearly interpolates between two bilinearly sampled mipmaps
-//        // [4] anisotropic filtering samples the texture as a non-square shape to correct blurriness
-//        // -------------------------------------------------------------------------------------------
-//        if (target == GL_TEXTURE_2D) {
-//            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // bilinear filtering
-//            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);  // trilinear filtering
-//
-//            // anisotropic filtering requires OpenGL core 4.6 or EXT_texture_filter_anisotropic
-//            if (anisotropic) {
-//                GLfloat param = 1.0f;
-//                glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &param);
-//
-//                param = std::clamp(param, 1.0f, 8.0f);  // implementation-defined maximum anisotropy
-//                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, param);
-//            }
-//        }
-//        else if (target == GL_TEXTURE_3D) {
-//            // solid textures, volume simulations, to be determined...
-//        }
-//        else if (type == TexMap::Skybox) {
-//            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);  // bilinear filtering
-//            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);  // skyboxes do not minify, no mipmaps
-//        }
-//        else if (target == GL_TEXTURE_CUBE_MAP) {
-//            // skylight illumination, dynamic reflection, to be determined...
-//        }
-//    }
-//
-//    Light::Light(LightType type) : type(type) {
-//        Application::GetInstance().CheckOpenGLContext("Texture");
-//
-//        mesh = std::move(Mesh(Primitive::Cube, 0.01f));
-//        shader = std::move(Shader(CWD + "light\\"));
-//
-//        glGenTextures(1, &id);
-//        glBindTexture(target, id);
-//
-//        if (target == GL_TEXTURE_CUBE_MAP && type == TexMap::Skybox) {
-//            CORE_INFO("Loading cubemaps in folder: {0}", path);
-//            LoadSkybox();
-//        }
-//        else {
-//            CORE_INFO("Loading texture file: {0}", path);
-//            LoadTexture();
-//        }
-//
-//        SetWrapMode();
-//        SetFilterMode(anisotropic);
-//
-//        glBindTexture(target, 0);
-//    }
-//
-//    Texture::~Texture() {
-//        // keep in mind that most OpenGL calls have global states, which in some cases might conflict
-//        // with the object oriented approach in C++, because class instances have their own scope.
-//        // chances are you don't want this to be called, unless you have removed the mesh from the scene.
-//
-//        Application::GetInstance().CheckOpenGLContext("~Texture");
-//
-//        // log friendly message to the console, so that we are aware of the *hidden* destructor calls
-//        // this is super useful in case our data accidentally goes out of scope, debugging made easier!
-//        if (id > 0) {  // texture may be still in use
-//            CORE_WARN("Destructing texture data (target = {0}, id = {1})!", target, id);
-//        }
-//
-//        glBindTexture(target, 0);
-//        glDeleteTextures(1, &id);
-//    }
-//
-//    Texture::Texture(Texture&& other) noexcept {
-//        *this = std::move(other);
-//    }
-//
-//    Texture& Texture::operator=(Texture&& other) noexcept {
-//        if (this != &other) {
-//            // free this texture, reset it to a clean null state
-//            glDeleteTextures(1, &id);
-//            id = 0;
-//            target = other.target;  // force target to be a valid GLenum so the state is clean
-//            type = TexMap::None;
-//            path = "";
-//
-//            // transfer ownership from other to this
-//            std::swap(id, other.id);
-//            std::swap(target, other.target);
-//            std::swap(type, other.type);
-//            std::swap(path, other.path);
-//        }
-//
-//        // after the swap, the other texture has an id of 0, which is a clean null state
-//        // (a default fallback texture that is all black), when it gets destroyed later,
-//        // deleting a 0-id texture won't break the global binding states so we are safe.
-//        return *this;
-//    }
-//}
+
+#include "core/log.h"
+#include "components/light.h"
+
+namespace components {
+
+    void PointLight::SetAttenuation(float linear, float quadratic) {
+        CORE_ASERT(linear > 0, "The linear attenuation factor must be positive ...");
+        CORE_ASERT(quadratic > 0, "The quadratic attenuation factor must be positive ...");
+
+        this->linear = linear;
+        this->quadratic = quadratic;
+
+        // find the max range by solving the quadratic equation when attenuation is <= 0.01
+        float a = quadratic;
+        float b = linear;
+        float c = -100.0f;
+        float delta = b * b - 4.0f * a * c;
+
+        CORE_ASERT(delta > 0.0f, "You can never see this line, it is mathematically impossible...");
+        range = c / (-0.5f * (b + sqrt(delta)));  // Muller's method
+    }
+
+    float PointLight::GetAttenuation(float distance) const {
+        // our point light follows the inverse-square law, so the attenuation is inversely
+        // proportional to the square of distance. While it does not have a real concept of
+        // "range", we can calculate a range threshold where the attenuation becomes a very
+        // small number (such as 0.01), and return 0 if the distance is out of this range.
+
+        CORE_ASERT(distance >= 0.0f, "Distance to the light source cannot be negative ...");
+
+        return distance >= range ? 0.0f :
+            1.0f / (1.0f + linear * distance + quadratic * pow(distance, 2.0f));
+    }
+
+    void Spotlight::SetCutoff(float range, float inner_cutoff, float outer_cutoff) {
+        CORE_ASERT(range > 0, "The spotlight range must be positive ...");
+        CORE_ASERT(inner_cutoff > 0, "The inner cutoff angle must be positive ...");
+        CORE_ASERT(outer_cutoff > 0, "The outer cutoff angle must be positive ...");
+
+        this->range = range;
+        this->inner_cutoff = inner_cutoff;
+        this->outer_cutoff = outer_cutoff;
+    }
+
+    float Spotlight::GetInnerCosine() const {
+        return glm::cos(glm::radians(inner_cutoff));
+    }
+
+    float Spotlight::GetOuterCosine() const {
+        return glm::cos(glm::radians(outer_cutoff));
+    }
+
+    float Spotlight::GetAttenuation(float distance) const {
+        // to keep it simple and avoid too many parameters, our spotlight does not follow the
+        // inverse-square law, instead, the attenuation uses a linear falloff. Despite that,
+        // we do have a fade-out effect from the inner to the edges of the outer cone, so
+        // the overall effect should still be realistic enough without loss of fidelity.
+
+        CORE_ASERT(distance >= 0.0f, "Distance to the light source cannot be negative ...");
+
+        return 1.0f - std::clamp(distance / range, 0.0f, 1.0f);
+    }
+
+}

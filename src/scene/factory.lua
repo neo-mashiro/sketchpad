@@ -19,11 +19,12 @@ code = [[
 
 #include "core/log.h"
 #include "scene/factory.h"
+#include "scene/scene.h"
 ]]
 
 for i = 1, count do
     local file = config.files[i]
-    code = code .. "#include \"" .. file .. "/" .. file .. ".h\"\n"
+    code = code .. "#include \"" .. "examples" .. "/" .. file .. ".h\"\n"
 end
 
 code = code .. "\n" .. [[

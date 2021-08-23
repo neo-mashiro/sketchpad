@@ -55,11 +55,6 @@ namespace core {
         glViewport(0, 0, width, height);
     }
 
-    void Window::Refresh() {
-        glutSwapBuffers();
-        glutPostRedisplay();
-    }
-
     void Window::ConfirmExit() {
         // remember the current layer
         auto cache_layer = layer;

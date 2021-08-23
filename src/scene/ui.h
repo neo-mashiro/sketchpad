@@ -4,13 +4,10 @@
 
 #define IMGUI_DISABLE_METRICS_WINDOW
 #define IMGUI_DEFINE_MATH_OPERATORS
-
 #include "imgui.h"
 #include "imgui_internal.h"
 
-namespace components {
-    class Transform;  // forward declaration
-}
+#include "components/all.h"
 
 namespace ui {
 
@@ -28,7 +25,7 @@ namespace ui {
     void DrawVerticalLine(void);
     void DrawTooltip(const char* desc, float spacing = 5.0f);
     void DrawRainbowBar(const ImVec2& offset, float height);
-    void DrawGizmo(const glm::mat4& V, const glm::mat4& P, const components::Transform& t);
+    void DrawGizmo(scene::Entity camera, scene::Entity target);
 
     // application-level drawing functions, used by the core module, don't touch
     void DrawMenuBar(const std::string& active_title, std::string& new_title);

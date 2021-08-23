@@ -204,12 +204,6 @@ namespace components {
         glDeleteBuffers(1, &IBO);
         glDeleteBuffers(1, &VBO);
         glDeleteVertexArrays(1, &VAO);
-
-        vertices.clear();
-        vertices.shrink_to_fit();
-
-        indices.clear();
-        indices.shrink_to_fit();
     }
 
     Mesh::Mesh(Mesh&& other) noexcept {
@@ -224,12 +218,6 @@ namespace components {
             glDeleteVertexArrays(1, &VAO);
 
             VAO = VBO = IBO = 0;
-
-            vertices.clear();
-            vertices.shrink_to_fit();
-
-            indices.clear();
-            indices.shrink_to_fit();
 
             // transfer ownership from other to this
             std::swap(VAO, other.VAO);

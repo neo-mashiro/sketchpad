@@ -1,42 +1,55 @@
 #include "pch.h"
 
 #include "core/input.h"
-#include "core/window.h"
+#include "core/log.h"
 #include "components/all.h"
+#include "components/assist.h"
+#include "scene/const.h"
 #include "scene/scene.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
+#include "utils/path.h"
 
 using namespace core;
 using namespace components;
 
 namespace scene {
 
-    Entity Scene::CreateEntity(const std::string& name) {
+    Scene::Scene(const std::string& title) : title(title), directory() {}
+
+    Scene::~Scene() {
+        registry.each([this](auto id) {
+            CORE_TRACE("Destroying entity: {0}", directory.at(id));
+        });
+        registry.clear();
+    }
+
+    Entity Scene::CreateEntity(const std::string& name, ETag tag) {
         Entity e = { name, registry.create(), &registry };
         e.AddComponent<Transform>();
+        e.AddComponent<Tag>(tag);
+        directory.emplace(e.id, e.name);
         return e;
     }
 
-    void Scene::DestroyEntity(Entity entity) {
-        registry.destroy(entity.id);
+    void Scene::DestroyEntity(Entity e) {
+        CORE_TRACE("Destroying entity: {0}", e.name);
+        directory.erase(e.id);
+        registry.destroy(e.id);
     }
 
     // this base class is being used to render our welcome screen
-    static std::unique_ptr<Texture> welcome_screen;
+    static asset_ref<Texture> welcome_screen;
     static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
-        Window::Rename("Welcome Screen");
-        Window::layer = Layer::ImGui;
         Input::ShowCursor();
-
-        welcome_screen = std::make_unique<Texture>(GL_TEXTURE_2D, IMAGE + "welcome.png");
+        welcome_screen = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "0\\welcome.png");
         welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->id);
     }
 
     void Scene::OnSceneRender() {
-        Renderer::ClearBuffer();
+        Renderer::Clear();
     }
 
     void Scene::OnImGuiRender() {

@@ -7,8 +7,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-using namespace core;
-
 namespace components {
 
     void Texture::SetTextures() const {
@@ -65,7 +63,7 @@ namespace components {
             std::string extension = "";
 
             for (auto& ext : extensions) {
-                std::string filepath = path + "posx" + ext;
+                std::string filepath = path + "\\posx" + ext;
                 buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
 
                 if (buffer) {
@@ -77,7 +75,7 @@ namespace components {
             CORE_ASERT(!extension.empty(), "Cannot find textures in {0}: bad path or file extension)", path);
 
             for (const auto& face : cubemap) {
-                std::string filepath = path + face.second + extension;
+                std::string filepath = path + "\\" + face.second + extension;
                 buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, STBI_rgb_alpha);
 
                 if (!buffer) {
@@ -143,7 +141,7 @@ namespace components {
     }
 
     Texture::Texture(GLenum target, const std::string& path) : target(target), path(path) {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
 
         glGenTextures(1, &id);
         glBindTexture(target, id);
@@ -156,7 +154,7 @@ namespace components {
     }
 
     Texture::~Texture() {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
 
         // log message to the console so that we are aware of the *hidden* destructor calls
         // this can be super useful in case our data accidentally goes out of scope
@@ -175,7 +173,6 @@ namespace components {
         if (this != &other) {
             glDeleteTextures(1, &id);
             id = 0;
-            path = "";
 
             std::swap(id, other.id);
             std::swap(target, other.target);

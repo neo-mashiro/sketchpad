@@ -15,17 +15,6 @@
 #define CORE_ERROR(...) ::core::Log::GetLogger()->error(__VA_ARGS__)
 #define CORE_ASERT(cond, ...) { if (!(cond)) { ::core::Log::GetLogger()->critical(__VA_ARGS__); __debugbreak(); } }
 
-// MSVC intrinsic type name inference
-#include <string_view>
-
-template<typename T>
-constexpr auto type_name() noexcept {
-    std::string_view type = __FUNCSIG__;
-    type.remove_prefix(std::string_view("auto __cdecl type_name<").size());
-    type.remove_suffix(std::string_view(">(void) noexcept").size());
-    return type;
-}
-
 namespace core {
 
     class Log {

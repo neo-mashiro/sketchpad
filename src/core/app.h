@@ -1,12 +1,6 @@
 #pragma once
 
-// whenever possible, place your #includes in the cpp file instead of header, this helps
-// reduce compilation time and size of other translation units that include this header.
 #include <string>
-
-namespace scene {
-    class Scene;  // forward declaration
-}
 
 namespace core {
 
@@ -22,8 +16,6 @@ namespace core {
         int gl_n_msaa_buffers, gl_msaa_buffer_size;
 
         bool opengl_context_active = false;
-        scene::Scene* last_scene = nullptr;
-        scene::Scene* active_scene = nullptr;
 
         Application(Application& application) = delete;
         void operator=(const Application&) = delete;
@@ -48,7 +40,6 @@ namespace core {
         void Init(void);
         void Start(void);
         void PostEventUpdate(void);
-        void Switch(const std::string& title);
         void Clear(void);
     };
 }

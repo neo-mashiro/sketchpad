@@ -36,7 +36,6 @@ namespace core {
         static void Rename(const std::string& new_title);
         static void Resize(Resolution res);
         static void Reshape();
-        static void Refresh();
 
         static void ConfirmExit();
         static void ToggleImGui();

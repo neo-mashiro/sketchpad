@@ -5,9 +5,11 @@
 #include "core/log.h"
 #include "core/window.h"
 #include "components/all.h"
+#include "scene/entity.h"
 #include "scene/factory.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
+#include "utils/path.h"
 
 #include "imgui_internal.h"
 #include "imgui_impl_glut.h"
@@ -18,6 +20,8 @@
 #include "imstb_truetype.h"
 
 using namespace core;
+using namespace components;
+using namespace scene;
 
 namespace ui {
 
@@ -211,15 +215,21 @@ namespace ui {
         }
     }
 
-    void DrawGizmo(const glm::mat4& V, const glm::mat4& P, const components::Transform& t) {
+    void DrawGizmo(Entity camera, Entity target) {
+        auto& T = target.GetComponent<Transform>();
+        auto& C = camera.GetComponent<Camera>();
+
+        glm::mat4 V = C.GetViewMatrix();
+        glm::mat4 P = C.GetProjectionMatrix();
+
         glm::vec3 point3[4] {};  // 3D world coordinates
         glm::vec2 point2[4] {};  // 2D window coordinates
         ImVec2 pixels[4] {};     // convert to ImGui type
 
-        point3[0] = t.position;
-        point3[1] = point3[0] + t.forward;
-        point3[2] = point3[0] + t.right;
-        point3[3] = point3[0] + t.up;
+        point3[0] = T.position;
+        point3[1] = point3[0] + T.forward;
+        point3[2] = point3[0] + T.right;
+        point3[3] = point3[0] + T.up;
 
         glm::vec2 vector[3] {};  // direction vectors in 2D window space
 
@@ -544,7 +554,7 @@ namespace ui {
         float bar_w = 268.0f;
         float bar_h = 80.0f;
 
-        scene::Renderer::ClearBuffer();
+        scene::Renderer::Clear();
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2(win_w, win_h));

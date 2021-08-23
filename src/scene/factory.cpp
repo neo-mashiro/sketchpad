@@ -8,7 +8,8 @@
 
 #include "core/log.h"
 #include "scene/factory.h"
-#include "scene_01/scene_01.h"
+#include "scene/scene.h"
+#include "examples/scene_01.h"
 
 namespace scene::factory {
 
