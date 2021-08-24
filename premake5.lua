@@ -14,6 +14,7 @@ WIN_IDE = "none"
 
 ROOT_DIR = "./"
 SOURCE_DIR = "./src/"
+SHADER_DIR = "./res/shader/"
 VENDOR_DIR = "./vendor/"
 
 OBJECT_DIR = "./build/intermediates/"
@@ -118,11 +119,24 @@ local function setup_solution()
         ------------------------------------------------------------------------
         -- [ BUILD CONFIG ]
         ------------------------------------------------------------------------
-        filter { "system:windows", "action:vs*"}  -- vs2015 ~ vs2019 build on Windows
+        filter { "system:windows", "action:vs*"}  -- vs2017 ~ vs2019 build on Windows
 
             systemversion "latest" -- use the latest version of the SDK available
             flags "MultiProcessorCompile"
-            -- buildoptions { "-pedantic", "-std=c++17" }
+
+            buildoptions {
+                "/std:c++17",         -- would update to "/std:c++latest" in the future
+                "/utf-8",             -- specify both the source and execution character set as utf-8
+                "/diagnostics:caret"  -- place a caret (^) under the line where the issue was detected
+            }
+
+            disablewarnings {
+                -- "26495",  -- always initialize a member variable
+                "4456",  -- declaration of '...' hides previous local declaration
+                "4458",  -- declaration of '...' hides class member
+                "4505",  -- unreferenced local function has been removed
+                "4100"   -- unreferenced formal parameter
+            }
 
             linkoptions {
                 "/ignore:4099",  -- ignore library pdb warnings when running in debug
@@ -223,15 +237,11 @@ local function setup_project()
             "_CRT_SECURE_NO_DEPRECATE",
             "_SCL_SECURE_NO_WARNINGS",
 
-            -- TinyXML parser (read XML and create C++ objects, or vice versa)
-            "TIXML_USE_STL",
-
             -- automatically handled by visual studio between debug/release builds
             -- "DEBUG", "_DEBUG", "NDEBUG",
 
             -- custom macros for custom uses, you name it ......
-            "CORE_ENABLE_LOG", "LOG_TRACE",
-            -- "MULTI_THREAD"  -- if defined, consider using DirectX instead
+            "OPENGL", "VULKAN", "DIRECTX", "METAL"
         }
 
         -- precompiled headers
@@ -242,13 +252,13 @@ local function setup_project()
         -- [ PROJECT FILES CONFIG ]
         ------------------------------------------------------------------------
         files {
-            -- recursive search in "src/"
+            -- recursive search
             SOURCE_DIR .. "**.h",
             SOURCE_DIR .. "**.hpp",
             SOURCE_DIR .. "**.c",
             SOURCE_DIR .. "**.cpp",
             SOURCE_DIR .. "**.tpp",
-            SOURCE_DIR .. "**.glsl"
+            SHADER_DIR .. "**.glsl"
         }
 
         -- exclude template files from build so that they are not compiled
@@ -275,7 +285,7 @@ local function setup_project()
             },
 
             ["Shaders/*"] = {
-                SOURCE_DIR .. "**.glsl"
+                SHADER_DIR .. "**.glsl"
             },
 
             ["Templates/*"] = {
@@ -353,22 +363,22 @@ end
 --------------------------------------------------------------------------------
 local function main()
     ----------------------------------------------------------------------------
-    -- scan all scene files and store them into the configuration table
+    -- scan all scene scripts and store them into the configuration table
     ----------------------------------------------------------------------------
-    local dirs = os.matchdirs(SOURCE_DIR .. "scene_*")  -- non-recursive match
-    table.sort(dirs)  -- sort the array so that scene ids are numbered in order
+    local scripts = os.matchfiles(SOURCE_DIR .. "examples/**.cpp")  -- recursive match
+    table.sort(scripts)  -- sort the array so that scene ids are numbered in order
 
-    for index, folder in ipairs(dirs) do
-        -- folder is relative path: e.g. "src/scene_01"
+    for index, script in ipairs(scripts) do
+        -- script is relative path: e.g. "src/examples/scene_01.cpp"
         -- index in Lua starts from 1, not 0 ...
-        local pos = #folder - folder:reverse():find("/", 1) + 1  -- position of the last slash "/"
-        local file = string.sub(folder, pos + 1)
-        local path = string.format("%s/%s.cpp", folder, file)
+        local pos_start = #script - script:reverse():find("/", 1) + 1
+        local pos_end = #script - script:reverse():find("%.", 1) + 1
+        local file = string.sub(script, pos_start + 1, pos_end - 1)  -- e.g. "scene_01"
 
-        if (os.isfile(path)) then
-            printf("Attaching scene: \"%s\"", path)
-            local source_code = io.readfile(path)
-            local title = source_code:match('Window::Rename%((.-)%)')
+        if (os.isfile(script)) then
+            printf("Parsing script: \"%s\"", script)
+            local source_code = io.readfile(script)
+            local title = source_code:match('this%->title%s=%s(.-);')
             local class = source_code:match('%svoid%s(.-)::Init%(%)')
 
             CONFIG.files[index] = file

@@ -1,4 +1,5 @@
 #version 460
+#pragma optimize(off)
 
 // vertex attributes in global world space
 layout(location = 0) in __ {
@@ -21,9 +22,9 @@ layout(std140, binding = 1) uniform DirectLight {
     float intensity;
     vec3 color;
     vec3 direction;
-} direction_light[4];
+} direction_light[2];
 
-layout(std140, binding = 5) uniform PointLight {
+layout(std140, binding = 3) uniform PointLight {
     float intensity;
     vec3 color;
     vec3 position;
@@ -32,7 +33,7 @@ layout(std140, binding = 5) uniform PointLight {
     float range;
 } point_light[4];
 
-layout(std140, binding = 9) uniform SpotLight {
+layout(std140, binding = 7) uniform SpotLight {
     float intensity;
     vec3 color;
     vec3 position;
@@ -41,6 +42,13 @@ layout(std140, binding = 9) uniform SpotLight {
     float outer_cosine;
     float range;
 } spot_light[4];
+
+layout(std140, binding = 11) uniform Settings {
+     vec3 v1;   vec3 v2;   vec3 v3;
+      int i1;    int i2;    int i3;
+     bool b1;   bool b2;   bool b3;
+    float f1;  float f2;  float f3;
+};
 
 // loose uniforms (locally scoped data)
 layout(location = 0) uniform mat4 transform;
@@ -81,9 +89,12 @@ float SpotlightAttenuation(uint i, vec3 frag_pos) {
 }
 
 void main() {
-    vec3 L = normalize(point_light[0].position - _position);  // light direction vector
-    vec3 V = normalize(camera.position - _position);          // view direction vector
-    vec3 R = reflect(-L, _normal);                            // reflection vector
+    // use all the uniform blocks to prevent them from being optimized out
+    vec3 dummy0 = camera.position;
+    vec3 dummy1 = point_light[0].color;
+    vec3 dummy2 = direction_light[0].color;
+    vec3 dummy3 = spot_light[0].color;
+    vec3 dummy4 = v1;
 
-    color = vec4(point_light[0].color * (albedo + texture(normal_map, _uv).rgb), 1.0);
+    color = vec4(1.0);
 }

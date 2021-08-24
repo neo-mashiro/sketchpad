@@ -1,4 +1,5 @@
 #version 460
+#pragma optimize(off)
 
 // vertex attributes in local model space
 layout(location = 0) in vec3 position;

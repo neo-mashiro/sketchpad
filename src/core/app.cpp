@@ -111,6 +111,7 @@ namespace core {
         // this callback is ideal for continuous updates that need to be smooth.
         // this can be useful for continuous animation, physics updates and other
         // lightweight routines but the amount of computation should be minimized
+        Clock::Update();
     }
 
     void Application::Display() {
@@ -316,11 +317,11 @@ namespace core {
 
     void Application::Start() {
         Clock::Reset();
+        Renderer::Init();
         Renderer::Attach("Welcome Screen");
     }
 
     void Application::PostEventUpdate() {
-        Clock::Update();
         Renderer::DrawImGui();
     }
 
@@ -329,8 +330,10 @@ namespace core {
 
         ui::Clear();
 
-        Clock::Reset();
         Renderer::Detach();
+        Renderer::Free();
+
+        Clock::Reset();
         Window::Clear();
     }
 }

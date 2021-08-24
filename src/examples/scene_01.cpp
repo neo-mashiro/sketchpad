@@ -4,7 +4,6 @@
 #include "core/input.h"
 #include "core/window.h"
 #include "components/all.h"
-#include "scene/const.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
 #include "utils/path.h"
@@ -27,11 +26,14 @@ namespace scene {
 
     // this is called before the first frame, use this function to initialize your scene
     void Scene01::Init() {
-        this->title = "Blinn Phong Reflection";  // name your scene (will show in the top menu)
+        // name your scene title (will appear in the top menu)
+        this->title = "Blinn Phong Reflection";
 
         // load assets upfront
         asset_ref<Shader>  s_skybox   = LoadAsset<Shader>(SHADER + "skybox\\36894.bin", 36894);
-        asset_ref<Shader>  s_phong    = LoadAsset<Shader>(SHADER + "sample");
+        asset_ref<Shader>  s_sphere   = LoadAsset<Shader>(SHADER + "01_sphere");
+        asset_ref<Shader>  s_ball     = LoadAsset<Shader>(SHADER + "01_ball");
+        asset_ref<Shader>  s_plane    = LoadAsset<Shader>(SHADER + "01_plane");
         asset_ref<Texture> t_skybox   = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, SKYBOX + "5");
         asset_ref<Texture> t_plane    = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "0\\checkboard.png");
         asset_ref<Texture> t_diffuse  = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "3\\diffuse.jpg");
@@ -43,7 +45,8 @@ namespace scene {
         camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, 4.5f));
         camera.GetComponent<Transform>().Rotate(glm::radians(180.0f), world::up);
         camera.AddComponent<Camera>(View::Perspective);
-        camera.AddComponent<Spotlight>();  // a spotlight attached on the camera is a flashlight
+        //camera.AddComponent<Spotlight>(color::red, 1.0f);  // a spotlight attached on the camera is a flashlight
+        //camera.GetComponent<Spotlight>().SetCutoff(3.0f);
 
         // skybox
         skybox = CreateEntity("Skybox", ETag::Skybox);
@@ -64,26 +67,26 @@ namespace scene {
         sphere.GetComponent<Transform>().Scale(2.0f);
 
         auto& m1 = sphere.GetComponent<Material>();
-        m1.SetShader(s_phong);
+        m1.SetShader(s_sphere);
         m1.SetUniform(1, glm::vec3(0.0215f, 0.1745f, 0.0215f));
         m1.SetUniform(2, glm::vec3(0.07568f, 0.61424f, 0.07568f));
         m1.SetUniform(3, glm::vec3(0.633f, 0.727811f, 0.633f));
         m1.SetUniform(4, sphere_shininess, true);  // bind the uniform value to the variable (observer)
 
-        // metalic ball
+        // metallic ball
         ball = CreateEntity("Ball");
         ball.AddComponent<Mesh>(Primitive::Sphere);
         ball.GetComponent<Transform>().Translate(world::up * -2.0f);
         ball.GetComponent<Transform>().Scale(2.0f);
 
         auto& m2 = ball.GetComponent<Material>();
-        m2.SetShader(s_phong);
+        m2.SetShader(s_ball);
         m2.SetTexture(0, t_diffuse);
         m2.SetTexture(1, t_specular);
         m2.SetTexture(2, t_emission);
         m2.SetUniform(1, ball_shininess, true);
-        //m2.SetShader(nullptr);
-        //m2.SetTexture(0, nullptr);
+        // m2.SetShader(nullptr);
+        // m2.SetTexture(0, nullptr);
 
         // plane
         plane = CreateEntity("Plane");
@@ -92,10 +95,10 @@ namespace scene {
         plane.GetComponent<Transform>().Scale(1.0f);
 
         auto& m3 = plane.GetComponent<Material>();
-        m3.SetShader(s_phong);
+        m3.SetShader(s_plane);
         m3.SetTexture(0, t_plane);
         m2.SetUniform(1, world::unit * 0.51f);
-        m2.SetUniform(2, shininess, true);
+        m2.SetUniform(2, ball_shininess, true);
 
         Renderer::FaceCulling(true);
         Renderer::DepthTest(true);
@@ -118,15 +121,19 @@ namespace scene {
         // placing the skybox at the end of the render list can save us many draw calls since it is
         // the farthest in the scene, depth test will discard all pixels obstructed by other objects
         Renderer::Submit(
-            { sphere, ball, show_plane ? plane : entt::null, skybox }
+            { sphere.id, ball.id, show_plane ? plane.id : entt::null, skybox.id }
         );
     }
 
     // this is called every frame, update your ImGui widgets here to control entities in the scene
     void Scene01::OnImGuiRender() {
+        static bool sphere_gizmo = false;
+        static bool ball_gizmo = false;
+        static bool plane_gizmo = false;
         static bool edit_color = false;
         static int power_sphere = 4;
         static int power_ball = 4;
+
         static ImVec4 color = ImVec4(0.1075f, 0.8725f, 0.1075f, 0.0f);
 
         static ImGuiColorEditFlags color_flags
@@ -141,6 +148,12 @@ namespace scene {
             ImGui::Checkbox("Show Plane", &show_plane);
             ImGui::Separator();
             ImGui::Checkbox("Point Light Rotation", &rotate_light);
+            ImGui::Separator();
+            ImGui::Checkbox("Show Sphere Gizmo", &sphere_gizmo);
+            ImGui::Separator();
+            ImGui::Checkbox("Show Ball Gizmo", &ball_gizmo);
+            ImGui::Separator();
+            ImGui::Checkbox("Show Plane Gizmo", &plane_gizmo);
             ImGui::Separator();
             ImGui::Spacing();
             ImGui::PushItemWidth(100.0f);
@@ -158,9 +171,9 @@ namespace scene {
         }
         ImGui::End();
 
-        if (true) {
-            ui::DrawGizmo(camera, sphere);
-        }
+        if (sphere_gizmo)              ui::DrawGizmo(camera, sphere);
+        if (ball_gizmo)                ui::DrawGizmo(camera, ball);
+        if (plane_gizmo && show_plane) ui::DrawGizmo(camera, plane);
 
         sphere_shininess = pow(2.0f, (float)power_sphere);
         ball_shininess = pow(2.0f, (float)power_ball);

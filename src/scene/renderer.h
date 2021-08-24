@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "ECS/entt.hpp"
 
 namespace scene {
 
@@ -18,8 +19,6 @@ namespace scene {
         static Scene* curr_scene;
 
         static std::map<GLuint, UBO> UBOs;  // stores a uniform buffer at each binding point
-        // FBO, RBO, ...
-
         static std::vector<entt::entity> render_list;
 
       public:

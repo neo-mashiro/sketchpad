@@ -32,22 +32,11 @@ namespace components {
         Wireframe  = 1 << 4   // entity to be drawn in wireframe mode (use geometry shader)
     };
 
-    ETag operator|(ETag lhs, ETag rhs) {
-        return static_cast<ETag>(
-            static_cast<std::underlying_type<ETag>::type>(lhs) |
-            static_cast<std::underlying_type<ETag>::type>(rhs)
-        );
-    }
-
-    ETag operator&(ETag lhs, ETag rhs) {
-        return static_cast<ETag>(
-            static_cast<std::underlying_type<ETag>::type>(lhs) &
-            static_cast<std::underlying_type<ETag>::type>(rhs)
-        );
-    }
+    ETag operator|(ETag lhs, ETag rhs);
+    ETag operator&(ETag lhs, ETag rhs);
 
     struct Tag {
-        ETag tag;
+        ETag tag = ETag::Untagged;
 
         Tag() = default;
         Tag(ETag tag) : tag(tag) {}

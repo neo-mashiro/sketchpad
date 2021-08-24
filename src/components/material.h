@@ -27,6 +27,8 @@ namespace components {
         Uniform<glm::mat4>   // index 8
     >;
 
+    static_assert(std::variant_size_v<uniform_variant> == 9);
+
     class Material {
       private:
         static inline GLuint max_samplers = 0;
@@ -59,7 +61,6 @@ namespace components {
             }
 
             auto& unif_variant = uniforms[location];
-            static_assert(std::variant_size_v<decltype(unif_variant)> == 9);
 
             if (!std::holds_alternative<Uniform<T>>(unif_variant)) {
                 CORE_ERROR("Mismatched value type, unable to set uniform in {0}", __FUNCSIG__);

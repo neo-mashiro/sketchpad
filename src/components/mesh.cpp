@@ -231,6 +231,20 @@ namespace components {
     }
 
     void Mesh::BindBuffer() {
+        // there are many ways to use OpenGL buffers, but here we will take the simplest approach
+        // that each mesh has a unique VAO, which owns a unique VBO and IBO, such that all mesh
+        // data is stored in a single buffer, and then we only need to bind VAO before draw calls.
+        // alternatively, we can use a single VAO that dynamically binds VBO for different meshes,
+        // or use multiple VBOs per mesh (one for each vertex attribute), or share VBOs between
+        // multiple VAOs and meshes to save memory space, coupled with dynamic and stream usage
+        // hints to gain slightly better performance, but I'd rather not add too much complexity.
+
+        // for this demo, we will never need to update these buffers once they are setup. All the
+        // vertex attributes and triangle indices are measured in local model space, which means
+        // that these buffer data will be static. Users can use a transform matrix to manipulate
+        // the mesh however they like (translate the vertices, scale the uv coordinates, etc), but
+        // the internal buffer data never changes, so we are using `GL_STATIC_DRAW` as the hint.
+
         glGenVertexArrays(1, &VAO);
         glBindVertexArray(VAO);
 

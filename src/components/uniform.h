@@ -17,7 +17,7 @@ namespace components {
         std::string name;
 
         T value;
-        T* value_ptr;
+        const T* value_ptr;
         mutable bool pending_upload = false;
         mutable bool binding_upload = false;
 
@@ -29,12 +29,12 @@ namespace components {
         Uniform& operator=(const Uniform&) = default;
 
         void operator<<(const T& value) {
-            this.value = value;
+            this->value = value;
             pending_upload = true;
         }
 
         void operator<<=(const T* value_ptr) {
-            this.value_ptr = value_ptr;
+            this->value_ptr = value_ptr;
             binding_upload = true;
         }
 

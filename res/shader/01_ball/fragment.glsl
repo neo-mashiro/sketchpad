@@ -15,7 +15,7 @@ layout(std140, binding = 0) uniform Camera {
     mat4 perspective;
 } camera;
 
-layout(std140, binding = 5) uniform PointLight {
+layout(std140, binding = 3) uniform PointLight {
     float intensity;
     vec3 color;
     vec3 position;

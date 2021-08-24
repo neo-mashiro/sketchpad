@@ -11,6 +11,7 @@ namespace scene {
       private:
         entt::registry registry;
         std::map<entt::entity, std::string> directory;
+        friend class Renderer;
 
       protected:
         Entity CreateEntity(const std::string& name, components::ETag tag = components::ETag::Untagged);

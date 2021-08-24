@@ -11,12 +11,12 @@ namespace scene {
 
     class Entity {
       private:
-        entt::entity id = entt::null;
         entt::registry* registry = nullptr;
+        friend class Scene;  // the registry should only be exposed to the scene
 
       public:
+        entt::entity id = entt::null;
         std::string name;
-        friend class Scene;  // entity internals should be exposed only to the scene
 
       public:
         Entity() = default;

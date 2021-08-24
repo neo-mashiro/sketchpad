@@ -8,6 +8,7 @@
 #include "imgui_internal.h"
 
 #include "components/all.h"
+#include "scene/entity.h"
 
 namespace ui {
 

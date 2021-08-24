@@ -26,6 +26,9 @@ namespace scene {
     Scene* Renderer::last_scene = nullptr;
     Scene* Renderer::curr_scene = nullptr;
 
+    std::map<GLuint, UBO> Renderer::UBOs;
+    std::vector<entt::entity> Renderer::render_list;
+
     template <typename... Args>
     auto val_ptr(Args&&... args) -> decltype(glm::value_ptr(std::forward<Args>(args)...)) {
         return glm::value_ptr(std::forward<Args>(args)...);
@@ -93,7 +96,6 @@ namespace scene {
     // -------------------------------------------------------------------------
     // core event functions
     // -------------------------------------------------------------------------
-    // where do I call this init function? modify app.cpp, also the Free() function
     void Renderer::Init() {
         // on initialization, we parse the sample shader to determine the structure of
         // uniform blocks and create global uniform buffers stored in the UBOs map.
@@ -159,7 +161,7 @@ namespace scene {
                 }
 
                 // the aligned byte offset of a uniform must be equal to a multiple of its base alignment
-                GLuint padded_offset = static_cast<GLuint>(ceil(curr_offset / base_align) * base_align);
+                GLuint padded_offset = static_cast<GLuint>(ceil(curr_offset / (float) base_align) * base_align);
                 offset.push_back(padded_offset);
                 size.push_back(byte_size);
                 curr_offset = padded_offset + byte_size;
@@ -223,7 +225,7 @@ namespace scene {
         auto& reg = curr_scene->registry;
 
         // update camera uniform buffer 0
-        if (auto group = reg.group<Camera>(); !group.empty()) {
+        if (auto group = reg.group<Transform, Camera>(); !group.empty()) {
             auto& camera = group.get<Camera>(group.front());
 
             if (auto& ubo = UBOs[0]; ubo.Bind()) {
@@ -239,7 +241,7 @@ namespace scene {
         }
 
         // update light uniform buffers 1-4
-        if (auto group = reg.group<DirectionLight>(); !group.empty()) {
+        if (auto group = reg.group<DirectionLight, Transform>(); !group.empty()) {
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
             GLuint binding_point = 1;
 
@@ -248,7 +250,7 @@ namespace scene {
                 auto& transform = group.get<Transform>(e);
 
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, light.intensity);
+                    ubo.SetData(0, &(light.intensity));
                     ubo.SetData(1, val_ptr(light.color));
                     ubo.SetData(2, val_ptr(transform.forward));
                     ubo.Unbind();
@@ -259,7 +261,7 @@ namespace scene {
         }
 
         // update light uniform buffers 5-8
-        if (auto group = reg.group<PointLight>(); !group.empty()) {
+        if (auto group = reg.group<PointLight, Transform>(); !group.empty()) {
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
             GLuint binding_point = 5;
 
@@ -268,12 +270,12 @@ namespace scene {
                 auto& transform = group.get<Transform>(e);
 
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, light.intensity);
+                    ubo.SetData(0, &(light.intensity));
                     ubo.SetData(1, val_ptr(light.color));
                     ubo.SetData(2, val_ptr(transform.position));
-                    ubo.SetData(3, light.linear);
-                    ubo.SetData(4, light.quadratic);
-                    ubo.SetData(5, light.range);
+                    ubo.SetData(3, &(light.linear));
+                    ubo.SetData(4, &(light.quadratic));
+                    ubo.SetData(5, &(light.range));
                     ubo.Unbind();
                 }
 
@@ -282,7 +284,7 @@ namespace scene {
         }
 
         // update light uniform buffers 9-12
-        if (auto group = reg.group<Spotlight>(); !group.empty()) {
+        if (auto group = reg.group<Spotlight, Transform>(); !group.empty()) {
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
             GLuint binding_point = 9;
 
@@ -290,14 +292,17 @@ namespace scene {
                 auto& light = group.get<Spotlight>(e);
                 auto& transform = group.get<Transform>(e);
 
+                float inner_cosine = light.GetInnerCosine();
+                float outer_cosine = light.GetOuterCosine();
+
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, light.intensity);
+                    ubo.SetData(0, &(light.intensity));
                     ubo.SetData(1, val_ptr(light.color));
                     ubo.SetData(2, val_ptr(transform.position));
                     ubo.SetData(3, val_ptr(transform.forward));
-                    ubo.SetData(4, light.GetInnerCosine());
-                    ubo.SetData(5, light.GetOuterCosine());
-                    ubo.SetData(6, light.range);
+                    ubo.SetData(4, &(inner_cosine));
+                    ubo.SetData(5, &(outer_cosine));
+                    ubo.SetData(6, &(light.range));
                     ubo.Unbind();
                 }
 
@@ -308,7 +313,7 @@ namespace scene {
         // loop through the render list, draw entities one by one in order
         // (the order of entities in the list is determined by the scene)
 
-        auto group = reg.group<Mesh, Material>();
+        auto group = reg.group<Transform, Mesh, Material>();
 
         for (auto& e : render_list) {
             // skip entities marked as null (a convenient mask to tell if an entity should be drawn)
@@ -318,11 +323,12 @@ namespace scene {
             CORE_ASERT(group.contains(e), "Entity {0} in the render list is non-renderable!", e);
             
             auto& transform = group.get<Transform>(e);
-            auto& tag       = group.get<Tag>(e);
             auto& mesh      = group.get<Mesh>(e);
             auto& material  = group.get<Material>(e);
 
             material.SetUniform(0, transform.transform);
+
+            ETag tag = reg.get<Tag>(e).tag;
 
             if (material.Bind()) {
                 if (tag == ETag::Skybox) {

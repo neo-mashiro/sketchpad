@@ -16,8 +16,9 @@ namespace scene {
         std::vector<GLuint> size;    // size in bytes of each uniform in the buffer
 
       public:
+        UBO() = default;
         UBO(GLuint binding_point, size_t buffer_size, const std::vector<GLuint>& offset,
-            const std::vector<GLuint>& size, GLenum hint = GL_STREAM_DRAW);
+            const std::vector<GLuint>& size, GLenum hint = GL_DYNAMIC_DRAW);
         ~UBO();
 
         bool Bind() const;

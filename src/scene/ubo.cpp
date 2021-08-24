@@ -9,9 +9,12 @@ namespace scene {
         const std::vector<GLuint>& size, GLenum hint)
         : binding_point(binding_point), buffer_size(buffer_size), offset(offset), size(size)
     {
+        // by default, we will `GL_DYNAMIC_DRAW` as the buffer usage hint, because uniform
+        // buffers are expected to change every frame, we will update the data repeatedly.
+
         glGenBuffers(1, &id);
         glBindBuffer(GL_UNIFORM_BUFFER, id);
-        glBufferData(GL_UNIFORM_BUFFER, buffer_size, NULL, hint);  // GL_STATIC_DRAW, GL_DYNAMIC_DRAW
+        glBufferData(GL_UNIFORM_BUFFER, buffer_size, NULL, hint);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         glBindBufferBase(GL_UNIFORM_BUFFER, binding_point, id);
@@ -39,6 +42,12 @@ namespace scene {
         // we must not wrap Bind() and Unbind() inside this function because they are expensive.
         // in between the binding operations, we'd better set a large batch of data all at once.
         glBufferSubData(GL_UNIFORM_BUFFER, offset[uniform_index], size[uniform_index], data);
+
+        // we can also set data into the buffer without binding, by using the named buffer id
+        // but it's unclear as to which one is better or faster, no documentation mentions it
+        #ifdef EXPERIMENTAL
+            glNamedBufferSubData(id, offset[uniform_index], size[uniform_index], data);
+        #endif
     }
 
     GLuint UBO::Count() const {

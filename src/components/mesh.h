@@ -28,7 +28,7 @@ namespace components {
         std::vector<GLuint> indices;
 
       private:
-        void BindBuffer(void);
+        void BindBuffer();
         void CreateSphere(float radius = 1.0f);
         void CreateCube(float size = 1.0f);
         void CreateCylinder(float radius = 1.0f);

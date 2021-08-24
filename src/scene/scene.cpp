@@ -4,7 +4,6 @@
 #include "core/log.h"
 #include "components/all.h"
 #include "components/assist.h"
-#include "scene/const.h"
 #include "scene/scene.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
