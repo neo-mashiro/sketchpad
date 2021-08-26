@@ -8,6 +8,17 @@
 
 namespace components {
 
+    // the list of currently supported sampler types
+    static const std::vector<GLenum> samplers {
+        GL_SAMPLER_2D,             // sampler2D
+        GL_SAMPLER_3D,             // sampler3D
+        GL_SAMPLER_CUBE,           // samplerCube
+        GL_SAMPLER_1D_SHADOW,      // sampler1DShadow
+        GL_SAMPLER_2D_SHADOW,      // sampler2DShadow
+        GL_SAMPLER_CUBE_SHADOW,    // samplerCubeShadow
+        GL_SAMPLER_2D_MULTISAMPLE  // sampler2DMS
+    };
+
     Material::Material() {
         if (max_samplers == 0) {
             max_samplers = core::Application::GetInstance().gl_max_texture_units;
@@ -104,7 +115,7 @@ namespace components {
 
     void Material::LoadActiveUniforms() {
         GLuint id = shader->id;
-        CORE_INFO("Parsing active uniforms in shader: (id = {0})...", id);
+        CORE_INFO("Parsing active uniforms in shader (id = {0}): ...", id);
 
         GLint n_uniforms;
         glGetProgramInterfaceiv(id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &n_uniforms);
@@ -116,15 +127,19 @@ namespace components {
             glGetProgramResourceiv(id, GL_UNIFORM, i, 4, meta_data, 4, NULL, unif_info);
 
             if (unif_info[3] != -1) {
-                continue;  // skip uniforms in blocks
+                continue;  // skip uniforms in blocks (will be handled by the renderer)
             }
 
             GLint name_length = unif_info[0];
             char* name = new char[name_length];
             glGetProgramResourceName(id, GL_UNIFORM, i, name_length, NULL, name);
 
-            GLint gl_type = unif_info[1];
+            GLenum gl_type = unif_info[1];
             GLint location = unif_info[2];
+
+            if (std::find(samplers.begin(), samplers.end(), gl_type) != samplers.end()) {
+                continue;  // skip sampler uniforms (will be handled by `SetTexture`)
+            }
 
             // we can't wrap this into a function because in_place_index must be compile-time constants
             switch (gl_type) {

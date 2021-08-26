@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
-#include "components/assist.h"
+#include "components/component.h"
 
 namespace components {
 

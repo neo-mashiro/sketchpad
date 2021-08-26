@@ -15,14 +15,20 @@ layout(std140, binding = 0) uniform Camera {
     mat4 perspective;
 } camera;
 
-layout(std140, binding = 3) uniform PointLight {
+layout(std140, binding = 1) uniform DirectLight {
+    vec3 color;
+    vec3 direction;
     float intensity;
+} DL[2];
+
+layout(std140, binding = 3) uniform PointLight {
     vec3 color;
     vec3 position;
+    float intensity;
     float linear;
     float quadratic;
     float range;
-} point_light[4];
+} PL[4];
 
 layout(location = 1) uniform vec3 ambient;
 layout(location = 2) uniform vec3 diffuse;
@@ -31,23 +37,33 @@ layout(location = 4) uniform float shininess;
 
 layout(location = 0) out vec4 color;
 
-float PointLightAttenuation(uint i, vec3 frag_pos) {
+vec3 DLColor(uint i, vec3 frag_pos) {
+    return DL[i].intensity * DL[i].color;
+}
+
+vec3 PLColor(uint i, vec3 frag_pos) {
     // the point light attenuation follows the inverse-square law
-    float d = distance(point_light[i].position, frag_pos);
-    return d >= point_light[i].range ? 0.0 :
-        1.0 / (1.0 + point_light[i].linear * d + point_light[i].quadratic * pow(d, 2.0));
+    float d = distance(PL[i].position, frag_pos);
+    float attenuation = d >= PL[i].range ? 0.0 : 1.0 / (1.0 + PL[i].linear * d + PL[i].quadratic * d * d);
+    return attenuation * PL[i].intensity * PL[i].color;
 }
 
 void main() {
-    vec3 L = normalize(point_light[0].position - _position);  // light direction vector
-    vec3 V = normalize(camera.position - _position);          // view direction vector
-    vec3 R = reflect(-L, _normal);                            // reflection vector
+    vec3 V = normalize(camera.position - _position);  // view direction vector
 
-    vec3 C = point_light[0].color;
-    float I = point_light[0].intensity * PointLightAttenuation(0, _position);
+    // directional light
+    vec3 L1 = normalize(-DL[0].direction);  // light direction vector
+    vec3 R1 = reflect(-L1, _normal);         // reflection vector
 
-    vec3 diff = max(dot(_normal, L), 0.0) * diffuse;
-    vec3 spec = pow(max(dot(V, R), 0.0), shininess) * specular;
+    // point light
+    vec3 L2 = normalize(PL[0].position - _position);  // light direction vector
+    vec3 R2 = reflect(-L2, _normal);                  // reflection vector
 
-    color = vec4(I * C * (ambient + diff + spec), 1.0);
+    vec3 diff = max(dot(_normal, L1), 0.0) * DLColor(0, _position) +
+                max(dot(_normal, L2), 0.0) * PLColor(0, _position);
+
+    vec3 spec = pow(max(dot(V, R1), 0.0), shininess) * DLColor(0, _position) +
+                pow(max(dot(V, R2), 0.0), shininess) * PLColor(0, _position);
+
+    color = vec4(ambient + diff * diffuse + spec * specular, 1.0);
 }

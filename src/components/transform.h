@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "components/component.h"
 
 namespace components {
 
@@ -11,7 +12,7 @@ namespace components {
     // but instead needs the transpose of the inverse of it, otherwise tangents may break as well.
     // if you need complex transformations, it's probably better to write a geometry shader.
 
-    class Transform {
+    class Transform : public Component {
       private:
         void RecalculateBasis(void);
 

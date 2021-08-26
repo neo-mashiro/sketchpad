@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "components/component.h"
 
 namespace components {
 
@@ -11,7 +12,7 @@ namespace components {
         Perspective,
     };
 
-    class Camera {
+    class Camera : public Component {
       public:
         float fov;
         float near_clip;
@@ -22,7 +23,7 @@ namespace components {
         View view;
         Transform* T;
 
-        Camera(Transform* t, View view = View::Perspective);
+        Camera(Transform* T, View view = View::Perspective);
         ~Camera() {}
 
         Camera(const Camera&) = delete;

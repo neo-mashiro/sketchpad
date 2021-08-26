@@ -10,7 +10,8 @@ namespace scene {
 
         Entity camera;
         Entity skybox;
-        Entity light;
+        Entity direct_light;
+        Entity point_light;
         Entity sphere;
         Entity ball;
         Entity plane;

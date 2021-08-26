@@ -16,12 +16,12 @@ using namespace components;
 namespace scene {
 
     static bool show_plane = true;
-    static float sphere_shininess = 64.0f;
-    static float ball_shininess = 64.0f;
+    static float sphere_shininess = 32.0f;
+    static float ball_shininess = 256.0f;
 
-    static bool rotate_light = true;   // rotate the light cube around the sphere?
-    static float rotate_speed = 1.5f;  // rotation speed: radians per second
-    static float radius = 2.5f;        // radius of the circle around which the light cube rotates
+    static bool rotate_light = true;   // rotate the point light around the sphere?
+    static float rotate_speed = 2.0f;  // rotation speed: radians per second
+    static float radius = 3.0f;        // radius of the circle around which the point light rotates
     static float rotation_time = 0.0f;
 
     // this is called before the first frame, use this function to initialize your scene
@@ -37,8 +37,7 @@ namespace scene {
         asset_ref<Texture> t_skybox   = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, SKYBOX + "5");
         asset_ref<Texture> t_plane    = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "0\\checkboard.png");
         asset_ref<Texture> t_diffuse  = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "3\\diffuse.jpg");
-        asset_ref<Texture> t_specular = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "3\\specular.png");
-        asset_ref<Texture> t_emission = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "3\\emission.png");
+        asset_ref<Texture> t_specular = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "3\\specular.jpg");
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
@@ -54,11 +53,16 @@ namespace scene {
         skybox.GetComponent<Material>().SetShader(s_skybox);
         skybox.GetComponent<Material>().SetTexture(0, t_skybox);
 
+        // directional light
+        direct_light = CreateEntity("Directional Light");
+        direct_light.GetComponent<Transform>().Rotate(glm::radians(-45.0f), world::right);
+        direct_light.AddComponent<DirectionLight>(color::white, 0.4f);
+
         // point light
-        light = CreateEntity("Point Light");
-        light.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, radius));
-        light.AddComponent<PointLight>(color::white);
-        light.GetComponent<PointLight>().SetAttenuation(0.09f, 0.032f);
+        point_light = CreateEntity("Point Light");
+        point_light.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, radius));
+        point_light.AddComponent<PointLight>(color::white, 0.8f);
+        point_light.GetComponent<PointLight>().SetAttenuation(0.09f, 0.032f);
 
         // sphere
         sphere = CreateEntity("Sphere");
@@ -83,7 +87,6 @@ namespace scene {
         m2.SetShader(s_ball);
         m2.SetTexture(0, t_diffuse);
         m2.SetTexture(1, t_specular);
-        m2.SetTexture(2, t_emission);
         m2.SetUniform(1, ball_shininess, true);
         // m2.SetShader(nullptr);
         // m2.SetTexture(0, nullptr);
@@ -97,8 +100,7 @@ namespace scene {
         auto& m3 = plane.GetComponent<Material>();
         m3.SetShader(s_plane);
         m3.SetTexture(0, t_plane);
-        m2.SetUniform(1, world::unit * 0.51f);
-        m2.SetUniform(2, ball_shininess, true);
+        m3.SetUniform(1, ball_shininess, true);
 
         Renderer::FaceCulling(true);
         Renderer::DepthTest(true);
@@ -109,14 +111,14 @@ namespace scene {
         camera.GetComponent<Camera>().Update();
 
         if (rotate_light) {
-            auto& transform = light.GetComponent<Transform>();
+            auto& transform = point_light.GetComponent<Transform>();
             float x = radius * sin(rotation_time * rotate_speed);
             float y = radius * cos(rotation_time * rotate_speed);
             rotation_time += Clock::delta_time;
             transform.Translate(glm::vec3(x, 0.0f, y) - transform.position);
         }
 
-        // submit a list of entities that you'd like to draw to the renderer, the order of entities
+        // submit to the renderer a list of entities that you'd like to draw, the order of entities
         // in the list is important especially for stencil test and transparent blending, etc.
         // placing the skybox at the end of the render list can save us many draw calls since it is
         // the farthest in the scene, depth test will discard all pixels obstructed by other objects
@@ -128,11 +130,10 @@ namespace scene {
     // this is called every frame, update your ImGui widgets here to control entities in the scene
     void Scene01::OnImGuiRender() {
         static bool sphere_gizmo = false;
-        static bool ball_gizmo = false;
         static bool plane_gizmo = false;
         static bool edit_color = false;
-        static int power_sphere = 4;
-        static int power_ball = 4;
+        static int power_sphere = 5;
+        static int power_ball = 8;
 
         static ImVec4 color = ImVec4(0.1075f, 0.8725f, 0.1075f, 0.0f);
 
@@ -150,8 +151,6 @@ namespace scene {
             ImGui::Checkbox("Point Light Rotation", &rotate_light);
             ImGui::Separator();
             ImGui::Checkbox("Show Sphere Gizmo", &sphere_gizmo);
-            ImGui::Separator();
-            ImGui::Checkbox("Show Ball Gizmo", &ball_gizmo);
             ImGui::Separator();
             ImGui::Checkbox("Show Plane Gizmo", &plane_gizmo);
             ImGui::Separator();
@@ -171,9 +170,13 @@ namespace scene {
         }
         ImGui::End();
 
-        if (sphere_gizmo)              ui::DrawGizmo(camera, sphere);
-        if (ball_gizmo)                ui::DrawGizmo(camera, ball);
-        if (plane_gizmo && show_plane) ui::DrawGizmo(camera, plane);
+        if (sphere_gizmo) {
+            ui::DrawGizmo(camera, sphere);
+        }
+
+        if (plane_gizmo && show_plane) {
+            ui::DrawGizmo(camera, plane);
+        }
 
         sphere_shininess = pow(2.0f, (float)power_sphere);
         ball_shininess = pow(2.0f, (float)power_ball);

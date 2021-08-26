@@ -1,18 +1,27 @@
 #pragma once
 
+#include <bitset>
 #include <string>
 #include <type_traits>
-#include "ECS/entt.hpp"
 
+#include "ECS/entt.hpp"
 #include "core/log.h"
 #include "components/all.h"
 
 namespace scene {
 
+    // context of the scene, primarily used by the renderer
+    struct Context {
+        std::bitset<8> lightmask { 0 };
+
+        Context() = default;
+        Context(Context&& other) = default;
+        Context& operator=(Context&& other) = default;
+    };
+
     class Entity {
       private:
         entt::registry* registry = nullptr;
-        friend class Scene;  // the registry should only be exposed to the scene
 
       public:
         entt::entity id = entt::null;
@@ -31,16 +40,26 @@ namespace scene {
         template<typename T, typename... Args>
         T& AddComponent(Args&&... args) {
             using namespace components;
+
             CORE_ASERT(!registry->all_of<T>(id), "Component {0} already exists in {1}!", type_name<T>(), name);
+            auto& context = registry->ctx<Context>();
 
-            // be cautious that both branches of the if-else statement must be compilable
-            // unless we use the `if constexpr` statement for compile time branching, when
-            // if constexpr evaluates to true, the else branch is truncated and vice versa
-
-            // the camera component should be tied to the entity's transform component
             if constexpr (std::is_same_v<T, Camera>) {
+                // the camera component should be tied to the entity's transform component
                 auto& this_transform = registry->get<Transform>(id);
                 return registry->emplace<T>(id, &this_transform, std::forward<Args>(args)...);
+            }
+            else if constexpr (std::is_same_v<T, DirectionLight>) {
+                context.lightmask.set(0);
+                return registry->emplace<T>(id, std::forward<Args>(args)...);
+            }
+            else if constexpr (std::is_same_v<T, PointLight>) {
+                context.lightmask.set(1);
+                return registry->emplace<T>(id, std::forward<Args>(args)...);
+            }
+            else if constexpr (std::is_same_v<T, Spotlight>) {
+                context.lightmask.set(2);
+                return registry->emplace<T>(id, std::forward<Args>(args)...);
             }
             else {
                 return registry->emplace<T>(id, std::forward<Args>(args)...);

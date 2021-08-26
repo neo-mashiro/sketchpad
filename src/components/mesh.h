@@ -3,6 +3,7 @@
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include "components/component.h"
 
 namespace components {
 
@@ -21,7 +22,7 @@ namespace components {
         Plane
     };
 
-    class Mesh {
+    class Mesh : public Component {
       private:
         GLuint VAO, VBO, IBO;
         std::vector<Vertex> vertices;

@@ -7,13 +7,25 @@
 
 namespace scene {
 
+    // this struct maps to the config uniform block in GLSL (additional control for shading)
+    struct Config {
+        bool enabled { false };  // this field will be ruled out when sending data to the shader
+        glm::vec3 v1; int i1;    // we intentionally pad int after vec3 to make up a 16-bytes alignment
+        glm::vec3 v2; int i2;    // so that the struct's memory layout agrees with the std140 GLSL block
+        glm::vec3 v3; int i3;
+        int i4, i5, i6; float f1, f2, f3;
+    };
+
     class Scene {
       private:
-        entt::registry registry;
-        std::map<entt::entity, std::string> directory;
         friend class Renderer;
 
+        entt::registry registry;
+        std::map<entt::entity, std::string> directory;
+        
       protected:
+        Config config {};    // reserved for user-defined flags (control GLSL code branching)
+
         Entity CreateEntity(const std::string& name, components::ETag tag = components::ETag::Untagged);
         void DestroyEntity(Entity entity);
 

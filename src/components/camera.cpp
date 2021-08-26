@@ -10,9 +10,9 @@ using namespace core;
 
 namespace components {
 
-    Camera::Camera(Transform* t, View view)
+    Camera::Camera(Transform* T, View view)
         : fov(90.0f), near_clip(0.1f), far_clip(100.0f),
-          T(t), view(view), move_speed(3.0f), rotate_speed(0.3f) {}
+          T(T), view(view), move_speed(3.0f), rotate_speed(0.3f) {}
 
     glm::mat4 Camera::GetViewMatrix() const {
         return glm::lookAt(T->position, T->position + T->forward, T->up);

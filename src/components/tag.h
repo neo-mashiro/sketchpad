@@ -1,5 +1,7 @@
 #pragma once
 
+#include "components/component.h"
+
 namespace components {
 
     // the tag component is intended for filtering entities of specific types, such as the skybox,
@@ -18,8 +20,7 @@ namespace components {
     // another big reason is that, our scene renderer is not a game engine, so I don't want to add
     // native scripting support (which means users can write client code in C# or Lua and attach the
     // script to an entity, like the way we use Unity), so the only way to allow for richer behavior
-    // on our entities is to extend the ECS system based on specialized tags. That said, it should
-    // be quite easy to embed Lua in C++ using the Lua virtual machine, to make simple AI scripts.
+    // on our entities is to extend the ECS system based on specialized tags.
 
     // feel free to extend the ETag (entity tag) enum class as you create more complex scenes.
     // to extend the system on how to filter and use these tags, see the `Renderer::DrawScene()` API.
@@ -35,12 +36,15 @@ namespace components {
     ETag operator|(ETag lhs, ETag rhs);
     ETag operator&(ETag lhs, ETag rhs);
 
-    struct Tag {
+    class Tag : public Component {
+      public:
         ETag tag = ETag::Untagged;
 
         Tag() = default;
         Tag(ETag tag) : tag(tag) {}
-        Tag(const Tag&) = default;
+
+        Tag(Tag&& other) = default;
+        Tag& operator=(Tag&& other) = default;
     };
 
 }

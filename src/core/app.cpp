@@ -107,12 +107,7 @@ namespace core {
     #pragma warning(push)
     #pragma warning(disable : 4100)
 
-    void Application::Idle() {
-        // this callback is ideal for continuous updates that need to be smooth.
-        // this can be useful for continuous animation, physics updates and other
-        // lightweight routines but the amount of computation should be minimized
-        Clock::Update();
-    }
+    void Application::Idle() {}
 
     void Application::Display() {
         Renderer::DrawScene();
@@ -322,6 +317,7 @@ namespace core {
     }
 
     void Application::PostEventUpdate() {
+        Clock::Update();
         Renderer::DrawImGui();
     }
 

@@ -19,35 +19,36 @@ layout(std140, binding = 0) uniform Camera {
 } camera;
 
 layout(std140, binding = 1) uniform DirectLight {
-    float intensity;
     vec3 color;
     vec3 direction;
-} direction_light[2];
+    float intensity;
+} DL[2];
 
 layout(std140, binding = 3) uniform PointLight {
-    float intensity;
     vec3 color;
     vec3 position;
+    float intensity;
     float linear;
     float quadratic;
     float range;
-} point_light[4];
+} PL[4];
 
 layout(std140, binding = 7) uniform SpotLight {
-    float intensity;
     vec3 color;
     vec3 position;
     vec3 direction;
+    float intensity;
     float inner_cosine;
     float outer_cosine;
     float range;
-} spot_light[4];
+} SL[4];
 
-layout(std140, binding = 11) uniform Settings {
-     vec3 v1;   vec3 v2;   vec3 v3;
-      int i1;    int i2;    int i3;
-     bool b1;   bool b2;   bool b3;
-    float f1;  float f2;  float f3;
+layout(std140, binding = 11) uniform Config {
+    vec3 v1; int i1;
+    vec3 v2; int i2;
+    vec3 v3; int i3;
+    int i4; int i5; int i6;
+    float f1; float f2; float f3;
 };
 
 // loose uniforms (locally scoped data)
@@ -65,35 +66,37 @@ layout(binding = 3) uniform sampler2D emission_map;
 // fragment shader outputs
 layout(location = 0) out vec4 color;
 
-// returns the attenuation of a point light on the given fragment
-float PointLightAttenuation(uint i, vec3 frag_pos) {
-    // the point light attenuation follows the inverse-square law
-    float d = distance(point_light[i].position, frag_pos);
-    return d >= point_light[i].range ? 0.0 :
-        1.0 / (1.0 + point_light[i].linear * d + point_light[i].quadratic * pow(d, 2.0));
+vec3 DLColor(uint i, vec3 frag_pos) {
+    return DL[i].intensity * DL[i].color;
 }
 
-// returns the attenuation of a spotlight on the given fragment
-float SpotlightAttenuation(uint i, vec3 frag_pos) {
-    // the spotlight linear attenuation uses a linear falloff
-    vec3 ray = frag_pos - spot_light[i].position;  // inward ray from the light to the fragment
-    float projected_distance = dot(spot_light[i].direction, ray);
-    float linear_attenuation = 1.0 - clamp(projected_distance / spot_light[i].range, 0.0, 1.0);
+vec3 PLColor(uint i, vec3 frag_pos) {
+    // the point light attenuation follows the inverse-square law
+    float d = distance(PL[i].position, frag_pos);
+    float attenuation = d >= PL[i].range ? 0.0 : 1.0 / (1.0 + PL[i].linear * d + PL[i].quadratic * d * d);
+    return attenuation * PL[i].intensity * PL[i].color;
+}
+
+vec3 SLColor(uint i, vec3 frag_pos) {
+    // the spotlight distance attenuation uses a linear falloff
+    vec3 ray = frag_pos - SL[i].position;  // inward ray from the light to the fragment
+    float projected_distance = dot(SL[i].direction, ray);
+    float linear_attenuation = 1.0 - clamp(projected_distance / SL[i].range, 0.0, 1.0);
 
     // the spotlight angular attenuation fades out from the inner to the outer cone
-    float cosine = dot(spot_light[i].direction, normalize(ray));
-    float angular_diff = spot_light[i].inner_cosine - spot_light[i].outer_cosine;
-    float angular_attenuation = clamp((cosine - spot_light[i].outer_cosine) / angular_diff, 0.0, 1.0);
+    float cosine = dot(SL[i].direction, normalize(ray));
+    float angular_diff = SL[i].inner_cosine - SL[i].outer_cosine;
+    float angular_attenuation = clamp((cosine - SL[i].outer_cosine) / angular_diff, 0.0, 1.0);
 
-    return linear_attenuation * angular_attenuation;
+    return linear_attenuation * angular_attenuation * SL[i].intensity * SL[i].color;
 }
 
 void main() {
     // use all the uniform blocks to prevent them from being optimized out
     vec3 dummy0 = camera.position;
-    vec3 dummy1 = point_light[0].color;
-    vec3 dummy2 = direction_light[0].color;
-    vec3 dummy3 = spot_light[0].color;
+    vec3 dummy1 = PL[0].color;
+    vec3 dummy2 = DL[0].color;
+    vec3 dummy3 = SL[0].color;
     vec3 dummy4 = v1;
 
     color = vec4(1.0);

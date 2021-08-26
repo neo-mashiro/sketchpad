@@ -48,7 +48,7 @@ namespace scene {
     };
 
     // uniform type's size in bytes specified by std140 layout
-    static const std::map<GLenum, GLuint> size140 {
+    static const std::map<GLenum, size_t> size140 {
         { GL_INT, 4 },
         { GL_BOOL, 4 },
         { GL_FLOAT, 4 },
@@ -135,7 +135,7 @@ namespace scene {
             GLenum uniform_props[] = { GL_NAME_LENGTH, GL_TYPE, GL_BLOCK_INDEX };
 
             std::vector<GLuint> offset;
-            std::vector<GLuint> size;
+            std::vector<size_t> size;
             GLuint curr_offset = 0;
 
             for (auto& index : uniform_indices) {
@@ -150,7 +150,9 @@ namespace scene {
                 delete[] name;
 
                 // find the base alignment and byte size of the uniform
-                GLuint base_align, byte_size;
+                GLuint base_align = 0;
+                size_t byte_size = 0;
+
                 try {
                     base_align = align140.at(data_type);
                     byte_size = size140.at(data_type);
@@ -222,11 +224,18 @@ namespace scene {
         
         // update scene data and the render list
         curr_scene->OnSceneRender();
-        auto& reg = curr_scene->registry;
 
-        // update camera uniform buffer 0
-        if (auto group = reg.group<Transform, Camera>(); !group.empty()) {
-            auto& camera = group.get<Camera>(group.front());
+        // we don't need any updates for the welcome screen
+        if (curr_scene->title == "Welcome Screen") {
+            return;
+        }
+
+        auto& reg = curr_scene->registry;
+        auto& ctx = reg.ctx<Context>();
+
+        // update global uniform buffers, starting from buffer 0 (the main camera)
+        if (auto view = reg.view<Camera>(); !view.empty()) {
+            auto& camera = view.get<Camera>(view.front());
 
             if (auto& ubo = UBOs[0]; ubo.Bind()) {
                 ubo.SetData(0, val_ptr(camera.T->position));
@@ -240,9 +249,11 @@ namespace scene {
             CORE_ERROR("Each scene must have one and only one main camera!");
         }
 
-        // update light uniform buffers 1-4
-        if (auto group = reg.group<DirectionLight, Transform>(); !group.empty()) {
+        // update directional lights 1-2
+        if (ctx.lightmask.test(0)) {
+            auto group = reg.group<DirectionLight>(entt::get<Transform>);
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
+
             GLuint binding_point = 1;
 
             for (auto e : group) {
@@ -250,9 +261,9 @@ namespace scene {
                 auto& transform = group.get<Transform>(e);
 
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, &(light.intensity));
-                    ubo.SetData(1, val_ptr(light.color));
-                    ubo.SetData(2, val_ptr(transform.forward));
+                    ubo.SetData(0, val_ptr(light.color));
+                    ubo.SetData(1, val_ptr(transform.forward));
+                    ubo.SetData(2, &(light.intensity));
                     ubo.Unbind();
                 }
 
@@ -260,19 +271,21 @@ namespace scene {
             }
         }
 
-        // update light uniform buffers 5-8
-        if (auto group = reg.group<PointLight, Transform>(); !group.empty()) {
+        // update point lights 3-6
+        if (ctx.lightmask.test(1)) {
+            auto group = reg.group<PointLight>(entt::get<Transform>);
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
-            GLuint binding_point = 5;
+
+            GLuint binding_point = 3;
 
             for (auto e : group) {
                 auto& light = group.get<PointLight>(e);
                 auto& transform = group.get<Transform>(e);
 
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, &(light.intensity));
-                    ubo.SetData(1, val_ptr(light.color));
-                    ubo.SetData(2, val_ptr(transform.position));
+                    ubo.SetData(0, val_ptr(light.color));
+                    ubo.SetData(1, val_ptr(transform.position));
+                    ubo.SetData(2, &(light.intensity));
                     ubo.SetData(3, &(light.linear));
                     ubo.SetData(4, &(light.quadratic));
                     ubo.SetData(5, &(light.range));
@@ -283,10 +296,12 @@ namespace scene {
             }
         }
 
-        // update light uniform buffers 9-12
-        if (auto group = reg.group<Spotlight, Transform>(); !group.empty()) {
+        // update spotlights 7-10
+        if (ctx.lightmask.test(2)) {
+            auto group = reg.group<Spotlight>(entt::get<Transform>);
             group.sort([](const entt::entity a, const entt::entity b) { return a < b; });
-            GLuint binding_point = 9;
+
+            GLuint binding_point = 7;
 
             for (auto e : group) {
                 auto& light = group.get<Spotlight>(e);
@@ -296,10 +311,10 @@ namespace scene {
                 float outer_cosine = light.GetOuterCosine();
 
                 if (auto& ubo = UBOs[binding_point]; ubo.Bind()) {
-                    ubo.SetData(0, &(light.intensity));
-                    ubo.SetData(1, val_ptr(light.color));
-                    ubo.SetData(2, val_ptr(transform.position));
-                    ubo.SetData(3, val_ptr(transform.forward));
+                    ubo.SetData(0, val_ptr(light.color));
+                    ubo.SetData(1, val_ptr(transform.position));
+                    ubo.SetData(2, val_ptr(transform.forward));
+                    ubo.SetData(3, &(light.intensity));
                     ubo.SetData(4, &(inner_cosine));
                     ubo.SetData(5, &(outer_cosine));
                     ubo.SetData(6, &(light.range));
@@ -310,10 +325,29 @@ namespace scene {
             }
         }
 
-        // loop through the render list, draw entities one by one in order
-        // (the order of entities in the list is determined by the scene)
+        // update the settings block (11)
+        if (curr_scene->config.enabled) {
+            auto& ubo = UBOs[11];
+            ubo.Bind();
+            ubo.SetData(0, 11, &(curr_scene->config) + offsetof(Config, v1));  // dangerous!
+            ubo.Unbind();
+        }
 
-        auto group = reg.group<Transform, Mesh, Material>();
+        // now let's process the render list, loop through the list to draw entities one by one.
+        // the order of entities in the list is determined by the user, which comes from scene.
+
+        // a group is like a rearranged owning subset of the registry, which is intended to be setup
+        // once and used repeatedly, where future access can be made blazingly fast. In contrast,
+        // views are slower because they do not take ownership, and can be considered more temporary
+        // than groups. Here we are using partial-owning groups to filter out entities in the render
+        // list, this is the renderable group we are going to access every frame. Since the renderer
+        // is primarily responsible for rendering, it should take ownership of the mesh and material
+        // components only. Ownership means that the group is free to rearrange components in the
+        // pool as it sees fit, as a result, we cannot rely on Mesh* or Material* pointers anywhere
+        // in our code because their memory addresses won't be stable. This is also why we shouldn't
+        // own the transform component, as our camera updates depend on a stable Transform* pointer.
+
+        auto group = reg.group<Mesh, Material>(entt::get<Transform, Tag>);
 
         for (auto& e : render_list) {
             // skip entities marked as null (a convenient mask to tell if an entity should be drawn)
@@ -325,11 +359,10 @@ namespace scene {
             auto& transform = group.get<Transform>(e);
             auto& mesh      = group.get<Mesh>(e);
             auto& material  = group.get<Material>(e);
+            ETag tag        = group.get<Tag>(e).tag;
 
             material.SetUniform(0, transform.transform);
-
-            ETag tag = reg.get<Tag>(e).tag;
-
+            
             if (material.Bind()) {
                 if (tag == ETag::Skybox) {
                     SetFrontFace(0);  // skybox has reversed winding order, we only draw the inner faces

@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 #include "core/log.h"
-#include "components/assist.h"
+#include "components/component.h"
 #include "components/uniform.h"
 
 namespace components {
@@ -29,7 +29,7 @@ namespace components {
 
     static_assert(std::variant_size_v<uniform_variant> == 9);
 
-    class Material {
+    class Material : public Component {
       private:
         static inline GLuint max_samplers = 0;
 

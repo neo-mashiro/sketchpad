@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bitset>
 #include <chrono>
 #include <cmath>
 #include <ctime>
@@ -31,6 +32,7 @@
 #include <initializer_list>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <string_view>

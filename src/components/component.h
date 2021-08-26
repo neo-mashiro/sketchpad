@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string_view>
+#include <GL/glew.h>
 
 template<typename T>
 using asset_ref = std::shared_ptr<T>;
@@ -22,3 +23,18 @@ constexpr auto type_name() noexcept {
 
 template<typename T>
 inline constexpr bool const_false = false;
+
+class Component {
+  protected:
+    GLuint parent_id { 0 };
+    GLuint instance_id { 0 };
+
+  public:
+    bool enabled { true };
+
+    explicit Component() = default;
+    virtual ~Component() {}
+
+    void Enable() { enabled = true; }
+    void Disable() { enabled = false; }
+};
