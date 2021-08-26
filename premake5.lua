@@ -300,7 +300,8 @@ local function setup_project()
             VENDOR_DIR .. "GLEW/include",
             VENDOR_DIR .. "GLFW/include",
             VENDOR_DIR .. "GLUT/include",
-            VENDOR_DIR .. "imgui",
+            VENDOR_DIR .. "imgui/include",
+            VENDOR_DIR .. "assimp/include",
 
             -- header only libraries
             VENDOR_DIR,
@@ -326,7 +327,10 @@ local function setup_project()
             -- the import library is used to automate the process of loading routines and
             -- functionality from the `.dll` file at runtime, it's typically small in size.
             -- --------------------------------------------------------------------------------
-            VENDOR_DIR .. "GLUT/lib/%{cfg.platform}"
+            VENDOR_DIR .. "GLUT/lib/%{cfg.platform}",
+
+            -- assimp 5.0.1 (dynamic library): built from sources using Microsoft vcpkg
+            VENDOR_DIR .. "assimp/lib/%{cfg.platform}"
         }
 
         -- specific library files (.lib .dll) to include
@@ -344,7 +348,8 @@ local function setup_project()
         postbuildmessage "Copying .dll files to the target folder ..."
         postbuildcommands {
             -- the path here is relative to the configuration folder (vs2015, vs2019, etc.)
-            "{COPY} ../vendor/GLUT/bin/%{cfg.platform}/freeglut.dll %{cfg.targetdir}"
+            "{COPY} ../vendor/GLUT/bin/%{cfg.platform}/freeglut.dll %{cfg.targetdir}",
+            "{COPY} ../vendor/assimp/bin/%{cfg.platform}/assimp-vc142-mt.dll %{cfg.targetdir}"
         }
 
         filter "configurations:Release"

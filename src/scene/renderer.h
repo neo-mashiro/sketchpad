@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "ECS/entt.hpp"
+#include <ECS/entt.hpp>
 
 namespace scene {
 

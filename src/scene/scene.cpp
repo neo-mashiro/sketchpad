@@ -50,7 +50,6 @@ namespace scene {
     static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
-        Input::ShowCursor();
         welcome_screen = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "0\\welcome.png");
         welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->id);
     }

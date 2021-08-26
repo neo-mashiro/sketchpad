@@ -182,7 +182,7 @@ namespace scene {
         CORE_TRACE("Attaching scene \"{0}\" ......", title);
 
         Input::ResetCursor();
-        Input::HideCursor();
+        Input::ShowCursor();
         Window::Rename(title);
         Window::layer = Layer::ImGui;
 

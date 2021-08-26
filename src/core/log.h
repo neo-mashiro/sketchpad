@@ -1,6 +1,6 @@
 #pragma once
 
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 #ifdef _DEBUG
     #define CORE_INFO(...)  ::core::Log::GetLogger()->info(__VA_ARGS__)

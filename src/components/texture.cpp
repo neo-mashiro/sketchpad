@@ -1,11 +1,11 @@
 #include "pch.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include "core/app.h"
 #include "core/log.h"
 #include "components/texture.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 namespace components {
 

@@ -19,7 +19,7 @@ I'd rather think of it as being a "scene" engine, in the sense that it helps cre
 - [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), or [GLFW](https://en.wikipedia.org/wiki/GLFW) (version 3.3.2) for finer control
 - [stb](https://github.com/nothings/stb) (image loader), or better [SOIL](https://github.com/littlstar/soil), [SOIL2](https://github.com/SpartanJ/SOIL2) for more image utilities, and [spdlog](https://github.com/gabime/spdlog) (logging library)
 - [EnTT](...) for entity-component system.
-- [Assimp](https://github.com/assimp/assimp) (pre-compiled libraries not cross-platform, use [vcpkg](https://github.com/microsoft/vcpkg) to compile from source code)
+- [Assimp](https://github.com/assimp/assimp) (use [vcpkg](https://github.com/microsoft/vcpkg) to compile from sources)
 ```bash
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
@@ -28,7 +28,6 @@ cd vcpkg
 ./vcpkg.exe install assimp              # x86 build
 ./vcpkg.exe install assimp:x64-windows  # x64 build
 ```
-- [Entt] entity-component system
 - [Dear ImGui] HUI
 - [xxx] Serialization
 
@@ -40,9 +39,11 @@ git clone https://github.com/neo-mashiro/sketchpad.git
 cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
-Once the solution is built, it contains multiple projects in Visual Studio, each one has its own `scene.cpp` and shader files (**client**) that build a separate scene, but all projects share the same code base directly under the `src` folder (**core**). The framework was designed such that only minimal amount of work is needed in `scene.cpp` to build a custom scene, simply select a startup project in the solution's properties window and fire up the application. The executables will be built into the `bin` folder, all dependent DLLs are automatically copied over there.
+Once you have cloned the repository, the `vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and fire up the application. The executables are then built into the `bin` folder for each platform (x86 or x64), and all dependent DLLs will be copied over there automatically so you don't need any extra setup.
 
-As an aside, it is recommended to use spaces everywhere instead of tabs. In case the **tab size** of the editor and the website rendering the source code do not meet, indentation can be very messy. For example, there are so many hard-to-read repos on Github that use inconsistent indentation in the same file, because they are mixing four spaces with two tabs (of size 2) in the IDE, which is then converted to eight spaces on Github...
+## How to use
+
+To make a new scene, just create a new `.h` and `.cpp` file in the [examples]() folder and start coding. You can reference the existing sample scenes to get a sense of how to use the API. GLSL shader sources, on the other hand, should be placed into the [res/shader/]() folder where you can find all the shaders used in the sample scenes, there's also a sample shader to walk you through the convention of our GLSL coding standard. The architecture of this application was designed such that only a minimal amount of work is necessary in your scene script, all of the examples will help you understand how to make a nice scene within 100 lines of code!
 
 ## Mouse and keyboard control
 

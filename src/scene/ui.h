@@ -4,8 +4,8 @@
 
 #define IMGUI_DISABLE_METRICS_WINDOW
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "imgui.h"
-#include "imgui_internal.h"
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 #include "components/all.h"
 #include "scene/entity.h"

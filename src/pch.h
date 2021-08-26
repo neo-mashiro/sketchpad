@@ -66,11 +66,14 @@
 #define IMGUI_DISABLE_METRICS_WINDOW
 #define IMGUI_DEFINE_MATH_OPERATORS
 
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "imgui_impl_glut.h"
-#include "imgui_impl_opengl3.h"
+#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
+#include <imgui/imgui_impl_glut.h>
+#include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imstb_rectpack.h>
+#include <imgui/imstb_textedit.h>
+#include <imgui/imstb_truetype.h>
 
-#include "imstb_rectpack.h"
-#include "imstb_textedit.h"
-#include "imstb_truetype.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>

@@ -30,6 +30,16 @@ layout(std140, binding = 3) uniform PointLight {
     float range;
 } PL[4];
 
+layout(std140, binding = 7) uniform SpotLight {
+    vec3 color;
+    vec3 position;
+    vec3 direction;
+    float intensity;
+    float inner_cosine;
+    float outer_cosine;
+    float range;
+} SL[4];
+
 layout(location = 1) uniform vec3 ambient;
 layout(location = 2) uniform vec3 diffuse;
 layout(location = 3) uniform vec3 specular;
@@ -46,6 +56,20 @@ vec3 PLColor(uint i, vec3 frag_pos) {
     float d = distance(PL[i].position, frag_pos);
     float attenuation = d >= PL[i].range ? 0.0 : 1.0 / (1.0 + PL[i].linear * d + PL[i].quadratic * d * d);
     return attenuation * PL[i].intensity * PL[i].color;
+}
+
+vec3 SLColor(uint i, vec3 frag_pos) {
+    // the spotlight distance attenuation uses a linear falloff
+    vec3 ray = frag_pos - SL[i].position;  // inward ray from the light to the fragment
+    float projected_distance = dot(SL[i].direction, ray);
+    float linear_attenuation = 1.0 - clamp(projected_distance / SL[i].range, 0.0, 1.0);
+
+    // the spotlight angular attenuation fades out from the inner to the outer cone
+    float cosine = dot(SL[i].direction, normalize(ray));
+    float angular_diff = SL[i].inner_cosine - SL[i].outer_cosine;
+    float angular_attenuation = clamp((cosine - SL[i].outer_cosine) / angular_diff, 0.0, 1.0);
+
+    return linear_attenuation * angular_attenuation * SL[i].intensity * SL[i].color;
 }
 
 void main() {
@@ -65,5 +89,5 @@ void main() {
     vec3 spec = pow(max(dot(V, R1), 0.0), shininess) * DLColor(0, _position) +
                 pow(max(dot(V, R2), 0.0), shininess) * PLColor(0, _position);
 
-    color = vec4(ambient + diff * diffuse + spec * specular, 1.0);
+    color = vec4(ambient + (SLColor(0, _position) + diff) * diffuse + spec * specular, 1.0);
 }

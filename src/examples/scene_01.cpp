@@ -17,17 +17,17 @@ namespace scene {
 
     static bool show_plane = true;
     static float sphere_shininess = 32.0f;
-    static float ball_shininess = 256.0f;
+    static float plane_shininess = 256.0f;
 
     static bool rotate_light = true;   // rotate the point light around the sphere?
     static float rotate_speed = 2.0f;  // rotation speed: radians per second
-    static float radius = 3.0f;        // radius of the circle around which the point light rotates
+    static float radius = 3.2f;        // radius of the circle around which the point light rotates
     static float rotation_time = 0.0f;
 
     // this is called before the first frame, use this function to initialize your scene
     void Scene01::Init() {
         // name your scene title (will appear in the top menu)
-        this->title = "Blinn Phong Reflection";
+        this->title = "Example Scene";
 
         // load assets upfront
         asset_ref<Shader>  s_skybox   = LoadAsset<Shader>(SHADER + "skybox\\36894.bin", 36894);
@@ -44,8 +44,8 @@ namespace scene {
         camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, 4.5f));
         camera.GetComponent<Transform>().Rotate(glm::radians(180.0f), world::up);
         camera.AddComponent<Camera>(View::Perspective);
-        //camera.AddComponent<Spotlight>(color::red, 1.0f);  // a spotlight attached on the camera is a flashlight
-        //camera.GetComponent<Spotlight>().SetCutoff(3.0f);
+        camera.AddComponent<Spotlight>(color::red, 1.8f);  // a spotlight attached to the camera is a flashlight
+        camera.GetComponent<Spotlight>().SetCutoff(5.0f);
 
         // skybox
         skybox = CreateEntity("Skybox", ETag::Skybox);
@@ -56,7 +56,7 @@ namespace scene {
         // directional light
         direct_light = CreateEntity("Directional Light");
         direct_light.GetComponent<Transform>().Rotate(glm::radians(-45.0f), world::right);
-        direct_light.AddComponent<DirectionLight>(color::white, 0.4f);
+        direct_light.AddComponent<DirectionLight>(color::white, 0.25f);
 
         // point light
         point_light = CreateEntity("Point Light");
@@ -87,7 +87,7 @@ namespace scene {
         m2.SetShader(s_ball);
         m2.SetTexture(0, t_diffuse);
         m2.SetTexture(1, t_specular);
-        m2.SetUniform(1, ball_shininess, true);
+        m2.SetUniform(1, plane_shininess, true);
         // m2.SetShader(nullptr);
         // m2.SetTexture(0, nullptr);
 
@@ -100,7 +100,7 @@ namespace scene {
         auto& m3 = plane.GetComponent<Material>();
         m3.SetShader(s_plane);
         m3.SetTexture(0, t_plane);
-        m3.SetUniform(1, ball_shininess, true);
+        m3.SetUniform(1, plane_shininess, true);
 
         Renderer::FaceCulling(true);
         Renderer::DepthTest(true);
@@ -131,11 +131,13 @@ namespace scene {
     void Scene01::OnImGuiRender() {
         static bool sphere_gizmo = false;
         static bool plane_gizmo = false;
-        static bool edit_color = false;
+        static bool edit_colors = false;
+        static bool edit_colorf = false;
         static int power_sphere = 5;
-        static int power_ball = 8;
+        static int power_plane = 8;
 
-        static ImVec4 color = ImVec4(0.1075f, 0.8725f, 0.1075f, 0.0f);
+        static ImVec4 colors = ImVec4(0.635f, 0.0f, 1.0f, 0.0f);
+        static ImVec4 colorf = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
         static ImGuiColorEditFlags color_flags
             = ImGuiColorEditFlags_NoSidePreview
@@ -155,19 +157,30 @@ namespace scene {
             ImGui::Checkbox("Show Plane Gizmo", &plane_gizmo);
             ImGui::Separator();
             ImGui::Spacing();
+
             ImGui::PushItemWidth(100.0f);
             ImGui::SliderInt("Sphere Shininess", &power_sphere, 1, 10);
-            ImGui::SliderInt("Metalic Ball Shininess", &power_ball, 1, 10);
+            ImGui::SliderInt("Plane Shininess", &power_plane, 1, 10);
             ImGui::PopItemWidth();
             ImGui::Separator();
-            ImGui::Checkbox("Edit Sphere Color", &edit_color);
-            if (edit_color) {
+
+            ImGui::Checkbox("Edit Sphere Color", &edit_colors);
+            if (edit_colors) {
                 ImGui::Spacing();
                 ImGui::Indent(15.0f);
-                ImGui::ColorPicker3("##Sphere Color", (float*)&color, color_flags);
+                ImGui::ColorPicker3("##Sphere Color", (float*)&colors, color_flags);
+                ImGui::Unindent(15.0f);
+            }
+
+            ImGui::Checkbox("Edit Flashlight Color", &edit_colorf);
+            if (edit_colorf) {
+                ImGui::Spacing();
+                ImGui::Indent(15.0f);
+                ImGui::ColorPicker3("##Flashlight Color", (float*)&colorf, color_flags);
                 ImGui::Unindent(15.0f);
             }
         }
+
         ImGui::End();
 
         if (sphere_gizmo) {
@@ -179,10 +192,12 @@ namespace scene {
         }
 
         sphere_shininess = pow(2.0f, (float)power_sphere);
-        ball_shininess = pow(2.0f, (float)power_ball);
+        plane_shininess = pow(2.0f, (float)power_plane);
 
         auto& m = sphere.GetComponent<Material>();
-        m.SetUniform(1, glm::vec3(color.x, color.y, color.z) * 0.2f);  // ambient
-        m.SetUniform(2, glm::vec3(color.x, color.y, color.z) * 0.7f);  // diffuse
+        m.SetUniform(1, glm::vec3(colors.x, colors.y, colors.z) * 0.2f);  // ambient
+        m.SetUniform(2, glm::vec3(colors.x, colors.y, colors.z) * 0.7f);  // diffuse
+
+        camera.GetComponent<Spotlight>().color = glm::vec3(colorf.x, colorf.y, colorf.z);
     }
 }
