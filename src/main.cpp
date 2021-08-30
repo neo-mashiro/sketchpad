@@ -18,6 +18,12 @@ int main(int argc, char** argv) {
     // set the console code page to utf-8
     SetConsoleOutputCP(65001);
 
+    // debug break on lines where memory leaks were found (MSVC intrinsic)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    _CrtSetBreakAlloc(9554);
+    _CrtSetBreakAlloc(9553);
+    _CrtSetBreakAlloc(9552);
+
     glutInit(&argc, argv);
 
     auto& app = Application::GetInstance();

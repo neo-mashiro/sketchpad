@@ -6,6 +6,7 @@ layout(location = 0) in __ {
     in vec3 _position;
     in vec3 _normal;
     in vec2 _uv;
+    in vec2 _uv2;
     in vec3 _tangent;
     in vec3 _bitangent;
 };

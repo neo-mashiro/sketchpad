@@ -8,7 +8,7 @@
 
 namespace components {
 
-    // the list of currently supported sampler types
+    // list of currently supported sampler types
     static const std::vector<GLenum> samplers {
         GL_SAMPLER_2D,             // sampler2D
         GL_SAMPLER_3D,             // sampler3D

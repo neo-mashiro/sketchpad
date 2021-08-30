@@ -11,6 +11,7 @@ namespace components {
         glm::vec3 position;
         glm::vec3 normal;
         glm::vec2 uv;
+        glm::vec2 uv2;  // allow two UV channels
         glm::vec3 tangent;
         glm::vec3 bitangent;
     };
@@ -24,7 +25,7 @@ namespace components {
 
     class Mesh : public Component {
       private:
-        GLuint VAO, VBO, IBO;
+        GLuint VBO, IBO;
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
 
@@ -36,8 +37,10 @@ namespace components {
         void CreatePlane(float size = 10.0f);
 
       public:
+        GLuint VAO;
+
         Mesh(Primitive object);
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices);
+        Mesh(std::vector<Vertex>& vertices, std::vector<GLuint>& indices);
         ~Mesh();
 
         Mesh(const Mesh&) = delete;
@@ -47,5 +50,9 @@ namespace components {
         Mesh& operator=(Mesh&& other) noexcept;
 
         void Draw() const;
+
+        // this field is only used by meshes that are loaded from external models
+        mutable GLuint material_id;
+        void SetMaterialID(GLuint mid) const;
     };
 }

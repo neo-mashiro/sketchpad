@@ -340,40 +340,112 @@ namespace scene {
         // once and used repeatedly, where future access can be made blazingly fast. In contrast,
         // views are slower because they do not take ownership, and can be considered more temporary
         // than groups. Here we are using partial-owning groups to filter out entities in the render
-        // list, this is the renderable group we are going to access every frame. Since the renderer
-        // is primarily responsible for rendering, it should take ownership of the mesh and material
-        // components only. Ownership means that the group is free to rearrange components in the
-        // pool as it sees fit, as a result, we cannot rely on Mesh* or Material* pointers anywhere
-        // in our code because their memory addresses won't be stable. This is also why we shouldn't
-        // own the transform component, as our camera updates depend on a stable Transform* pointer.
+        // list, this is the renderable group we are going to access every frame. The renderer is
+        // primarily responsible for drawing imported models or native (primitive) meshes, it should
+        // take ownership of both components. Material, on the other hand, is shared by both of them,
+        // so it can only be partially owned by either group so as to avoid a potential conflict.
 
-        auto group = reg.group<Mesh, Material>(entt::get<Transform, Tag>);
+        // ownership implies that a group is free to rearrange components in the pool as it sees fit,
+        // as a result, we cannot rely on a Mesh* or Model* pointer anywhere in our code because its
+        // memory address will be volatile (even if our own code doesn't touch it). This is also why
+        // we can't own the transform component, as our camera relies on a stable Transform* pointer.
+
+        auto mesh_group  = reg.group<Mesh>(entt::get<Transform, Tag, Material>);
+        auto model_group = reg.group<Model>(entt::get<Transform, Tag, Material>);
 
         for (auto& e : render_list) {
             // skip entities marked as null (a convenient mask to tell if an entity should be drawn)
-            if (e == entt::null) continue;
+            if (e == entt::null) {
+                continue;
+            }
 
-            // a non-null entity must have a mesh and material component attached to be renderable
-            CORE_ASERT(group.contains(e), "Entity {0} in the render list is non-renderable!", e);
-            
-            auto& transform = group.get<Transform>(e);
-            auto& mesh      = group.get<Mesh>(e);
-            auto& material  = group.get<Material>(e);
-            ETag tag        = group.get<Tag>(e).tag;
+            // entity is a native mesh
+            if (mesh_group.contains(e)) {
+                auto& transform = mesh_group.get<Transform>(e);
+                auto& mesh      = mesh_group.get<Mesh>(e);
+                auto& material  = mesh_group.get<Material>(e);
+                ETag tag        = mesh_group.get<Tag>(e).tag;
 
-            material.SetUniform(0, transform.transform);
-            
-            if (material.Bind()) {
-                if (tag == ETag::Skybox) {
-                    SetFrontFace(0);  // skybox has reversed winding order, we only draw the inner faces
-                    mesh.Draw();
-                    SetFrontFace(1);  // recover the global winding order
-                    material.Unbind();
+                material.SetUniform(0, transform.transform);
+
+                if (material.Bind()) {
+                    if (tag == ETag::Skybox) {
+                        SetFrontFace(0);  // skybox has reversed winding order, we only draw the inner faces
+                        mesh.Draw();
+                        SetFrontFace(1);  // recover the global winding order
+                        material.Unbind();
+                    }
+                    else {
+                        mesh.Draw();
+                        material.Unbind();
+                    }
                 }
+            }
+
+            // entity is an imported model
+            else if (model_group.contains(e)) {
+                auto& transform = model_group.get<Transform>(e);
+                auto& model     = model_group.get<Model>(e);
+                auto& material  = model_group.get<Material>(e);  // one material is reused for every mesh
+
+                material.SetUniform(0, transform.transform);
+
+                // no materials, treat the model as if it was a mesh
+                if (model.mtl_format == MTLFormat::None) {
+                    for (auto& mesh : model.meshes) {
+                        material.Bind();
+                        mesh.Draw();
+                        material.Unbind();
+                    }
+                }
+
+                // model material uses properties
+                if (model.mtl_format == MTLFormat::Property) {
+                    for (auto& mesh : model.meshes) {
+                        auto& props = model.properties[mesh.material_id];
+
+                        // upload properties to the shader
+                        for (size_t i = 0; i < props.size(); i++) {
+                            auto visitor = [&i, &material](const auto& prop) {
+                                material.SetUniform(i + 1, prop);
+                            };
+                            std::visit(visitor, props[i]);
+                        }
+
+                        material.Bind();
+                        mesh.Draw();
+                        material.Unbind();
+                    }
+                }
+
+                // model material uses textures
+                if (model.mtl_format == MTLFormat::Texture) {
+                    for (auto& mesh : model.meshes) {
+                        auto& texture_refs = model.textures[mesh.material_id];
+
+                        // bind textures to their texture units in the shader
+                        for (size_t i = 0; i < texture_refs.size(); i++) {
+                            material.SetTexture(i, texture_refs[i]);  // use array index as texture unit
+                        }
+
+                        material.Bind();
+                        mesh.Draw();
+                        material.Unbind();
+                    }
+                }
+
+                // this is unreachable if the model class is correctly handled
                 else {
-                    mesh.Draw();
-                    material.Unbind();
+                    CORE_ASERT(false, "Internal error detected, check your Model class!");
                 }
+            }
+
+            // a non-null entity must have a material component attached, plus either a mesh
+            // or a model component in order to be considered candidates for rendering
+            else {
+                CORE_ERROR("Entity {0} in the render list is non-renderable!", e);
+                Clear();  // in this case just show a black screen (UI stuff is separate)
+                break;
             }
         }
 

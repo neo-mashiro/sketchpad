@@ -30,11 +30,12 @@ namespace components {
                 float z = sin(u * PI * 2) * sin(v * PI) * radius;
 
                 Vertex vertex {};
-                vertex.position  = glm::vec3(x, y, z);
-                vertex.normal    = glm::vec3(x, y, z);  // sphere centered at the origin, normal = position
-                vertex.uv        = glm::vec2(u, v);
-                vertex.tangent   = glm::vec3(0.0f);
-                vertex.bitangent = glm::vec3(0.0f);
+                vertex.position  = { x, y, z };
+                vertex.normal    = { x, y, z };  // sphere centered at the origin, normal = position
+                vertex.uv        = { u, v };
+                vertex.uv2       = { 0.0f };
+                vertex.tangent   = { 0.0f };
+                vertex.bitangent = { 0.0f };
 
                 vertices.push_back(vertex);
             }
@@ -103,8 +104,9 @@ namespace components {
             vertex.position  = glm::vec3(data[offset + 0], data[offset + 1], data[offset + 2]) * size;
             vertex.normal    = glm::vec3(data[offset + 3], data[offset + 4], data[offset + 5]);
             vertex.uv        = glm::vec2(data[offset + 6], data[offset + 7]);  // keep in [0, 1] range
-            vertex.tangent   = glm::vec3(0.0f);
-            vertex.bitangent = glm::vec3(0.0f);
+            vertex.uv2       = { 0.0f };
+            vertex.tangent   = { 0.0f };
+            vertex.bitangent = { 0.0f };
 
             vertices.push_back(vertex);
         }
@@ -142,22 +144,23 @@ namespace components {
     }
 
     void Mesh::CreatePlane(float size) {
-        static const glm::vec3 _(0.0f);
+        static const glm::vec2 _(0.0f);
+        static const glm::vec3 __(0.0f);
         static const glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
         Vertex v_arr[8] = {};
 
         // positive y face
-        v_arr[0] = { glm::vec3(-1, 0, +1) * size, +up, glm::vec2(0.0f, 0.0f), _, _ };
-        v_arr[1] = { glm::vec3(+1, 0, +1) * size, +up, glm::vec2(size, 0.0f), _, _ };
-        v_arr[2] = { glm::vec3(+1, 0, -1) * size, +up, glm::vec2(size, size), _, _ };
-        v_arr[3] = { glm::vec3(-1, 0, -1) * size, +up, glm::vec2(0.0f, size), _, _ };
+        v_arr[0] = { glm::vec3(-1, 0, +1) * size, +up, glm::vec2(0.0f, 0.0f), _, __, __ };
+        v_arr[1] = { glm::vec3(+1, 0, +1) * size, +up, glm::vec2(size, 0.0f), _, __, __ };
+        v_arr[2] = { glm::vec3(+1, 0, -1) * size, +up, glm::vec2(size, size), _, __, __ };
+        v_arr[3] = { glm::vec3(-1, 0, -1) * size, +up, glm::vec2(0.0f, size), _, __, __ };
 
         // negative y face
-        v_arr[4] = { glm::vec3(-1, 0, +1) * size, -up, glm::vec2(0.0f, size), _, _ };
-        v_arr[5] = { glm::vec3(+1, 0, +1) * size, -up, glm::vec2(size, size), _, _ };
-        v_arr[6] = { glm::vec3(+1, 0, -1) * size, -up, glm::vec2(size, 0.0f), _, _ };
-        v_arr[7] = { glm::vec3(-1, 0, -1) * size, -up, glm::vec2(0.0f, 0.0f), _, _ };
+        v_arr[4] = { glm::vec3(-1, 0, +1) * size, -up, glm::vec2(0.0f, size), _, __, __ };
+        v_arr[5] = { glm::vec3(+1, 0, +1) * size, -up, glm::vec2(size, size), _, __, __ };
+        v_arr[6] = { glm::vec3(+1, 0, -1) * size, -up, glm::vec2(size, 0.0f), _, __, __ };
+        v_arr[7] = { glm::vec3(-1, 0, -1) * size, -up, glm::vec2(0.0f, 0.0f), _, __, __ };
 
         for (Vertex& v : v_arr) {
             vertices.push_back(v);
@@ -184,12 +187,14 @@ namespace components {
         }
 
         BindBuffer();
+        material_id = VAO;
     }
 
-    Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
-        : vertices(vertices), indices(indices) {
+    Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
+        : vertices(std::move(vertices)), indices(std::move(indices)) {
         CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         BindBuffer();
+        material_id = VAO;
     }
 
     Mesh::~Mesh() {
@@ -225,6 +230,7 @@ namespace components {
             std::swap(IBO, other.IBO);
             std::swap(vertices, other.vertices);
             std::swap(indices, other.indices);
+            std::swap(material_id, other.material_id);
         }
 
         return *this;
@@ -255,14 +261,16 @@ namespace components {
         glEnableVertexAttribArray(0);  // position
         glEnableVertexAttribArray(1);  // normal
         glEnableVertexAttribArray(2);  // uv
-        glEnableVertexAttribArray(3);  // tangent
-        glEnableVertexAttribArray(4);  // bitangent
+        glEnableVertexAttribArray(3);  // uv2
+        glEnableVertexAttribArray(4);  // tangent
+        glEnableVertexAttribArray(5);  // bitangent
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, position));
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, normal));
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv));
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, tangent));
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, bitangent));
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv2));
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, tangent));
+        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, bitangent));
         // glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind VBO, this is optional (actually not desired)
 
         glGenBuffers(1, &IBO);
@@ -272,11 +280,30 @@ namespace components {
 
         glBindVertexArray(0);
         // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // now it's safe to unbind IBO, but not recommended
+
+        // now that our data has been consumed by `glBufferData`, we can optionally clear our vectors
+        // to free memory on the CPU side, this will force OpenGL to upload the buffer immediately to
+        // the GPU, which is a bit slower, but since it happens only once (before the first frame),
+        // we'd gain the benefit of saving bandwidth between frame updates.
+        vertices.clear();
+        vertices.shrink_to_fit();
+        indices.clear();
+        indices.shrink_to_fit();
+
+        // be aware that our code is based on the assumption that the buffer data is always static,
+        // if that's not the case, we'd probably prefer `glMapBuffer` over `glBufferData`, especially
+        // when we have huge amounts of data that is constantly changing. Unlike the way that we feed
+        // data to the GPU, `glMapBuffer` does not consume the data, but maps the buffer to our data
+        // store in C++, as such, we would have to keep the data in CPU memory all the time.
     }
 
     void Mesh::Draw() const {
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+    }
+
+    void Mesh::SetMaterialID(GLuint mid) const {
+        material_id = mid;
     }
 }

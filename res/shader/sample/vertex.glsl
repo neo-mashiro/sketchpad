@@ -5,14 +5,16 @@
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 uv;
-layout(location = 3) in vec3 tangent;
-layout(location = 4) in vec3 bitangent;
+layout(location = 3) in vec2 uv2;
+layout(location = 4) in vec3 tangent;
+layout(location = 5) in vec3 bitangent;
 
 // vertex attributes in global world space
 layout(location = 0) out __ {
     out vec3 _position;
     out vec3 _normal;
     out vec2 _uv;
+    out vec2 _uv2;
     out vec3 _tangent;
     out vec3 _bitangent;
 };
@@ -33,6 +35,7 @@ void main() {
     _position = vec3(transform * vec4(position, 1.0));
     _normal = normalize(vec3(transform * vec4(normal, 0.0)));
     _uv = uv;
+    _uv2 = uv2;
     _tangent = tangent;
     _bitangent = bitangent;
 
