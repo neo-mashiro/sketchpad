@@ -455,7 +455,7 @@ namespace scene {
     // this is called by the post event update (after glut mainloop event)
     void Renderer::DrawImGui() {
         bool switch_scene = false;
-        std::string next_scene_title = "";
+        std::string next_scene_title;
 
         ui::NewFrame();
         {

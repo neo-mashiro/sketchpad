@@ -37,7 +37,7 @@ namespace core {
         static void Resize(Resolution res);
         static void Reshape();
 
-        static void ConfirmExit();
+        static bool ConfirmExit();
         static void ToggleImGui();
     };
 }

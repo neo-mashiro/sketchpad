@@ -433,11 +433,11 @@ namespace ui {
             if (ImGui::BeginMenu("Open")) {
                 for (unsigned int i = 0; i < scene::factory::titles.size(); i++) {
                     std::string title = scene::factory::titles[i];
-                    std::ostringstream id;
-                    id << " " << std::setfill('0') << std::setw(2) << i;
-                    bool selected = (active_title == title);
+                    //std::ostringstream id;
+                    //id << " " << std::setfill('0') << std::setw(2) << i;
+                    bool selected = (active_title == title);//(" " + title).c_str()  id.str().c_str()
 
-                    if (ImGui::MenuItem((" " + title).c_str(), id.str().c_str(), selected)) {
+                    if (ImGui::MenuItem("sss", "05", selected)) {
                         if (!selected) {
                             new_title = title;
                         }

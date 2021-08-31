@@ -83,8 +83,8 @@ namespace components {
         CORE_TRACE("------------------------MODEL LOADING REPORT-------------------------");
 
         CORE_TRACE("Number of meshes:    {0}"    , meshes_count);
-        CORE_TRACE("Number of vertices:  {0:2f}k", static_cast<float>(vertices_count * 0.001f));
-        CORE_TRACE("Number of materials: {0:2f}k", static_cast<float>(materials_count * 0.001f));
+        CORE_TRACE("Number of vertices:  {0:.2f}k", static_cast<float>(vertices_count * 0.001f));
+        CORE_TRACE("Number of materials: {0:.2f}k", static_cast<float>(materials_count * 0.001f));
 
         // report vertices metadata
         CORE_TRACE("VTX-format: position  [{0}]", vtx_format.test(0) ? "Y" : "N");

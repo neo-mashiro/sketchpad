@@ -12,6 +12,8 @@ using namespace scene;
 
 namespace core {
 
+    static bool app_exit = false;
+
     // singleton instance accessor
     Application& Application::GetInstance() {
         // since c++11, this will be thread-safe, there's no need for manual locking
@@ -132,7 +134,7 @@ namespace core {
 
         // functional keys have the highest priority (application/window level)
         if (Input::IsKeyPressed(VK_ESCAPE)) {
-            Window::ConfirmExit();  // if user confirmed exit, the program will terminate
+            app_exit = Window::ConfirmExit();      // the user has requested to exit?
             Input::SetKeyState(VK_ESCAPE, false);  // exit is cancelled, release esc key
             return;
         }
@@ -268,7 +270,7 @@ namespace core {
         // https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
         HWND win_handle = WIN32::FindWindow(NULL, win_ptr);  // find the handle to the glut window
         LONG style = GetWindowLong(win_handle, GWL_STYLE);   // find the current window style
-        style = style ^ WS_MAXIMIZEBOX ^ WS_MINIMIZEBOX;     // disable the maximize and minimize button
+        style = style ^ WS_SYSMENU;                          // disable maximize/minimize/close button on title bar
         SetWindowLong(win_handle, GWL_STYLE, style);         // apply the new window style
 
         // loading OpenGL function pointers
@@ -317,11 +319,17 @@ namespace core {
     }
 
     void Application::PostEventUpdate() {
+        if (app_exit) {
+            GetInstance().Clear();
+            exit(EXIT_SUCCESS);
+        }
+
         Clock::Update();
         Renderer::DrawImGui();
     }
 
     void Application::Clear() {
+        CORE_TRACE("Application running time: {0:.2f} seconds", Clock::time);
         CORE_TRACE("Shutting down application ...");
 
         ui::Clear();

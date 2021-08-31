@@ -237,6 +237,9 @@ local function setup_project()
             "_CRT_SECURE_NO_DEPRECATE",
             "_SCL_SECURE_NO_WARNINGS",
 
+            -- memory-leak report
+            "_CRTDBG_MAP_ALLOC",
+
             -- automatically handled by visual studio between debug/release builds
             -- "DEBUG", "_DEBUG", "NDEBUG",
 

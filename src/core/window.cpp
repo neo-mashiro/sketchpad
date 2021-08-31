@@ -55,7 +55,7 @@ namespace core {
         glViewport(0, 0, width, height);
     }
 
-    void Window::ConfirmExit() {
+    bool Window::ConfirmExit() {
         // remember the current layer
         auto cache_layer = layer;
 
@@ -72,9 +72,9 @@ namespace core {
 
         if (button_id == IDOK) {
             glutLeaveMainLoop();
-            CORE_WARN("Total application running time: {0} seconds", Clock::time);
-            CORE_WARN("Shutting down the program ...");
-            exit(EXIT_SUCCESS);
+            // instead of exit directly, we should return control to the app and exit there,
+            // so that all stacks will be properly unwound and all destructors are called
+            return true;  // exit(EXIT_SUCCESS) will lead to memory leaks
         }
         else if (button_id == IDCANCEL) {
             layer = cache_layer;  // recover layer
@@ -82,6 +82,8 @@ namespace core {
                 Input::HideCursor();
             }
         }
+        
+        return false;
     }
 
     void Window::ToggleImGui() {

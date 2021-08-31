@@ -1,5 +1,11 @@
 #include "pch.h"
 
+#ifndef _CRTDBG_MAP_ALLOC
+#define _CRTDBG_MAP_ALLOC
+#endif
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include "core/app.h"
 #include "core/log.h"
 #include "scene/scene.h"
@@ -18,11 +24,8 @@ int main(int argc, char** argv) {
     // set the console code page to utf-8
     SetConsoleOutputCP(65001);
 
-    // debug break on lines where memory leaks were found (MSVC intrinsic)
+    // enable memory-leak report (MSVC intrinsic)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-    _CrtSetBreakAlloc(9554);
-    _CrtSetBreakAlloc(9553);
-    _CrtSetBreakAlloc(9552);
 
     glutInit(&argc, argv);
 
@@ -87,7 +90,16 @@ int main(int argc, char** argv) {
         app.PostEventUpdate();  // now we have a chance to do our own update stuff (application level)
     }
 
-    app.Clear();  // clean up context and data
+    // if the user requested to exit properly, `app.PostEventUpdate()` will clean up context and data
+    // first to make sure all stacks are unwound and all destructors are called, and then safely exit,
+    // so there won't be any memory leaks, and in fact we will never reach here.
 
+    // upon exit, the CRT library may still detect and report a few memory leaks in the debug window,
+    // which are actually just some global static data that lives in the static memory segment, apart
+    // from the heap and the stack. Static variables are intended to be persistent for the lifetime of
+    // the application, they are only destructed before the shutdown of the process. Since the program
+    // is going to terminate anyway, these are not real memory leaks but false positives of the report
+
+    app.Clear();
     return 0;
 }
