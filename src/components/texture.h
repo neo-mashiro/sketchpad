@@ -24,6 +24,9 @@ namespace components {
 
         Texture(Texture&& other) noexcept;
         Texture& operator=(Texture&& other) noexcept;
+
+        void Bind(GLuint unit) const;
+        void Unbind(GLuint unit) const;
     };
 
 }

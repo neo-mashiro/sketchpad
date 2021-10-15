@@ -1,0 +1,30 @@
+#include "pch.h"
+#include "buffer/ibo.h"
+
+namespace buffer {
+
+    IBO::IBO() {
+        glGenBuffers(1, &id);
+    }
+
+    IBO::~IBO() {
+        glDeleteBuffers(1, &id);
+    }
+
+    void IBO::Bind() const {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id);
+    }
+
+    void IBO::Unbind() const {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+
+    void IBO::SetIndices(GLsizeiptr size, const void* data, GLenum hint) const {
+        glNamedBufferData(id, size, data, hint);
+    }
+
+    void IBO::SetIndices(GLsizeiptr size, const void* data, GLintptr offset) const {
+        glNamedBufferSubData(id, offset, size, data);
+    }
+
+}

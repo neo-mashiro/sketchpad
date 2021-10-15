@@ -2,6 +2,9 @@
 
 #include "core/app.h"
 #include "core/log.h"
+#include "buffer/vao.h"
+#include "buffer/vbo.h"
+#include "buffer/ibo.h"
 #include "components/mesh.h"
 
 using namespace core;
@@ -9,6 +12,8 @@ using namespace core;
 namespace components {
 
     void Mesh::CreateSphere(float radius) {
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
         static constexpr float PI = 3.141592653589f;
 
         // mesh grid size (default LOD = 500x500 vertices)
@@ -17,10 +22,7 @@ namespace components {
 
         for (unsigned int col = 0; col <= n_cols; ++col) {
             for (unsigned int row = 0; row <= n_rows; ++row) {
-                // set mesh uv range to always be [0, 1], regardless of the value of radius
-                // later in the fragment shader, we can scale uv coordinates however we want
-                // e.g.: repeat uv 10 times if the texture wrap mode is set to `GL_REPEAT`
-                //       => texture(sampler, uv * 10);
+                // standard unscaled uv coordinates
                 float u = (float)row / (float)n_rows;
                 float v = (float)col / (float)n_cols;
 
@@ -54,9 +56,14 @@ namespace components {
                 indices.push_back((col + 1) * (n_rows + 1) + row + 1);
             }
         }
+
+        CreateBuffers(vertices, indices);
     }
 
     void Mesh::CreateCube(float size) {
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
         // define a cube of size 1, which has 24 vertices (with redefinition)
         const static int n_vertices = 24;
         const static int stride = 8;  // 3 + 3 + 2
@@ -110,9 +117,13 @@ namespace components {
 
             vertices.push_back(vertex);
         }
+
+        CreateBuffers(vertices, indices);
     }
 
     void Mesh::CreateCylinder(float radius) {
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
         static constexpr float PI = 3.141592653589f;
 
         // todo: recursively divide the side quads of a cube to approximate a cylinder
@@ -141,74 +152,106 @@ namespace components {
         // for each quad of a cube {
         //     divide_quad(4 vertices of the quad, 10);
         // }
+
+        CreateBuffers(vertices, indices);
     }
 
     void Mesh::CreatePlane(float size) {
-        static const glm::vec2 _(0.0f);
-        static const glm::vec3 __(0.0f);
-        static const glm::vec3 up { 0.0f, 1.0f, 0.0f };
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
 
-        Vertex v_arr[8] = {};
+        const static int n_vertices = 8;
+        const static int stride = 8;  // 3 + 3 + 2
 
-        // positive y face
-        v_arr[0] = { glm::vec3(-1, 0, +1) * size, +up, glm::vec2(0.0f, 0.0f), _, __, __ };
-        v_arr[1] = { glm::vec3(+1, 0, +1) * size, +up, glm::vec2(size, 0.0f), _, __, __ };
-        v_arr[2] = { glm::vec3(+1, 0, -1) * size, +up, glm::vec2(size, size), _, __, __ };
-        v_arr[3] = { glm::vec3(-1, 0, -1) * size, +up, glm::vec2(0.0f, size), _, __, __ };
-
-        // negative y face
-        v_arr[4] = { glm::vec3(-1, 0, +1) * size, -up, glm::vec2(0.0f, size), _, __, __ };
-        v_arr[5] = { glm::vec3(+1, 0, +1) * size, -up, glm::vec2(size, size), _, __, __ };
-        v_arr[6] = { glm::vec3(+1, 0, -1) * size, -up, glm::vec2(size, 0.0f), _, __, __ };
-        v_arr[7] = { glm::vec3(-1, 0, -1) * size, -up, glm::vec2(0.0f, 0.0f), _, __, __ };
-
-        for (Vertex& v : v_arr) {
-            vertices.push_back(v);
-        }
+        const static float data[] = {
+            // ---position----    ------normal-----    ----uv----
+            -1.0f, 0.0f, +1.0f,   0.0f, +1.0f, 0.0f,   0.0f, 0.0f,
+            +1.0f, 0.0f, +1.0f,   0.0f, +1.0f, 0.0f,   1.0f, 0.0f,
+            +1.0f, 0.0f, -1.0f,   0.0f, +1.0f, 0.0f,   1.0f, 1.0f,
+            -1.0f, 0.0f, -1.0f,   0.0f, +1.0f, 0.0f,   0.0f, 1.0f,
+            -1.0f, 0.0f, +1.0f,   0.0f, -1.0f, 0.0f,   0.0f, 1.0f,
+            +1.0f, 0.0f, +1.0f,   0.0f, -1.0f, 0.0f,   1.0f, 1.0f,
+            +1.0f, 0.0f, -1.0f,   0.0f, -1.0f, 0.0f,   1.0f, 0.0f,
+            -1.0f, 0.0f, -1.0f,   0.0f, -1.0f, 0.0f,   0.0f, 0.0f
+        };
 
         // counter-clockwise winding order
-        indices = { 0, 1, 2, 2, 3, 0, 2, 1, 0, 0, 3, 2 };
+        indices = { 0, 1, 2, 2, 3, 0, 6, 5, 4, 4, 7, 6 };
+
+        for (unsigned int i = 0; i < n_vertices; i++) {
+            unsigned int offset = i * stride;
+
+            Vertex vertex {};
+            vertex.position  = glm::vec3(data[offset + 0], data[offset + 1], data[offset + 2]) * size;
+            vertex.normal    = glm::vec3(data[offset + 3], data[offset + 4], data[offset + 5]);
+            vertex.uv        = glm::vec2(data[offset + 6], data[offset + 7]);  // keep in [0, 1] range
+            vertex.uv2       = { 0.0f };
+            vertex.tangent   = { 0.0f };
+            vertex.bitangent = { 0.0f };
+
+            vertices.push_back(vertex);
+        }
+
+        CreateBuffers(vertices, indices);
+    }
+
+    void Mesh::Create2DQuad(float size) {
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+
+        // in our 3D demo, the 2D quad is primarily used for drawing framebuffers
+        const static int n_vertices = 4;
+        const static int stride = 4;  // 2 + 2
+
+        const static float data[] = {
+            // position        uv
+            -1.0f, -1.0f,  0.0f, 0.0f,
+            +1.0f, -1.0f,  1.0f, 0.0f,
+            +1.0f, +1.0f,  1.0f, 1.0f,
+            -1.0f, +1.0f,  0.0f, 1.0f
+        };
+
+        // counter-clockwise winding order
+        indices = { 0, 1, 2, 2, 3, 0 };
+
+        for (unsigned int i = 0; i < n_vertices; i++) {
+            unsigned int offset = i * stride;
+
+            Vertex vertex {};
+            vertex.position = glm::vec3(data[offset + 0], data[offset + 1], 0.0f) * size;
+            vertex.uv       = glm::vec2(data[offset + 2], data[offset + 3]);  // keep in [0, 1] range
+            vertices.push_back(vertex);
+        }
+
+        CreateBuffers(vertices, indices);
     }
 
     Mesh::Mesh(Primitive object) {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
-
-        // populate the vertices and indices vector
         switch (object) {
             case Primitive::Sphere:   CreateSphere();    break;
             case Primitive::Cube:     CreateCube();      break;
             case Primitive::Cylinder: CreateCylinder();  break;
             case Primitive::Plane:    CreatePlane();     break;
+            case Primitive::Quad2D:   Create2DQuad();    break;
 
             default:
                 CORE_ERROR("Undefined primitive mesh...");
                 std::cin.get();  // pause the console before exiting
                 exit(EXIT_FAILURE);
         }
-
-        BindBuffer();
-        material_id = VAO;
     }
 
-    Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
-        : vertices(std::move(vertices)), indices(std::move(indices)) {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
-        BindBuffer();
-        material_id = VAO;
+    Mesh::Mesh(buffer_ref<VAO> vao, size_t n_verts)
+        : vao(vao), n_verts(n_verts), n_tris(n_verts / 3), render_mode(RenderMode::Triangle) {}
+
+    Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
+        CreateBuffers(vertices, indices);
+        material_id = vao->id;  // only this ctor will be called when loading external models
     }
 
     Mesh::~Mesh() {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
-
         // log message to the console so that we are aware of the *hidden* destructor calls
-        // this can be super useful in case our data accidentally goes out of scope
-        if (VAO > 0) {
-            CORE_WARN("Destructing mesh data (VAO = {0})!", VAO);
-        }
-
-        glDeleteBuffers(1, &IBO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteVertexArrays(1, &VAO);
+        CORE_WARN("Destructing mesh data (VAO = {0})!", vao->id);
     }
 
     Mesh::Mesh(Mesh&& other) noexcept {
@@ -218,92 +261,79 @@ namespace components {
     Mesh& Mesh::operator=(Mesh&& other) noexcept {
         if (this != &other) {
             // free resources, reset this mesh to a clean null state
-            glDeleteBuffers(1, &IBO);
-            glDeleteBuffers(1, &VBO);
-            glDeleteVertexArrays(1, &VAO);
+            vao = nullptr;
+            vbo = nullptr;
+            ibo = nullptr;
 
-            VAO = VBO = IBO = 0;
+            n_verts = n_tris = material_id = 0;
 
-            // transfer ownership from other to this
-            std::swap(VAO, other.VAO);
-            std::swap(VBO, other.VBO);
-            std::swap(IBO, other.IBO);
-            std::swap(vertices, other.vertices);
-            std::swap(indices, other.indices);
+            // transfer ownership of all members
+            std::swap(vao, other.vao);
+            std::swap(vbo, other.vbo);
+            std::swap(ibo, other.ibo);
+            std::swap(n_verts, other.n_verts);
+            std::swap(n_tris, other.n_tris);
             std::swap(material_id, other.material_id);
         }
 
         return *this;
     }
 
-    void Mesh::BindBuffer() {
-        // there are many ways to use OpenGL buffers, but here we will take the simplest approach
-        // that each mesh has a unique VAO, which owns a unique VBO and IBO, such that all mesh
-        // data is stored in a single buffer, and then we only need to bind VAO before draw calls.
-        // alternatively, we can use a single VAO that dynamically binds VBO for different meshes,
-        // or use multiple VBOs per mesh (one for each vertex attribute), or share VBOs between
-        // multiple VAOs and meshes to save memory space, coupled with dynamic and stream usage
-        // hints to gain slightly better performance, but I'd rather not add too much complexity.
+    void Mesh::CreateBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
+        vao = LoadBuffer<VAO>();
+        vbo = LoadBuffer<VBO>();
+        ibo = LoadBuffer<IBO>();
 
-        // for this demo, we will never need to update these buffers once they are setup. All the
-        // vertex attributes and triangle indices are measured in local model space, which means
-        // that these buffer data will be static. Users can use a transform matrix to manipulate
-        // the mesh however they like (translate the vertices, scale the uv coordinates, etc), but
-        // the internal buffer data never changes, so we are using `GL_STATIC_DRAW` as the hint.
+        vao->Bind();
+        vao->SetLayout();
 
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
+        vbo->Bind();
+        vbo->SetData(vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+        // vbo->Unbind();  // this is optional (actually not desired)
 
-        glGenBuffers(1, &VBO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+        ibo->Bind();
+        ibo->SetIndices(indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        // ibo->Unbind();  // do not unbind IBO until VAO has been unbound first
 
-        glEnableVertexAttribArray(0);  // position
-        glEnableVertexAttribArray(1);  // normal
-        glEnableVertexAttribArray(2);  // uv
-        glEnableVertexAttribArray(3);  // uv2
-        glEnableVertexAttribArray(4);  // tangent
-        glEnableVertexAttribArray(5);  // bitangent
+        vao->Unbind();
+        // ibo->Unbind();  // now it's safe to unbind IBO, but not recommended
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, position));
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, normal));
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv));
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv2));
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, tangent));
-        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, bitangent));
-        // glBindBuffer(GL_ARRAY_BUFFER, 0);  // unbind VBO, this is optional (actually not desired)
+        n_verts = indices.size();
+        n_tris = n_verts / 3;
 
-        glGenBuffers(1, &IBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // DO NOT unbind IBO until VAO has been unbound first
+        SetRenderMode(RenderMode::Triangle);
+    }
 
-        glBindVertexArray(0);
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);  // now it's safe to unbind IBO, but not recommended
+    buffer_ref<VAO> Mesh::GetVAO() const {
+        return vao;
+    }
 
-        // now that our data has been consumed by `glBufferData`, we can optionally clear our vectors
-        // to free memory on the CPU side, this will force OpenGL to upload the buffer immediately to
-        // the GPU, which is a bit slower, but since it happens only once (before the first frame),
-        // we'd gain the benefit of saving bandwidth between frame updates.
-        vertices.clear();
-        vertices.shrink_to_fit();
-        indices.clear();
-        indices.shrink_to_fit();
-
-        // be aware that our code is based on the assumption that the buffer data is always static,
-        // if that's not the case, we'd probably prefer `glMapBuffer` over `glBufferData`, especially
-        // when we have huge amounts of data that is constantly changing. Unlike the way that we feed
-        // data to the GPU, `glMapBuffer` does not consume the data, but maps the buffer to our data
-        // store in C++, as such, we would have to keep the data in CPU memory all the time.
+    void Mesh::SetRenderMode(RenderMode mode) {
+        render_mode = mode;
     }
 
     void Mesh::Draw() const {
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        vao->Bind();
+
+        if (render_mode == RenderMode::Triangle) {
+            glDrawElements(GL_TRIANGLES, n_verts, GL_UNSIGNED_INT, 0);
+        }
+        else if (render_mode == RenderMode::Outline) {
+            // use stencil buffer and raycasting
+            // todo: implement outline.glsl (use textureProjOffset), use that shader to draw again
+        }
+        else if (render_mode == RenderMode::Wireframe) {
+            // use internal geometry shader
+        }
+        else if (render_mode == RenderMode::Instance) {
+            // draw with GPU instancing
+        }
+        
+        vao->Unbind();
     }
 
     void Mesh::SetMaterialID(GLuint mid) const {
         material_id = mid;
     }
+    
 }

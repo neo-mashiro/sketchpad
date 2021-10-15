@@ -132,6 +132,7 @@ local function setup_solution()
 
             disablewarnings {
                 -- "26495",  -- always initialize a member variable
+                "4018",  -- signed/unsigned mismatch
                 "4456",  -- declaration of '...' hides previous local declaration
                 "4458",  -- declaration of '...' hides class member
                 "4505",  -- unreferenced local function has been removed

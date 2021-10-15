@@ -68,15 +68,6 @@ int main(int argc, char** argv) {
     std::cout << "- Maximum number of samplers supported in the fragment shader: " <<
         app.gl_max_texture_units << '\n' << std::endl;
 
-    glGetIntegerv(GL_SAMPLES, &(app.gl_msaa_buffer_size));
-    glGetIntegerv(GL_SAMPLE_BUFFERS, &(app.gl_n_msaa_buffers));
-
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* Multisample anti-aliasing: " << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- MSAA buffers available: " << app.gl_n_msaa_buffers << std::endl;
-    std::cout << "- MSAA buffer size (samples per pixel): " << app.gl_msaa_buffer_size << '\n' << std::endl;
-
     SetConsoleTextAttribute(console, 15);  // full white text, transparent background
 
     // from now on, font/color/style of the console text printed by `printf, fprintf, cout, cerr`

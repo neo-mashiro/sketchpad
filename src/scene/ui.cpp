@@ -28,6 +28,7 @@ namespace ui {
     ImFont* opentype_font;  // reserved font: OpenType, Palatino Linotype, 15pt
 
     // private global variables
+    static ImVec2 window_center;
     static ImVec4 red           = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
     static ImVec4 yellow        = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
     static ImVec4 green         = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -37,11 +38,12 @@ namespace ui {
     static ImGuiWindowFlags invisible_window_flags =
         ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 
-
     void Init() {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         ImGuiStyle& style = ImGui::GetStyle();
+
+        window_center = ImVec2((float)Window::width, (float)Window::height) * 0.5f;
 
         // load fonts from disk
         ImFontConfig config;
@@ -160,8 +162,8 @@ namespace ui {
         GLuint win_w = Window::width;
         GLuint win_h = Window::height;
 
-        float w = win_w == 1280 ? 256.0f : 256.0f * 1.25f;
-        float h = win_w == 1280 ? 612.0f : 612.0f * 1.25f;
+        float w = 256.0f * 1.25f;
+        float h = 612.0f * 1.25f;
 
         ImGui::SetNextWindowPos(ImVec2(win_w - w, (win_h - h) * 0.5f));
         ImGui::SetNextWindowSize(ImVec2(w, h));
@@ -433,11 +435,11 @@ namespace ui {
             if (ImGui::BeginMenu("Open")) {
                 for (unsigned int i = 0; i < scene::factory::titles.size(); i++) {
                     std::string title = scene::factory::titles[i];
-                    //std::ostringstream id;
-                    //id << " " << std::setfill('0') << std::setw(2) << i;
-                    bool selected = (active_title == title);//(" " + title).c_str()  id.str().c_str()
+                    std::ostringstream id;
+                    id << " " << std::setfill('0') << std::setw(2) << i;
+                    bool selected = (active_title == title);
 
-                    if (ImGui::MenuItem("sss", "05", selected)) {
+                    if (ImGui::MenuItem((" " + title).c_str(), id.str().c_str(), selected)) {
                         if (!selected) {
                             new_title = title;
                         }
@@ -448,19 +450,19 @@ namespace ui {
 
             if (ImGui::BeginMenu("Options")) {
                 if (ImGui::BeginMenu(" Window Resolution")) {
-                    bool active = (win_w == 1280);
-                    if (ImGui::MenuItem(" 1280 x 720", NULL, active) && !active) {
-                        Window::Resize(Resolution::Normal);
-                        Window::Reshape();
-                        Input::ResetCursor();
-                    }
-
-                    active = (win_w == 1600);
-                    if (ImGui::MenuItem(" 1600 x 900", NULL, active) && !active) {
-                        Window::Resize(Resolution::Large);
-                        Window::Reshape();
-                        Input::ResetCursor();
-                    }
+                    // currently we only support a fixed resolution at 1600 x 900, this menu is simply
+                    // a dummy functionality, other resolutions are not yet supported so clicking on
+                    // them would have no effect. On desktop monitors, it would be more comfortable to
+                    // adopt a full HD or QHD resolution instead, but we need to recalculate the pixel
+                    // offsets of some UI panels to adapt the change. The real challenge of supporting
+                    // multiple resolutions is that we also need to adjust the size of framebuffer
+                    // textures on the fly, which is expensive and takes quite a bit of work. If you'd
+                    // like to do so, you should consider applying this function to the welcome screen
+                    // exclusively, as we don't want to break the data state in the middle of a scene.
+                    ImGui::MenuItem(" 1280 x 720", NULL, false);
+                    ImGui::MenuItem(" 1600 x 900", NULL, true);    // active resolution
+                    ImGui::MenuItem(" 1920 x 1080", NULL, false);  // Full HD
+                    ImGui::MenuItem(" 2560 x 1440", NULL, false);  // QHD
                     ImGui::EndMenu();
                 }
                 ImGui::EndMenu();
@@ -498,8 +500,6 @@ namespace ui {
         ImGui::Begin("Status Bar", 0, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::PushFont(opentype_font);
 
-        ImVec2 window_center = ImVec2((float)Window::width, (float)Window::height) * 0.5f;
-
         {
             ImGui::SameLine(0.0f, 9.0f);
             ImGui::TextColored(cyan, "Cursor");
@@ -525,7 +525,7 @@ namespace ui {
             ImGui::TextColored(cyan, "FPS");
             ImGui::SameLine(0.0f, 5.0f);
             int fps = (int)Clock::fps;
-            auto text_color = fps > 200 ? green : (fps < 100 ? red : yellow);
+            auto text_color = fps > 90 ? green : (fps < 30 ? red : yellow);
             ImGui::TextColored(text_color, "(%d, %.2f ms)", fps, Clock::ms);
             DrawTooltip("Frames per second / milliseconds per frame.");
 
@@ -542,16 +542,16 @@ namespace ui {
 
     void DrawWelcomeScreen(ImTextureID id) {
         ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-        float win_w = (float)Window::width;
-        float win_h = (float)Window::height;
+        const static float win_w = (float)Window::width;
+        const static float win_h = (float)Window::height;
         draw_list->AddImage(id, ImVec2(0.0f, 0.0f), ImVec2(win_w, win_h));
     }
 
     void DrawLoadingScreen() {
-        float win_w = (float) Window::width;
-        float win_h = (float) Window::height;
-        float bar_w = 268.0f;
-        float bar_h = 80.0f;
+        const static float win_w = (float) Window::width;
+        const static float win_h = (float) Window::height;
+        const static float bar_w = 268.0f;
+        const static float bar_h = 80.0f;
 
         scene::Renderer::Clear();
 
@@ -567,9 +567,9 @@ namespace ui {
             ImVec2(win_w - bar_w, win_h - bar_h) * 0.5f,
             ImGui::ColorConvertFloat4ToU32(yellow), "LOADING, PLEASE WAIT ......");
 
-        float x = Window::width == 1280 ? 345.0f : 505.0f;  // not magic number, it's simple math!
-        float y = Window::width == 1280 ? 385.0f : 465.0f;  // not magic number, it's simple math!
-        float size = 20.0f;
+        float x = 505.0f;  // not magic number, it's simple math!
+        float y = 465.0f;  // not magic number, it's simple math!
+        const static float size = 20.0f;
         float r, g, b;
 
         for (float i = 0.0f; i < 1.0f; i += 0.05f, x += size * 1.5f) {
@@ -583,5 +583,22 @@ namespace ui {
 
         ImGui::End();
         ImGui::PopFont();
+    }
+
+    void DrawCrosshair() {
+        ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+
+        static ImU32 color = IM_COL32(0, 255, 0, 255);
+        static ImVec2 lines[4][2] = {
+            { window_center + ImVec2(+3.0f, +0.0f), window_center + ImVec2(+9.0f, +0.0f) },
+            { window_center + ImVec2(+0.0f, +3.0f), window_center + ImVec2(+0.0f, +9.0f) },
+            { window_center + ImVec2(-3.0f, +0.0f), window_center + ImVec2(-9.0f, +0.0f) },
+            { window_center + ImVec2(+0.0f, -3.0f), window_center + ImVec2(+0.0f, -9.0f) }
+        };
+
+        draw_list->AddLine(lines[0][0], lines[0][1], color);
+        draw_list->AddLine(lines[1][0], lines[1][1], color);
+        draw_list->AddLine(lines[2][0], lines[2][1], color);
+        draw_list->AddLine(lines[3][0], lines[3][1], color);
     }
 }

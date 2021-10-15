@@ -33,4 +33,5 @@ namespace ui {
     void DrawStatusBar(void);
     void DrawWelcomeScreen(ImTextureID id);
     void DrawLoadingScreen(void);
+    void DrawCrosshair(void);
 }

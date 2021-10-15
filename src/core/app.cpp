@@ -234,7 +234,6 @@ namespace core {
     void Application::Init() {
         gl_vendor = gl_renderer = gl_version = glsl_version = "";
         gl_texsize = gl_texsize_3d = gl_texsize_cubemap = gl_max_texture_units = 0;
-        gl_n_msaa_buffers = gl_msaa_buffer_size = 0;
 
         opengl_context_active = false;
 
@@ -245,7 +244,7 @@ namespace core {
         CORE_INFO("Initializing console logger ...");
         CORE_INFO("Initializing application window ...");
 
-        Window::Init(Resolution::Normal);
+        Window::Init();
 
         // create the main freeglut window
         glutInitDisplayMode(Window::display_mode);
@@ -314,7 +313,6 @@ namespace core {
 
     void Application::Start() {
         Clock::Reset();
-        Renderer::Init();
         Renderer::Attach("Welcome Screen");
     }
 
@@ -335,8 +333,6 @@ namespace core {
         ui::Clear();
 
         Renderer::Detach();
-        Renderer::Free();
-
         Clock::Reset();
         Window::Clear();
     }

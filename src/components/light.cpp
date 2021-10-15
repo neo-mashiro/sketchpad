@@ -57,9 +57,7 @@ namespace components {
         // inverse-square law, instead, the attenuation uses a linear falloff. Despite that,
         // we do have a fade-out effect from the inner to the edges of the outer cone, so
         // the overall effect should still be realistic enough without loss of fidelity.
-
         CORE_ASERT(distance >= 0.0f, "Distance to the light source cannot be negative ...");
-
         return 1.0f - std::clamp(distance / range, 0.0f, 1.0f);
     }
 

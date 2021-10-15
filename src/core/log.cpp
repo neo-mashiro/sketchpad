@@ -35,7 +35,7 @@ namespace core {
         
         sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());  // console sink
 
-        sinks[0]->set_pattern("%^%T > [%l] %v%$");  // e.g. 23:55:59 > [info] sample message
+        sinks[0]->set_pattern("%^%T > [%L] %v%$");  // e.g. 23:55:59 > [info] sample message
         sinks[0]->set_color(spdlog::level::trace, sinks[0]->CYAN);
 
         logger = std::make_shared<spdlog::logger>("sketchpad", begin(sinks), end(sinks));

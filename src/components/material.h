@@ -32,14 +32,15 @@ namespace components {
     class Material : public Component {
       private:
         static inline GLuint max_samplers = 0;
-
-        asset_ref<Shader> shader;
         std::map<GLuint, uniform_variant> uniforms;
         std::map<GLuint, asset_ref<Texture>> textures;
 
         void LoadActiveUniforms();
 
       public:
+        asset_ref<Shader> shader;
+        static inline bool depth_prepass = false;
+
         Material();
         ~Material() {}
 
@@ -54,9 +55,18 @@ namespace components {
 
         template<typename T>
         void SetUniform(GLuint location, const T& value, bool bind = false) {
+            // early z-test in forward+ rendering only accepts the model matrix (uniform location 0)
+            if (depth_prepass && location != 0) {
+                return;
+            }
+
             if (uniforms.count(location) == 0) {
-                CORE_WARN("Uniform location {0} is not active in shader: {1}, ", location, shader->id);
-                CORE_WARN("The uniform may have been optimized out by the GLSL compiler");
+                static bool warned = false;
+                if (!warned) {
+                    CORE_WARN("Uniform location {0} is not active in shader: {1}", location, shader->id);
+                    CORE_WARN("The uniform may have been optimized out by the GLSL compiler");
+                    warned = true;
+                }
                 return;
             }
 

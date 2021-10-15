@@ -34,13 +34,12 @@ namespace components {
                 return;
             }
 
+            // the OpenGL default texture precision is 8-bit integer per component, which is enough.
+            // for most textures, we don't need a high-precision float color format such as "GL_RGBA32F".
             switch (n_channels) {
-                case 3:
-                    glTexImage2D(target, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-                    break;
-                case 4:
-                    glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-                    break;
+                case 1: glTexImage2D(target, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, buffer); break;
+                case 3: glTexImage2D(target, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer); break;
+                case 4: glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer); break;
                 default:
                     CORE_ERROR("Non-standard image format with {0} channels: {1}", n_channels, path);
                     break;
@@ -185,4 +184,15 @@ namespace components {
         // (a default fallback texture that is all black), when it gets destroyed later,
         // deleting a 0-id texture won't break the global binding states so we are safe.
     }
+
+    void Texture::Bind(GLuint unit) const {
+        glActiveTexture(GL_TEXTURE0 + unit);
+        glBindTexture(target, id);
+    }
+
+    void Texture::Unbind(GLuint unit) const {
+        glActiveTexture(GL_TEXTURE0 + unit);
+        glBindTexture(target, 0);
+    }
+
 }

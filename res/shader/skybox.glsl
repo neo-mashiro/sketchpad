@@ -1,9 +1,5 @@
 #version 460
 
-layout(location = 0) in vec3 position;
-
-out vec3 _tex_coords;
-
 layout(std140, binding = 0) uniform Camera {
     vec3 position;
     vec3 direction;
@@ -12,6 +8,15 @@ layout(std140, binding = 0) uniform Camera {
 } camera;
 
 layout(location = 0) uniform mat4 transform;
+
+layout(binding = 0) uniform samplerCube skybox;
+
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef vertex_shader
+
+layout(location = 0) in vec3 position;
+layout(location = 0) out vec3 _tex_coords;
 
 void main() {
     // skybox's texture coordinates have 3 dimensions u, v, w, which is roughly
@@ -27,3 +32,18 @@ void main() {
     // so it has the farthest distance in the scene, and will be rendered behind all other objects.
     gl_Position = pos.xyww;
 }
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef fragment_shader
+
+layout(location = 0) in vec3 _tex_coords;
+layout(location = 0) out vec4 color;
+
+void main() {
+    color = texture(skybox, _tex_coords);
+}
+
+#endif

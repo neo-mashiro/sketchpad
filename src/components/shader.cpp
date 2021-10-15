@@ -6,11 +6,10 @@
 
 namespace components {
 
-    // construct the shader program by compiling from shader sources
     Shader::Shader(const std::string& source_path) : id(0), source_path(source_path) {
         CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_INFO("Compiling shader source: {0}", source_path);
 
-        // load all shaders from the source path
         LoadShader(GL_VERTEX_SHADER);
         LoadShader(GL_GEOMETRY_SHADER);
         LoadShader(GL_FRAGMENT_SHADER);
@@ -18,18 +17,19 @@ namespace components {
         LoadShader(GL_TESS_CONTROL_SHADER);
         LoadShader(GL_TESS_EVALUATION_SHADER);
 
-        // link all shaders to create the shader program
+        CORE_INFO("Linking compiled shader files...");
+
         LinkShaders();
 
         // clean up shader caches
         std::for_each(shaders.begin(), shaders.end(), glDeleteShader);
     }
 
-    // construct the shader program by loading from a pre-compiled shader binary
     Shader::Shader(const std::string& binary_path, GLenum format) : id(0), source_path("") {
         CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Loading pre-compiled shader program from {0} ...", binary_path);
 
+        // construct the shader program by loading from a pre-compiled shader binary
         std::ifstream in_stream(binary_path.c_str(), std::ios::binary);
         std::istreambuf_iterator<char> iter_start(in_stream), iter_end;
         std::vector<char> buffer(iter_start, iter_end);
@@ -67,9 +67,7 @@ namespace components {
 
         // log message to the console so that we are aware of the *hidden* destructor calls
         // this can be super useful in case our data accidentally goes out of scope
-        if (id > 0) {
-            CORE_WARN("Deleting shader program (id = {0})!", id);
-        }
+        if (id > 0) CORE_WARN("Deleting shader program (id = {0})!", id);
 
         glDeleteProgram(id);
     }
@@ -100,8 +98,8 @@ namespace components {
         glUseProgram(0);
     }
 
-    // save the compiled shader binary to the source folder on disk
     void Shader::Save() const {
+        // save the compiled shader binary to the source folder on disk
         if (source_path.empty()) {
             CORE_ERROR("Shader binary already exists, please delete it before saving ...");
             return;
@@ -132,40 +130,77 @@ namespace components {
         out_stream.close();
     }
 
+    void Shader::Sync(GLbitfield barriers) {
+        glMemoryBarrier(barriers);
+    }
+
     void Shader::LoadShader(GLenum type) {
         // this line may cause access violation if OpenGL context has not been setup
         GLuint shader_id = glCreateShader(type);
 
-        std::string file("");
+        std::string shader_def;
 
         switch (type) {
-            case GL_VERTEX_SHADER:          file = source_path + "\\vertex.glsl";   break;
-            case GL_GEOMETRY_SHADER:        file = source_path + "\\geometry.glsl"; break;
-            case GL_FRAGMENT_SHADER:        file = source_path + "\\fragment.glsl"; break;
-            case GL_COMPUTE_SHADER:         file = source_path + "\\compute.glsl";  break;
-            case GL_TESS_CONTROL_SHADER:    file = source_path + "\\tess-ct.glsl";  break;
-            case GL_TESS_EVALUATION_SHADER: file = source_path + "\\tess-ev.glsl";  break;
-
+            case GL_VERTEX_SHADER:          shader_def = "vertex_shader";          break;
+            case GL_GEOMETRY_SHADER:        shader_def = "geometry_shader";        break;
+            case GL_FRAGMENT_SHADER:        shader_def = "fragment_shader";        break;
+            case GL_COMPUTE_SHADER:         shader_def = "compute_shader";         break;
+            case GL_TESS_CONTROL_SHADER:    shader_def = "tess_control_shader";    break;
+            case GL_TESS_EVALUATION_SHADER: shader_def = "tess_evaluation_shader"; break;
             default:
                 CORE_ERROR("Unable to load shader, invalid shader type {0} ... ", type);
                 break;
         }
 
-        std::string shader_code;
-        std::ifstream file_stream(file, std::ios::in);
+        std::ifstream file_stream(source_path, std::ios::in);
 
-        if (file_stream.is_open()) {
-            std::stringstream buffer;
-            buffer << file_stream.rdbuf();
-            shader_code = buffer.str();
-            file_stream.close();
-        }
-        else {
-            return;  // shader file does not exist, skip this type of shader
+        if (!file_stream.is_open()) {
+            CORE_ERROR("Unable to read shader file {0} ... ", source_path);
+            return;
         }
 
-        CORE_INFO("Compiling shader source: {0}", file.c_str());
+        std::stringstream buffer;
+        std::string line;
+        bool defined = false;
 
+        // the file to include must be in the same directory as the shader file
+        std::string include_dir = source_path.substr(0, source_path.rfind("\\")) + "\\";
+
+        while (getline(file_stream, line)) {
+            // replace "#include" with the contents of the include file and copy-paste to the line
+            if (size_t pos = line.find("#include "); pos != std::string::npos) {
+                std::string include_file = line.substr(pos + 9);
+                std::string include_path = include_dir + include_file;
+                std::ifstream incl_stream(include_path, std::ios::in);
+
+                if (incl_stream.is_open()) {
+                    std::stringstream incl_buff;
+                    incl_buff << incl_stream.rdbuf();
+                    line = incl_buff.str();
+                    incl_stream.close();
+                }
+                else {
+                    CORE_ERROR("Unable to include file {0} in shader {1} ... ", include_file, source_path);
+                    continue;  // cannot open the include file, discard or skip the line
+                }
+            }
+
+            // insert "#define" before the first occurrence of "#ifdef"
+            else if (!defined && line.find("#ifdef " + shader_def) != std::string::npos) {
+                buffer << "#define " << shader_def << '\n';
+                defined = true;
+            }
+
+            buffer << line << '\n';
+        }
+
+        file_stream.close();
+
+        if (!defined) {
+            return;  // this type of shader is not defined in the shader, skip
+        }
+
+        std::string shader_code = buffer.str();
         const char* shader = shader_code.c_str();
         glShaderSource(shader_id, 1, &shader, nullptr);
         glCompileShader(shader_id);
@@ -192,8 +227,6 @@ namespace components {
     }
 
     void Shader::LinkShaders() {
-        CORE_INFO("Linking shader files...");
-
         GLuint program_id = glCreateProgram();
 
         for (auto&& shader : shaders) {
@@ -228,6 +261,46 @@ namespace components {
         }
 
         id = program_id;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    GLint ComputeShader::max_workgroup_count[3] = { 0 };
+    GLint ComputeShader::max_workgroup_size[3] = { 0 };
+    GLint ComputeShader::max_invocations = 0;
+
+    void ComputeShader::Dispatch(GLuint nx, GLuint ny, GLuint nz) const {
+        // load GPGPU hardware limit on the first run
+        if (max_workgroup_count[0] == 0) {
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &max_workgroup_count[0]);
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &max_workgroup_count[1]);
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &max_workgroup_count[2]);
+        }
+
+        if (max_workgroup_size[0] == 0) {
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &max_workgroup_size[0]);
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &max_workgroup_size[1]);
+            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &max_workgroup_size[2]);
+        }
+
+        if (max_invocations == 0) {
+            glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &max_invocations);
+        }
+
+        // only the number of work groups is defined by the caller and is validated here, but the user
+        // must also ensure that the total number of invocations within a work group (sx * sy * sz)
+        // is <= `max_invocations`, and that the local size of each work group (defined in the shader
+        // using `layout(sx, sy, sz) in`) does not exceed `max_workgroup_size[]` in every dimension.
+
+        CORE_ASERT(nx >= 1 && nx <= max_workgroup_count[0], "Invalid compute space size x: {0}", nx);
+        CORE_ASERT(ny >= 1 && ny <= max_workgroup_count[1], "Invalid compute space size y: {0}", ny);
+        CORE_ASERT(nz >= 1 && nz <= max_workgroup_count[2], "Invalid compute space size z: {0}", nz);
+
+        glDispatchCompute(nx, ny, nz);
+    }
+
+    void ComputeShader::SyncWait(GLbitfield barriers) const {
+        glMemoryBarrier(barriers);  // sync here to ensure all writes are complete
     }
 
 }

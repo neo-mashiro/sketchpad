@@ -9,9 +9,10 @@
 
 namespace core {
 
-    void Window::Init(Resolution res) {
-        Resize(res);
-        display_mode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL;
+    void Window::Init() {
+        Resize();
+        glutSetOption(GLUT_MULTISAMPLE, 4);  // enforce 4 samples per pixel MSAA
+        display_mode = GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_STENCIL | GLUT_MULTISAMPLE;
     }
 
     void Window::Clear() {
@@ -26,22 +27,15 @@ namespace core {
         glutSetWindowTitle(title.c_str());
     }
 
-    void Window::Resize(Resolution res) {
-        resolution = res;
-
-        if (res == Resolution::Large) {
-            width = 1600;
-            height = 900;
-        }
-        else if (res == Resolution::Normal) {
-            width = 1280;
-            height = 720;
-        }
-
+    void Window::Resize() {
+        // currently we only support a fixed resolution of 1600 x 900 so it's not a
+        // "resize" function in real sense, but we could extend this in the future
+        width = 1600;
+        height = 900;
         pos_x = (glutGet(GLUT_SCREEN_WIDTH) - width) / 2;
         pos_y = (glutGet(GLUT_SCREEN_HEIGHT) - height) / 2;
 
-        CORE_TRACE("Window resolution changed to {0}x{1} ...", width, height);
+        CORE_TRACE("Window resolution is set to {0}x{1} ...", width, height);
     }
 
     void Window::Reshape() {

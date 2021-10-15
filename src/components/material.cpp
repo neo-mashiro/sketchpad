@@ -5,8 +5,12 @@
 #include "components/shader.h"
 #include "components/texture.h"
 #include "components/material.h"
+#include "utils/path.h"
 
 namespace components {
+
+    // early z-test in forward+ rendering
+    static asset_ref<Shader> depth_prepass_shader;
 
     // list of currently supported sampler types
     static const std::vector<GLenum> samplers {
@@ -22,6 +26,10 @@ namespace components {
     Material::Material() {
         if (max_samplers == 0) {
             max_samplers = core::Application::GetInstance().gl_max_texture_units;
+        }
+
+        if (depth_prepass_shader == nullptr) {
+            depth_prepass_shader = LoadAsset<Shader>(SHADER + "depth_prepass.glsl");
         }
     }
 
@@ -68,45 +76,55 @@ namespace components {
                 return;
             }
 
-            if (textures.count(unit) > 0) {
-                CORE_WARN("Unit {0} is not empty, previous texture will be replaced...", unit);
-            }
+            // if (textures.count(unit) > 0) {
+            //     CORE_WARN("Unit {0} is not empty, previous texture will be replaced...", unit);
+            // }
 
             textures[unit] = texture_ref;
         }
     }
 
     bool Material::Bind() const {
-        CORE_ASERT(shader, "Unable to bind the material, please set a valid shader first...");
-        shader->Bind();
-
-        // rebind textures to the unit slots
-        for (const auto& pair : textures) {
-            auto& texture = pair.second;
-            glActiveTexture(GL_TEXTURE0 + pair.first);
-            glBindTexture(texture->target, texture->id);
-        }
-
-        auto conditional_upload = [](auto& unif) {
+        // visitor lambda function
+        static auto conditional_upload = [](auto& unif) {
             if (unif.pending_upload || unif.binding_upload) {
                 unif.Upload();
             }
         };
+
+        if (depth_prepass) {
+            // early z-test in forward+ rendering
+            depth_prepass_shader->Bind();
+        }
+        else {
+            CORE_ASERT(shader, "Unable to bind the material, please set a valid shader first...");
+            shader->Bind();
+
+            // rebind textures to the unit slots
+            for (const auto& pair : textures) {
+                auto& texture = pair.second;
+                texture->Bind(pair.first);
+            }
+        }
 
         // upload uniform values to the shader
         for (const auto& pair : uniforms) {
             std::visit(conditional_upload, pair.second);
         }
 
-        return (shader->id) > 0;
+        return true;
     }
 
     void Material::Unbind() const {
+        if (depth_prepass) {
+            depth_prepass_shader->Unbind();
+            return;
+        }
+
         // clean up texture units
         for (const auto& pair : textures) {
             auto& texture = pair.second;
-            glActiveTexture(GL_TEXTURE0 + pair.first);
-            glBindTexture(texture->target, 0);
+            texture->Unbind(pair.first);
         }
 
         CORE_ASERT(shader, "Unable to unbind the material, please set a valid shader first...");

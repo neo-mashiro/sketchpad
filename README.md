@@ -12,6 +12,21 @@ I've always wanted to make an OpenGL sandbox to help me quickly prototype some s
 Although some design of this project is very much like a game engine, it is not, there's no batch rendering system, no physics, no collision detection, native scripting support, and users are expected to make new scenes from c++ code by using some exposed APIs, rather than relying on a bunch of clicks and drags via the editor UI like in a real game engine. In this project, UI is not part of the application, but is owned by each individual scene.
 I'd rather think of it as being a "scene" engine, in the sense that it helps create a factory of scenes without the need to use low-level gl calls. Each scene is used to play with some shaders, the creation of scenes is kind of like Unity. Scenes, where the focus should be on rendering, not physics, not gameplay, the focus should be on underlying techniques, not the graphics API.
 
+## Features
+
+- Forward+ Rendering (a.k.a Tiled Forward Rendering)
+- Deferred Rendering
+- Physically-Based Rendering
+- Path Tracing
+- Real-time Ray Tracing (Monte-Carlo Integration)
+- Normal Mapping without Precomputed Tangent Space Vectors
+
+## Requirement
+
+- Windows 10 + OpenGL version #460 or higher
+- a desktop monitor with at least 1600 x 900 resolution (full HD or QHD is preferred)
+- a dedicated graphics card which supports >= 1 samples per pixel (for raytracing)
+
 ## Dependencies
 
 - [Premake5](https://github.com/premake/premake-core), [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
@@ -82,6 +97,7 @@ To make a new scene, just create a new `.h` and `.cpp` file in the [examples]() 
 
 ## Useful References
 
+- [Physically Based Rendering: From Theory To Implementation](https://www.pbr-book.org/)
 - [Learn OpenGL](https://learnopengl.com)
 - [Hazel Game Engine Series, The Cherno](....)
 - [OpenGL 4 Shading Language Cookbook, Third Edition](...)
@@ -94,3 +110,16 @@ To make a new scene, just create a new `.h` and `.cpp` file in the [examples]() 
 - [GLSL v4.60 Specification](https://github.com/neo-mashiro/sketchpad/blob/main/res/GLSL%20v4.60%20Spec.pdf)
 
 - Equirectangular [@flickr](https://www.flickr.com/groups/equirectangular/pool/)
+
+## Recommended Reading
+
+// forward+ rendering
+https://www.3dgep.com/forward-plus/
+https://takahiroharada.files.wordpress.com/2015/04/forward_plus.pdf
+https://github.com/bcrusco/Forward-Plus-Renderer
+
+
+## Acknowledgements
+
+I would like to express my gratitude to Yu Meng.
+My deepest gratitude goes first and foremost to Professor Zhou Yanxia, my supervisor, for his constant encouragement and guidance. He has walked me through all the stages of the writing of this thesis. Without his consistent and illuminating instruction, this thesis could not have reached its present form.
