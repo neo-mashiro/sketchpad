@@ -9,9 +9,6 @@
 
 namespace components {
 
-    // early z-test in forward+ rendering
-    static asset_ref<Shader> depth_prepass_shader;
-
     // list of currently supported sampler types
     static const std::vector<GLenum> samplers {
         GL_SAMPLER_2D,             // sampler2D
@@ -23,15 +20,7 @@ namespace components {
         GL_SAMPLER_2D_MULTISAMPLE  // sampler2DMS
     };
 
-    Material::Material() {
-        if (max_samplers == 0) {
-            max_samplers = core::Application::GetInstance().gl_max_texture_units;
-        }
-
-        if (depth_prepass_shader == nullptr) {
-            depth_prepass_shader = LoadAsset<Shader>(SHADER + "depth_prepass.glsl");
-        }
-    }
+    Material::Material() {}
 
     Material::Material(Material&& other) noexcept {
         *this = std::move(other);
@@ -45,6 +34,42 @@ namespace components {
         }
 
         return *this;
+    }
+
+    bool Material::Bind() const {
+        // visitor lambda function
+        static auto conditional_upload = [](auto& unif) {
+            if (unif.pending_upload || unif.binding_upload) {
+                unif.Upload();
+            }
+        };
+
+        CORE_ASERT(shader, "Unable to bind the material, please set a valid shader first...");
+        shader->Bind();
+
+        // upload uniform values to the shader
+        for (const auto& pair : uniforms) {
+            std::visit(conditional_upload, pair.second);
+        }
+
+        // rebind textures to the unit slots
+        for (const auto& pair : textures) {
+            auto& texture = pair.second;
+            texture->Bind(pair.first);
+        }
+
+        return true;
+    }
+
+    void Material::Unbind() const {
+        // clean up texture units
+        for (const auto& pair : textures) {
+            auto& texture = pair.second;
+            texture->Unbind(pair.first);
+        }
+
+        CORE_ASERT(shader, "Unable to unbind the material, please set a valid shader first...");
+        shader->Unbind();
     }
 
     void Material::SetShader(asset_ref<Shader> shader_ref) {
@@ -71,6 +96,7 @@ namespace components {
 
         // add texture to the unit slot
         else {
+            size_t max_samplers = core::Application::GetInstance().gl_max_texture_units;
             if (textures.size() >= max_samplers) {
                 CORE_WARN("{0} samplers limit has reached, failed to add texture...", max_samplers);
                 return;
@@ -84,51 +110,31 @@ namespace components {
         }
     }
 
-    bool Material::Bind() const {
-        // visitor lambda function
-        static auto conditional_upload = [](auto& unif) {
-            if (unif.pending_upload || unif.binding_upload) {
-                unif.Upload();
+    template<typename T>
+    void Material::SetUniform(GLuint location, const T& value, bool bind) {
+        if (uniforms.count(location) == 0) {
+            static bool warned = false;
+            if (!warned) {
+                CORE_WARN("Uniform location {0} is not active in shader: {1}", location, shader->id);
+                CORE_WARN("The uniform may have been optimized out by the GLSL compiler");
+                warned = true;
             }
-        };
-
-        if (depth_prepass) {
-            // early z-test in forward+ rendering
-            depth_prepass_shader->Bind();
-        }
-        else {
-            CORE_ASERT(shader, "Unable to bind the material, please set a valid shader first...");
-            shader->Bind();
-
-            // rebind textures to the unit slots
-            for (const auto& pair : textures) {
-                auto& texture = pair.second;
-                texture->Bind(pair.first);
-            }
-        }
-
-        // upload uniform values to the shader
-        for (const auto& pair : uniforms) {
-            std::visit(conditional_upload, pair.second);
-        }
-
-        return true;
-    }
-
-    void Material::Unbind() const {
-        if (depth_prepass) {
-            depth_prepass_shader->Unbind();
             return;
         }
 
-        // clean up texture units
-        for (const auto& pair : textures) {
-            auto& texture = pair.second;
-            texture->Unbind(pair.first);
+        auto& unif_variant = uniforms[location];
+
+        if (!std::holds_alternative<Uniform<T>>(unif_variant)) {
+            CORE_ERROR("Mismatched value type, unable to set uniform in {0}", __FUNCSIG__);
+            return;
         }
 
-        CORE_ASERT(shader, "Unable to unbind the material, please set a valid shader first...");
-        shader->Unbind();
+        if (bind) {
+            std::get<Uniform<T>>(unif_variant) <<= &value;
+        }
+        else {
+            std::get<Uniform<T>>(unif_variant) << value;
+        }
     }
 
     void Material::LoadActiveUniforms() {
@@ -145,7 +151,7 @@ namespace components {
             glGetProgramResourceiv(id, GL_UNIFORM, i, 4, meta_data, 4, NULL, unif_info);
 
             if (unif_info[3] != -1) {
-                continue;  // skip uniforms in blocks (will be handled by the renderer)
+                continue;  // skip uniforms in blocks
             }
 
             GLint name_length = unif_info[0];
@@ -188,5 +194,18 @@ namespace components {
             delete[] name;
         }
     }
+
+    using namespace glm;
+
+    // explicit template functon instantiation
+    template void Material::SetUniform<int>  (GLuint location, const int& value,   bool bind);
+    template void Material::SetUniform<bool> (GLuint location, const bool& value,  bool bind);
+    template void Material::SetUniform<float>(GLuint location, const float& value, bool bind);
+    template void Material::SetUniform<vec2> (GLuint location, const vec2& value,  bool bind);
+    template void Material::SetUniform<vec3> (GLuint location, const vec3& value,  bool bind);
+    template void Material::SetUniform<vec4> (GLuint location, const vec4& value,  bool bind);
+    template void Material::SetUniform<mat2> (GLuint location, const mat2& value,  bool bind);
+    template void Material::SetUniform<mat3> (GLuint location, const mat3& value,  bool bind);
+    template void Material::SetUniform<mat4> (GLuint location, const mat4& value,  bool bind);
 
 }

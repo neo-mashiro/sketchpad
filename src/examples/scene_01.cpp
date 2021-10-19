@@ -27,6 +27,10 @@ namespace scene {
     static float orbit_speed = 2.0f;  // in radians per second
     static float orbit_radius = 3.2f;
 
+    static float sphere_metalness = 0.0f;
+    static float sphere_roughness = 0.0f;
+    static float sphere_ao = 1.0f;
+
     static bool draw_depth_buffer = false;
 
     // this is called before the first frame, use this function to initialize your scene
@@ -35,16 +39,12 @@ namespace scene {
         this->title = "Example Scene";
 
         // load shader and texture assets upfront
-        depth_prepass_shader      = LoadAsset<Shader>(SHADER + "depth_prepass.glsl");
-        light_cull_compute_shader = LoadAsset<ComputeShader>(SHADER + "light_cull.glsl");
+        //this->depth_prepass_shader        = LoadAsset<Shader>(SHADER + "depth_prepass.glsl");
+        this->light_cull_compute_shader   = LoadAsset<ComputeShader>(SHADER + "light_cull.glsl");
 
-        asset_ref<Shader> pbr_shader = LoadAsset<Shader>(SHADER + "01_pbr.glsl");
-        asset_ref<Shader> pbr_shader_t = LoadAsset<Shader>(SHADER + "01_pbr_textured.glsl");
-        asset_ref<Shader> skybox_shader      = LoadAsset<Shader>(SHADER + "skybox.glsl");
-
-        asset_ref<Shader> blinn_phong_shader       = LoadAsset<Shader>(SHADER + "01_plane.glsl");
-
-        asset_ref<Texture> skybox_cubemap = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, SKYBOX + "space");
+        asset_ref<Shader> pbr_shader      = LoadAsset<Shader>(SHADER + "01_pbr.glsl");
+        asset_ref<Shader> skybox_shader   = LoadAsset<Shader>(SHADER + "skybox.glsl");
+        asset_ref<Texture> space_cube     = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, SKYBOX + "space");
         asset_ref<Texture> checkerboard   = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "misc\\checkboard.png");
         asset_ref<Texture> ball_albedo    = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "meshball\\albedo.jpg");
         asset_ref<Texture> ball_normal    = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "meshball\\normal.jpg");
@@ -52,26 +52,40 @@ namespace scene {
         asset_ref<Texture> ball_roughness = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "meshball\\roughness.jpg");
         asset_ref<Texture> ball_AO        = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "meshball\\AO.jpg");
 
+        std::vector<asset_ref<Texture>> runestone_pillar {
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\pillars_albedo.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\pillars_normal.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\pillars_metallic.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\pillars_roughness.png")
+        };
+
+        std::vector<asset_ref<Texture>> runestone_platform {
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\platform_albedo.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\platform_normal.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\platform_metallic.png"),
+            LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\platform_roughness.png")
+        };
+
         // create uniform buffer objects (UBO) from shaders
         AddUBO(pbr_shader->id);
 
         // create frame buffer objects (FBO)
-        FBO& depth_prepass = AddFBO(0, Window::width, Window::height);
-        depth_prepass.GetVirtualMaterial()->SetShader(depth_prepass_shader);
+        FBO& depth_prepass = AddFBO(1, Window::width, Window::height);
+        //depth_prepass.GetVirtualMaterial()->SetShader(depth_prepass_shader);
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
-        camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, 15.0f));
+        camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, 4.0f));
         camera.GetComponent<Transform>().Rotate(glm::radians(180.0f), world::up);
         camera.AddComponent<Camera>(View::Perspective);
         camera.AddComponent<Spotlight>(color::red, 1.8f);  // attach a spotlight to the camera (flashlight)
         camera.GetComponent<Spotlight>().SetCutoff(5.0f);
-
+        
         // skybox
         skybox = CreateEntity("Skybox", ETag::Skybox);
         skybox.AddComponent<Mesh>(Primitive::Cube);
         skybox.GetComponent<Material>().SetShader(skybox_shader);
-        skybox.GetComponent<Material>().SetTexture(0, skybox_cubemap);
+        skybox.GetComponent<Material>().SetTexture(0, space_cube);
 
         // sphere
         sphere = CreateEntity("Sphere");
@@ -80,71 +94,82 @@ namespace scene {
         sphere.GetComponent<Transform>().Scale(2.0f);
         if (auto& mat = sphere.GetComponent<Material>(); true) {
             mat.SetShader(pbr_shader);
-            mat.SetUniform(1, glm::vec3(0.0215f, 0.1745f, 0.0215f));
-            mat.SetUniform(2, glm::vec3(0.07568f, 0.61424f, 0.07568f));
-            mat.SetUniform(3, glm::vec3(0.633f, 0.727811f, 0.633f));
-            mat.SetUniform(4, sphere_shininess, true);  // observe the uniform variable
+            for (int i = 3; i <= 7; i++) {
+                mat.SetUniform(i, 0);  // sphere does not have PBR textures
+            }
+            mat.SetUniform(8, glm::vec3(0.635f, 0.0f, 1.0f));  // albedo (diffuse color)
+            // you can bind a uniform to a variable and observe changes in the shader automatically
+            mat.SetUniform(9, sphere_metalness, true);
+            mat.SetUniform(10, sphere_roughness, true);
+            mat.SetUniform(11, sphere_ao, true);
         }
 
         // metallic ball
         ball = CreateEntity("Ball");
-        Mesh& sphere_mesh = sphere.GetComponent<Mesh>();  // reuse the mesh's vertices array (VAO)
+        Mesh& sphere_mesh = sphere.GetComponent<Mesh>();  // reuse sphere's vertices array (VAO)
         ball.AddComponent<Mesh>(sphere_mesh.GetVAO(), sphere_mesh.n_verts);
         ball.GetComponent<Transform>().Translate(world::up * 2.2f);
         ball.GetComponent<Transform>().Scale(2.0f);
         if (auto& mat = ball.GetComponent<Material>(); true) {
-            mat.SetShader(ball_shader);
+            mat.SetShader(pbr_shader);
+            for (int i = 3; i <= 7; i++) {
+                mat.SetUniform(i, 1);  // ball does have all PBR textures
+            }
             mat.SetTexture(0, ball_albedo);
-            mat.SetTexture(1, ball_metallic);
-            mat.SetUniform(1, plane_shininess, true);
-            // this is how you can reset a material's shader or texture
-            // mat.SetShader(nullptr);
-            // mat.SetTexture(0, nullptr);
+            mat.SetTexture(1, ball_normal);
+            mat.SetTexture(2, ball_metallic);
+            mat.SetTexture(3, ball_roughness);
+            mat.SetTexture(4, ball_AO);
+            mat.SetUniform(12, 4.0f);  // uv scale
+            if (false) {
+                mat.SetShader(nullptr);      // this is how you can reset a material's shader
+                mat.SetTexture(0, nullptr);  // this is how you can reset a material's texture
+            }
         }
 
         // plane
         plane = CreateEntity("Plane");
         plane.AddComponent<Mesh>(Primitive::Plane);
         plane.GetComponent<Transform>().Translate(world::up * -4.0f);
-        plane.GetComponent<Transform>().Scale(2.0f);
+        plane.GetComponent<Transform>().Scale(3.0f);
         if (auto& mat = plane.GetComponent<Material>(); true) {
-            mat.SetShader(plane_shader);
+            mat.SetShader(pbr_shader);
+            mat.SetUniform(3, 1);  // plane only has an albedo_map
+            mat.SetUniform(4, 0);  // no normal_map
+            mat.SetUniform(5, 0);  // no metallic_map
+            mat.SetUniform(6, 0);  // no roughness_map
+            mat.SetUniform(7, 0);  // no ao_map
             mat.SetTexture(0, checkerboard);
-            mat.SetUniform(1, plane_shininess, true);
+            mat.SetUniform(9, 0.0f);   // metalness
+            mat.SetUniform(10, 0.0f);  // roughness
+            mat.SetUniform(11, 1.0f);  // ambient occlussion
+            mat.SetUniform(12, 20.0f);  // uv scale
         }
 
         // runestone model
-        //suzanne = CreateEntity("Suzanne");
-        //suzanne.GetComponent<Transform>().Scale(0.01f);
-        //suzanne.GetComponent<Transform>().Translate(world::up * -4.0f);
-        //auto& model = suzanne.AddComponent<Model>(MODEL + "runestone\\source\\runestone_lp.fbx", Quality::Auto, true);
+        runestone = CreateEntity("Runestone");
+        runestone.GetComponent<Transform>().Scale(0.01f);
+        runestone.GetComponent<Transform>().Translate(world::up * -4.0f);
+        auto& model = runestone.AddComponent<Model>(MODEL + "runestone\\runestone.fbx", Quality::Auto);
 
-        //std::vector<asset_ref<Texture>> txr_refs_pillar {
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_pillars_BaseColor.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_pillars_Normal.png"),
-        //    t_plane,
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_pillars_Metallic.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_pillars_Roughness.png")
-        //};
-        //std::vector<asset_ref<Texture>> txr_refs_platform {
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_platform_BaseColor.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_platform_Normal.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_platform_Emissive.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_platform_Metallic.png"),
-        //    LoadAsset<Texture>(GL_TEXTURE_2D, MODEL + "runestone\\source\\runestone_lp1_platform_Roughness.png")
-        //};
+        model.Import("pillars", runestone_pillar);  // 6
+        model.Import("platform", runestone_platform);  // 5
+        model.Report();
 
-        //model.Import("Bike", txr_refs_pillar);
-        //model.Import("Floor", txr_refs_platform);
-        //model.Report();
-
-        //auto& m4 = suzanne.GetComponent<Material>();
-        //m4.SetShader(s_model);
+        if (auto& mat = runestone.GetComponent<Material>(); true) {
+            mat.SetShader(pbr_shader);
+            mat.SetUniform(3, 1);
+            mat.SetUniform(4, 1);
+            mat.SetUniform(5, 1);
+            mat.SetUniform(6, 1);
+            mat.SetUniform(7, 0);  // runestone does not have ao_map
+            mat.SetUniform(11, 1.0f);  // ambient occlussion
+        }
 
         // directional light (for lights that are static, we only need to set its UBO data once)
         direct_light = CreateEntity("Directional Light");
         direct_light.GetComponent<Transform>().Rotate(glm::radians(-45.0f), world::right);
-        direct_light.AddComponent<DirectionLight>(color::white, 0.25f);
+        direct_light.AddComponent<DirectionLight>(color::yellow, 0.25f);
 
         if (auto& ubo = UBOs[1]; true) {
             ubo.Bind();
@@ -165,76 +190,78 @@ namespace scene {
         ny = (Window::height + tile_size - 1) / tile_size;
         n_tiles = nx * ny;
 
-        // setup the shader storage buffers for 16 point lights
-        const int n_pl = 16;
-        light_position_ssbo = SSBO<glm::vec4>(n_pl, 0);
-        light_range_ssbo    = SSBO<GLfloat>(n_pl, 1);
-        light_index_ssbo    = SSBO<GLint>(n_pl * n_tiles, 2);
+        // setup the shader storage buffers for 28 point lights
+        const unsigned int n_pl = 28;
+        pl_color_ssbo    = LoadBuffer<SSBO<glm::vec4>>(n_pl, 0);
+        pl_position_ssbo = LoadBuffer<SSBO<glm::vec4>>(n_pl, 1);
+        pl_range_ssbo    = LoadBuffer<SSBO<GLfloat>>(n_pl, 2);
+        pl_index_ssbo    = LoadBuffer<SSBO<GLint>>(n_pl * n_tiles, 3);
 
+        light_cull_compute_shader->Bind();
         light_cull_compute_shader->SetUniform(0, n_pl);
 
         // light culling in forward+ rendering can be applied to both static and dynamic lights,
         // in the latter case, it is required that users update the input SSBO buffer data every
         // frame. In most cases, perform light culling on static lights alone is already enough,
         // unless you have thousands of lights whose colors or positions are constantly changing.
-        // in this demo, we will only cull the 16 (or even 1600 if you have space) static point
+        // in this demo, we will only cull the 28 (or even 2800 if you have space) static point
         // lights, so the input SSBO buffer data only needs to be set up once. The spotlight and
         // orbit light will participate in lighting calculations anyway.
 
+        std::vector<glm::vec4> colors {};
         std::vector<glm::vec4> positions {};
         std::vector<GLfloat> ranges {};
 
-        // make a grid of size 5 x 5 (25 cells), sample each border cell to be a point light.
-        // thus we would have a total of 16 point lights that surrounds our scene, which are
+        // make a grid of size 8 x 8 (64 cells), sample each border cell to be a point light.
+        // thus we would have a total of 28 point lights that surrounds our scene, which are
         // evenly distributed on the boundaries of the plane.
 
-        for (int i = 0, index = 0; i < 25; i++) {
-            int row = i / static_cast<int>(sqrt(n_pl));  // ~ [0, 4]
-            int col = i % static_cast<int>(sqrt(n_pl));  // ~ [0, 4]
+        for (int i = 0, index = 0; i < 64; i++) {
+            int row = i / 8;  // ~ [0, 7]
+            int col = i % 8;  // ~ [0, 7]
 
-            if (bool on_boundary = (row == 0 || row == 4 || col == 0 || col == 4); !on_boundary) {
+            if (bool on_boundary = (row == 0 || row == 7 || col == 0 || col == 7); !on_boundary) {
                 continue;  // skip cells in the middle
             }
 
-            auto position = glm::vec3(row - 2, 2.5f, col - 2);  // ~ [-2, 2] (centered at origin)
-            auto color = glm::vec3(RandomFloat01(), RandomFloat01(), RandomFloat01());
+            // translate light positions to the range [-3, 3] (centered at origin)
+            auto position = glm::vec3(row - 3.5f, 2.5f, col - 3.5f) * 0.857f;
+            auto rand_color = glm::vec3(0.0f);
+
+            // for each point light, generate a random color that is not too dark
+            while (glm::length2(rand_color) < 1.5f) {
+                rand_color = glm::vec3(RandomFloat01(), RandomFloat01(), RandomFloat01());
+            }
 
             point_lights[index] = CreateEntity("Point Light " + std::to_string(index));
             auto& pl = point_lights[index];
             pl.GetComponent<Transform>().Translate(position - world::origin);
-            pl.AddComponent<PointLight>(color, 0.8f);
+            pl.AddComponent<PointLight>(rand_color, 0.8f);
             pl.GetComponent<PointLight>().SetAttenuation(0.09f, 0.032f);
 
-            if (auto& ubo = UBOs[index + 3]; true) {
-                ubo.Bind();
-                ubo.SetData(0, val_ptr(pl.GetComponent<PointLight>().color));
-                ubo.SetData(1, val_ptr(pl.GetComponent<Transform>().position));
-                ubo.SetData(2, &(pl.GetComponent<PointLight>().intensity));
-                ubo.SetData(3, &(pl.GetComponent<PointLight>().linear));
-                ubo.SetData(4, &(pl.GetComponent<PointLight>().quadratic));
-                ubo.SetData(5, &(pl.GetComponent<PointLight>().range));
-                ubo.Unbind();
-            }
-
             // the effective range of the light is calculated for you by `SetAttenuation()`
-            float range = point_lights[i].GetComponent<PointLight>().range;
-            ranges.push_back(range);
+            colors.push_back(glm::vec4(rand_color, 1.0f));
             positions.push_back(glm::vec4(position, 1.0f));
+            ranges.push_back(pl.GetComponent<PointLight>().range);
 
             index++;
         }
 
-        light_position_ssbo.Write(positions);
-        light_position_ssbo.Bind(0);
+        pl_color_ssbo->Write(colors);
+        pl_color_ssbo->Bind();
 
-        light_range_ssbo.Write(ranges);
-        light_range_ssbo.Bind(1);
+        pl_position_ssbo->Write(positions);
+        pl_position_ssbo->Bind();
+
+        pl_range_ssbo->Write(ranges);
+        pl_range_ssbo->Bind();
 
         Renderer::FaceCulling(true);
     }
 
     // this is called every frame, update your scene here and submit the entities to the renderer
     void Scene01::OnSceneRender() {
+        (void)glGetError();
         auto& main_camera = camera.GetComponent<Camera>();
         main_camera.Update();
 
@@ -266,7 +293,7 @@ namespace scene {
         }
 
         // update orbit light's uniform buffer
-        if (auto& ubo = UBOs[19]; true) {
+        if (auto& ubo = UBOs[3]; true) {
             auto& ol = orbit_light.GetComponent<PointLight>();
             ubo.Bind();
             ubo.SetData(0, val_ptr(ol.color));
@@ -294,11 +321,13 @@ namespace scene {
         Renderer::DepthTest(true);
         Renderer::DepthPrepass(true);  // enable early z-test
         Renderer::Clear();
-        Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, suzanne.id, skybox.id);
+        Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id, skybox.id);
         Renderer::Render();
         depth_prepass.Unbind();
 
         if (draw_depth_buffer) {
+            Renderer::DepthTest(false);
+            Renderer::Clear();
             depth_prepass.DebugDraw(-1);
             return;
         }
@@ -307,9 +336,10 @@ namespace scene {
         // shader and update the SSBO, there's no rendering operations involved...
         light_cull_compute_shader->Bind();
         depth_prepass.BindBuffer(-1, 0);  // bind the depth buffer
-        light_index_ssbo.Clear();  // recalculate light indices every frame
-        light_index_ssbo.Bind(2);
+        pl_index_ssbo->Clear();  // recalculate light indices every frame
+        pl_index_ssbo->Bind();
         light_cull_compute_shader->Dispatch(nx, ny, 1);
+        CheckGLError(3);
 
         // wait until the compute shader finishes and then unbind the states. Note that this
         // sync step should ideally be placed closest to the code that actually uses the SSBO
@@ -317,6 +347,7 @@ namespace scene {
         light_cull_compute_shader->SyncWait();
         light_cull_compute_shader->Unbind();
         depth_prepass.UnbindBuffer(0);  // unbind the depth buffer
+        CheckGLError(4);
 
         // pass 3: render objects as you normally do, but this time using the SSBOs to look up
         // visible lights rather than looping through every light source in the fragment shader
@@ -324,10 +355,9 @@ namespace scene {
         Renderer::DepthPrepass(false);
         Renderer::MSAA(true);  // unlike deferred rendering, built-in MSAA will work fine here
         Renderer::Clear();
-        Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, suzanne.id, skybox.id);
-
-        // do i need to clear ssbo and update every frame????
-        // orbit light and spotlight and directional light are never culled,
+        Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id, skybox.id);
+        Renderer::Render();
+        CheckGLError(5);
 
         // optionally you can include another pass for postprocessing stuff (HDR, Bloom, Blur Effects, etc)
     }
@@ -336,13 +366,11 @@ namespace scene {
     void Scene01::OnImGuiRender() {
         static bool sphere_gizmo = false;
         static bool plane_gizmo = false;
-        static bool edit_colors = false;
-        static bool edit_colorf = false;
-        static int power_sphere = 5;
-        static int power_plane = 8;
+        static bool edit_sphere_albedo = false;
+        static bool edit_flashlight_color = false;
 
-        static ImVec4 colors = ImVec4(0.635f, 0.0f, 1.0f, 0.0f);
-        static ImVec4 colorf = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+        static ImVec4 sphere_albedo = ImVec4(0.635f, 0.0f, 1.0f, 0.0f);
+        static ImVec4 flashlight_color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 
         static ImGuiColorEditFlags color_flags
             = ImGuiColorEditFlags_NoSidePreview
@@ -355,33 +383,36 @@ namespace scene {
         if (ImGui::Begin("Inspector##1", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
             ImGui::Checkbox("Show Plane", &show_plane);
             ImGui::Separator();
-            ImGui::Checkbox("Point Light Rotation", &orbit);
+            ImGui::Checkbox("Orbit Light", &orbit);
             ImGui::Separator();
             ImGui::Checkbox("Show Sphere Gizmo", &sphere_gizmo);
             ImGui::Separator();
             ImGui::Checkbox("Show Plane Gizmo", &plane_gizmo);
             ImGui::Separator();
+            ImGui::Checkbox("Visualize Depth Buffer", &draw_depth_buffer);
+            ImGui::Separator();
             ImGui::Spacing();
 
             ImGui::PushItemWidth(100.0f);
-            ImGui::SliderInt("Sphere Shininess", &power_sphere, 1, 10);
-            ImGui::SliderInt("Plane Shininess", &power_plane, 1, 10);
+            ImGui::SliderFloat("Sphere Metalness", &sphere_metalness, 0.05f, 1.0f);
+            ImGui::SliderFloat("Sphere Roughness", &sphere_roughness, 0.05f, 1.0f);
+            ImGui::SliderFloat("Sphere AO", &sphere_ao, 0.0f, 1.0f);
             ImGui::PopItemWidth();
             ImGui::Separator();
 
-            ImGui::Checkbox("Edit Sphere Color", &edit_colors);
-            if (edit_colors) {
+            ImGui::Checkbox("Edit Sphere Albedo", &edit_sphere_albedo);
+            if (edit_sphere_albedo) {
                 ImGui::Spacing();
                 ImGui::Indent(15.0f);
-                ImGui::ColorPicker3("##Sphere Color", (float*)&colors, color_flags);
+                ImGui::ColorPicker3("##Sphere Albedo", (float*)&sphere_albedo, color_flags);
                 ImGui::Unindent(15.0f);
             }
 
-            ImGui::Checkbox("Edit Flashlight Color", &edit_colorf);
-            if (edit_colorf) {
+            ImGui::Checkbox("Edit Flashlight Color", &edit_flashlight_color);
+            if (edit_flashlight_color) {
                 ImGui::Spacing();
                 ImGui::Indent(15.0f);
-                ImGui::ColorPicker3("##Flashlight Color", (float*)&colorf, color_flags);
+                ImGui::ColorPicker3("##Flashlight Color", (float*)&flashlight_color, color_flags);
                 ImGui::Unindent(15.0f);
             }
         }
@@ -396,14 +427,13 @@ namespace scene {
             ui::DrawGizmo(camera, plane);
         }
 
-        sphere_shininess = pow(2.0f, (float)power_sphere);
-        plane_shininess = pow(2.0f, (float)power_plane);
+        if (auto& mat = sphere.GetComponent<Material>(); true) {
+            mat.SetUniform(8, glm::vec3(sphere_albedo.x, sphere_albedo.y, sphere_albedo.z));
+        }
 
-        auto& m = sphere.GetComponent<Material>();
-        m.SetUniform(1, glm::vec3(colors.x, colors.y, colors.z) * 0.2f);  // ambient
-        m.SetUniform(2, glm::vec3(colors.x, colors.y, colors.z) * 0.7f);  // diffuse
-
-        camera.GetComponent<Spotlight>().color = glm::vec3(colorf.x, colorf.y, colorf.z);
+        if (auto& sl = camera.GetComponent<Spotlight>(); true) {
+            sl.color = glm::vec3(flashlight_color.x, flashlight_color.y, flashlight_color.z);
+        }
 
         //ImGui::ShowDemoWindow();
     }

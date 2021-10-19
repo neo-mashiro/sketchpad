@@ -1,13 +1,17 @@
 #include "pch.h"
 
+#include <type_traits>
 #include "core/app.h"
 #include "core/log.h"
 #include "components/shader.h"
+#include "components/component.h"
+
+using namespace core;
 
 namespace components {
 
     Shader::Shader(const std::string& source_path) : id(0), source_path(source_path) {
-        CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Compiling shader source: {0}", source_path);
 
         LoadShader(GL_VERTEX_SHADER);
@@ -26,7 +30,7 @@ namespace components {
     }
 
     Shader::Shader(const std::string& binary_path, GLenum format) : id(0), source_path("") {
-        CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Loading pre-compiled shader program from {0} ...", binary_path);
 
         // construct the shader program by loading from a pre-compiled shader binary
@@ -63,11 +67,13 @@ namespace components {
     }
 
     Shader::~Shader() {
-        CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
 
         // log message to the console so that we are aware of the *hidden* destructor calls
         // this can be super useful in case our data accidentally goes out of scope
-        if (id > 0) CORE_WARN("Deleting shader program (id = {0})!", id);
+        if (id > 0) {
+            CORE_WARN("Deleting shader program (id = {0})!", id);
+        }
 
         glDeleteProgram(id);
     }
@@ -128,10 +134,6 @@ namespace components {
         std::ofstream out_stream(filepath.c_str(), std::ios::binary);
         out_stream.write(reinterpret_cast<char*>(buffer.data()), binary_length);
         out_stream.close();
-    }
-
-    void Shader::Sync(GLbitfield barriers) {
-        glMemoryBarrier(barriers);
     }
 
     void Shader::LoadShader(GLenum type) {
@@ -263,38 +265,49 @@ namespace components {
         id = program_id;
     }
 
+    void Shader::Sync(GLbitfield barriers) {
+        glMemoryBarrier(barriers);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    GLint ComputeShader::max_workgroup_count[3] = { 0 };
-    GLint ComputeShader::max_workgroup_size[3] = { 0 };
-    GLint ComputeShader::max_invocations = 0;
+    ComputeShader::ComputeShader(const std::string& source_path)
+        : Shader(source_path) {}
+
+    ComputeShader::ComputeShader(const std::string& binary_path, GLenum format)
+        : Shader(binary_path, format) {}
+
+    ComputeShader::ComputeShader(ComputeShader&& other) noexcept
+        : Shader(std::move(other)) {}
+
+    ComputeShader& ComputeShader::operator=(ComputeShader&& other) noexcept {
+        Shader::operator=(std::move(other));
+        return *this;
+    }
+
+    void ComputeShader::Bind() const {
+        Shader::Bind();
+    }
+
+    void ComputeShader::Unbind() const {
+        Shader::Unbind();
+    }
+
+    void ComputeShader::Save() const {
+        Shader::Save();
+    }
 
     void ComputeShader::Dispatch(GLuint nx, GLuint ny, GLuint nz) const {
-        // load GPGPU hardware limit on the first run
-        if (max_workgroup_count[0] == 0) {
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &max_workgroup_count[0]);
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &max_workgroup_count[1]);
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &max_workgroup_count[2]);
-        }
-
-        if (max_workgroup_size[0] == 0) {
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &max_workgroup_size[0]);
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &max_workgroup_size[1]);
-            glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &max_workgroup_size[2]);
-        }
-
-        if (max_invocations == 0) {
-            glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &max_invocations);
-        }
-
-        // only the number of work groups is defined by the caller and is validated here, but the user
+        // only the number of work groups is defined by the user and is validated here, but the user
         // must also ensure that the total number of invocations within a work group (sx * sy * sz)
-        // is <= `max_invocations`, and that the local size of each work group (defined in the shader
-        // using `layout(sx, sy, sz) in`) does not exceed `max_workgroup_size[]` in every dimension.
+        // is <= `app.cs_max_invocations`, and that the local size of each work group (defined in the
+        // shader by `layout(sx, sy, sz)`) does not exceed the size limit in every dimension.
 
-        CORE_ASERT(nx >= 1 && nx <= max_workgroup_count[0], "Invalid compute space size x: {0}", nx);
-        CORE_ASERT(ny >= 1 && ny <= max_workgroup_count[1], "Invalid compute space size y: {0}", ny);
-        CORE_ASERT(nz >= 1 && nz <= max_workgroup_count[2], "Invalid compute space size z: {0}", nz);
+        auto& app = Application::GetInstance();
+
+        CORE_ASERT(nx >= 1 && nx <= app.cs_nx, "Invalid compute space size x: {0}", nx);
+        CORE_ASERT(ny >= 1 && ny <= app.cs_ny, "Invalid compute space size y: {0}", ny);
+        CORE_ASERT(nz >= 1 && nz <= app.cs_nz, "Invalid compute space size z: {0}", nz);
 
         glDispatchCompute(nx, ny, nz);
     }
@@ -302,5 +315,36 @@ namespace components {
     void ComputeShader::SyncWait(GLbitfield barriers) const {
         glMemoryBarrier(barriers);  // sync here to ensure all writes are complete
     }
+
+    template<typename T>
+    void ComputeShader::SetUniform(GLuint location, const T& val) const {
+        using namespace glm;
+
+        /**/ if constexpr (std::is_same_v<T, bool>)   { glUniform1i(location, static_cast<int>(val)); }
+        else if constexpr (std::is_same_v<T, int>)    { glUniform1i(location, val); }
+        else if constexpr (std::is_same_v<T, float>)  { glUniform1f(location, val); }
+        else if constexpr (std::is_same_v<T, GLuint>) { glUniform1ui(location, val); }
+        else if constexpr (std::is_same_v<T, vec2>)   { glUniform2fv(location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec3>)   { glUniform3fv(location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec4>)   { glUniform4fv(location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, mat2>)   { glUniformMatrix2fv(location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat3>)   { glUniformMatrix3fv(location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat4>)   { glUniformMatrix4fv(location, 1, GL_FALSE, &val[0][0]); }
+        else {
+            static_assert(const_false<T>, "Unspecified template uniform type T ...");
+        }
+    }
+
+    // explicit template functon instantiation
+    template void ComputeShader::SetUniform<int>(GLuint location, const int& val) const;
+    template void ComputeShader::SetUniform<bool>(GLuint location, const bool& val) const;
+    template void ComputeShader::SetUniform<float>(GLuint location, const float& val) const;
+    template void ComputeShader::SetUniform<GLuint>(GLuint location, const GLuint& val) const;
+    template void ComputeShader::SetUniform<glm::vec2>(GLuint location, const glm::vec2& val) const;
+    template void ComputeShader::SetUniform<glm::vec3>(GLuint location, const glm::vec3& val) const;
+    template void ComputeShader::SetUniform<glm::vec4>(GLuint location, const glm::vec4& val) const;
+    template void ComputeShader::SetUniform<glm::mat2>(GLuint location, const glm::mat2& val) const;
+    template void ComputeShader::SetUniform<glm::mat3>(GLuint location, const glm::mat3& val) const;
+    template void ComputeShader::SetUniform<glm::mat4>(GLuint location, const glm::mat4& val) const;
 
 }

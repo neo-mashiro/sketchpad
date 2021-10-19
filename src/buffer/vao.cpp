@@ -1,5 +1,7 @@
 #include "pch.h"
+
 #include "buffer/vao.h"
+#include "core/log.h"
 
 namespace buffer {
 
@@ -20,12 +22,20 @@ namespace buffer {
     }
 
     void VAO::SetLayout() const {
-        glEnableVertexArrayAttrib(id, 0);  // position
-        glEnableVertexArrayAttrib(id, 1);  // normal
-        glEnableVertexArrayAttrib(id, 2);  // uv
-        glEnableVertexArrayAttrib(id, 3);  // uv2
-        glEnableVertexArrayAttrib(id, 4);  // tangent
-        glEnableVertexArrayAttrib(id, 5);  // bitangent
+        GLint vbo = 0;
+        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+
+        if (vbo <= 0) {
+            CORE_ERROR("No active VBO is currently bound, unable to set the vertex layout...");
+            return;
+        }
+
+        glEnableVertexAttribArray(0);  // position
+        glEnableVertexAttribArray(1);  // normal
+        glEnableVertexAttribArray(2);  // uv
+        glEnableVertexAttribArray(3);  // uv2
+        glEnableVertexAttribArray(4);  // tangent
+        glEnableVertexAttribArray(5);  // bitangent
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, position));
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, normal));

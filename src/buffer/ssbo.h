@@ -58,6 +58,9 @@ namespace buffer {
         SSBO() = default;
         SSBO(GLuint array_size, GLuint index);
         ~SSBO();
+
+        SSBO(const SSBO&) = delete;
+        SSBO& operator=(const SSBO&) = delete;
         
         void Bind() const override;
         void Unbind() const override;

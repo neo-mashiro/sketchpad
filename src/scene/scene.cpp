@@ -2,10 +2,6 @@
 
 #include "core/input.h"
 #include "core/log.h"
-#include "buffer/fbo.h"
-#include "buffer/ubo.h"
-#include "components/all.h"
-#include "components/component.h"
 #include "scene/scene.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
@@ -17,7 +13,11 @@ using namespace components;
 
 namespace scene {
 
-    Scene::Scene(const std::string& title) : title(title), directory() {}
+    Scene::Scene(const std::string& title) : title(title), directory() {
+        // add a default (empty) material component whenever a mesh or model component is added
+        registry.on_construct<Mesh>().connect<&entt::registry::emplace_or_replace<Material>>();
+        registry.on_construct<Model>().connect<&entt::registry::emplace_or_replace<Material>>();
+    }
 
     Scene::~Scene() {
         registry.each([this](auto id) {

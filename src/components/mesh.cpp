@@ -251,7 +251,9 @@ namespace components {
 
     Mesh::~Mesh() {
         // log message to the console so that we are aware of the *hidden* destructor calls
-        CORE_WARN("Destructing mesh data (VAO = {0})!", vao->id);
+        if (vao != nullptr) {
+            CORE_WARN("Destructing mesh data (VAO = {0})!", vao->id);
+        }
     }
 
     Mesh::Mesh(Mesh&& other) noexcept {
@@ -285,14 +287,14 @@ namespace components {
         ibo = LoadBuffer<IBO>();
 
         vao->Bind();
-        vao->SetLayout();
-
         vbo->Bind();
-        vbo->SetData(vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+
+        vao->SetLayout();
+        vbo->SetData(vertices.size() * sizeof(Vertex), &vertices[0]);
         // vbo->Unbind();  // this is optional (actually not desired)
 
         ibo->Bind();
-        ibo->SetIndices(indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        ibo->SetIndices(indices.size() * sizeof(GLuint), &indices[0]);
         // ibo->Unbind();  // do not unbind IBO until VAO has been unbound first
 
         vao->Unbind();

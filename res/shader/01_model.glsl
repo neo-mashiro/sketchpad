@@ -4,7 +4,7 @@ layout(std140, binding = 0) uniform Camera {
     vec3 position;
     vec3 direction;
     mat4 view;
-    mat4 perspective;
+    mat4 projection;
 } camera;
 
 layout(std140, binding = 1) uniform DLT {

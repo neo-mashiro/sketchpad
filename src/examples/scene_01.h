@@ -27,19 +27,20 @@ namespace scene {
         Entity runestone;
         Entity direct_light;
         Entity orbit_light;
-        Entity point_lights[16];
+        Entity point_lights[28];
 
         // forward+ rendering (a.k.a tiled forward rendering)
         GLuint tile_size = 16;
         GLuint nx, ny, n_tiles;
 
-        SSBO<glm::vec4> light_position_ssbo;
-        SSBO<GLfloat> light_range_ssbo;
-        SSBO<GLint> light_index_ssbo;
+        buffer_ref<SSBO<glm::vec4>> pl_color_ssbo;
+        buffer_ref<SSBO<glm::vec4>> pl_position_ssbo;
+        buffer_ref<SSBO<GLfloat>>   pl_range_ssbo;
+        buffer_ref<SSBO<GLint>>     pl_index_ssbo;
 
-        asset_ref<Shader> depth_prepass_shader;
+        //asset_ref<Shader> depth_prepass_shader;
         asset_ref<ComputeShader> light_cull_compute_shader;
 
-
+        asset_ref<Shader> test_shader;
     };
 }

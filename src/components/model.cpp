@@ -1,9 +1,10 @@
 #include "pch.h"
 
 #include "core/log.h"
-#include "components/texture.h"
+#include "buffer/vao.h"
 #include "components/mesh.h"
 #include "components/model.h"
+#include "components/texture.h"
 #include "utils/path.h"
 
 namespace components {
@@ -63,16 +64,11 @@ namespace components {
     }
 
     void Model::Report() {
-        // due to the complexity of various model formats and different conventions of using materials,
-        // there can be a discrepancy between the artist's original intention about the model and the
-        // way assimp interprets the model, so we provide this function to report the loading details,
-        // which can be used as a reference to help users write up a compatible shader for the model.
-
         CORE_TRACE("Printing model loading report...... (for reference only)");
 
-        CORE_TRACE("Number of meshes:    {0}", meshes_count);
-        CORE_TRACE("Number of vertices:  {0:.2f}k ({1})", vertices_count * 0.001f, vertices_count);
-        CORE_TRACE("Number of materials: {0:.2f}k ({1})", materials_count * 0.001f, materials_count);
+        CORE_TRACE("Number of meshes:    {0}", n_meshes);
+        CORE_TRACE("Number of vertices:  {0:.2f}k ({1})", n_verts * 0.001f, n_verts);
+        CORE_TRACE("Number of materials: {0:.2f}k ({1})", n_materials * 0.001f, n_materials);
 
         // report vertices metadata
         CORE_TRACE("VTX-format: position  [{0}]", vtx_format.test(0) ? "Y" : "N");
@@ -137,14 +133,6 @@ namespace components {
     }
 
     void Model::Import(const std::string& material_name, std::vector<asset_ref<Texture>>& tex_refs) {
-        // depending on the model asset, assimp may not be able to correctly load textures every time,
-        // this problem comes up quite often for FBX models with separate (mostly PBR) textures, one
-        // can easily observe it by reading the loading report in the console. Since there is no silver
-        // bullet for all models, we decide to provide this function to give users the option to import
-        // textures manually into the model. Calling this function will overwrite the textures of the
-        // given material name, use this only if you know where the textures are and how they should be
-        // applied to the model (you may find the model loading report helpful).
-
         if (materials_cache.count(material_name) == 0) {
             CORE_ERROR("Invalid material name: {0}", material_name);
             return;
@@ -177,7 +165,7 @@ namespace components {
         std::vector<GLuint> indices;
 
         // determine vertex format in the first run (from the first mesh)
-        if (vertices_count == 0) {
+        if (n_verts == 0) {
             vtx_format.set(0, ai_mesh->HasPositions());
             vtx_format.set(1, ai_mesh->HasNormals());
             vtx_format.set(2, ai_mesh->HasTextureCoords(0));
@@ -233,7 +221,7 @@ namespace components {
             }
 
             vertices.push_back(vertex);
-            vertices_count++;
+            n_verts++;
         }
 
         // construct indices data
@@ -247,7 +235,7 @@ namespace components {
         }
 
         auto& mesh = meshes.emplace_back(vertices, indices);  // move construct mesh in-place
-        meshes_count++;
+        n_meshes++;
 
         aiMaterial* ai_material = ai_root->mMaterials[ai_mesh->mMaterialIndex];
         ProcessMaterial(ai_material, mesh);
@@ -288,7 +276,7 @@ namespace components {
 
         aiString buffer;
         if (ai_material->Get(AI_MATKEY_NAME, buffer) != AI_SUCCESS) {
-            CORE_ERROR("Unable to load mesh's material (VAO = {0})...", mesh.VAO);
+            CORE_ERROR("Unable to load mesh's material (VAO = {0})...", mesh.GetVAO()->id);
             __debugbreak();
         }
 
@@ -359,7 +347,7 @@ namespace components {
         }
 
         if (!txtr_names.empty() || !prop_names.empty()) {
-            materials_count++;
+            n_materials++;
         }
 
         // if we are here, this material is completely empty (no properties, no textures, perhaps

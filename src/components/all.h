@@ -1,5 +1,6 @@
 #pragma once
 
+#include "components/component.h"
 #include "components/transform.h"
 #include "components/tag.h"
 #include "components/camera.h"

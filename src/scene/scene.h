@@ -2,18 +2,25 @@
 
 #include <map>
 #include <string>
-#include "components/tag.h"
+#include "core/log.h"
+#include "buffer/all.h"
+#include "components/all.h"
 #include "scene/entity.h"
 
-// forward declaration
-namespace buffer {
-    class UBO;
-    class FBO;
-}
+using namespace buffer;
+using namespace components;
 
 namespace scene {
 
-    using namespace buffer;
+    // OpenGL debug message callback is not always triggered when error occurs, how it
+    // behaves is up to the driver (may vary across drivers) so it's not 100% reliable
+    // when debugging the scene code, use this function alias to manually catch errors
+
+    template<typename... Args>
+    auto CheckGLError(Args&&... args) ->
+        decltype(core::Log::CheckGLError(std::forward<Args>(args)...)) {
+        return core::Log::CheckGLError(std::forward<Args>(args)...);
+    }
 
     class Scene {
       private:
@@ -28,7 +35,7 @@ namespace scene {
         void AddUBO(GLuint shader_id);
         FBO& AddFBO(GLuint n_color_buff, GLuint width, GLuint height);
 
-        Entity CreateEntity(const std::string& name, components::ETag tag = components::ETag::Untagged);
+        Entity CreateEntity(const std::string& name, ETag tag = ETag::Untagged);
         void DestroyEntity(Entity entity);
 
       public:

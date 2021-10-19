@@ -1,6 +1,7 @@
 #version 460
 
-// this shader is adapted from:
+// this compute shader is used by the light culling pass in forward+ rendering
+// references:
 // --- https://github.com/bcrusco/Forward-Plus-Renderer
 // --- https://takahiroharada.files.wordpress.com/2015/04/forward_plus.pdf
 // --- https://www.3dgep.com/forward-plus/
@@ -8,26 +9,32 @@
 // currently we only support light culling on point lights but it's more than enough.
 // it is rare that users have thousands of directional and area lights or spotlights.
 
+////////////////////////////////////////////////////////////////////////////////
+
 layout(std140, binding = 0) uniform Camera {
     vec3 position;
     vec3 direction;
     mat4 view;
-    mat4 perspective;
+    mat4 projection;
 } camera;
 
 #ifdef compute_shader
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(std430, binding = 0) readonly buffer Position {
+layout(std430, binding = 0) readonly buffer Color {
+	vec4 data[];
+} light_colors;
+
+layout(std430, binding = 1) readonly buffer Position {
 	vec4 data[];
 } light_positions;
 
-layout(std430, binding = 1) readonly buffer Range {
+layout(std430, binding = 2) readonly buffer Range {
 	float data[];
 } light_ranges;
 
-layout(std430, binding = 2) writeonly buffer Index {
+layout(std430, binding = 3) writeonly buffer Index {
 	int data[];
 } light_indices;
 
@@ -44,7 +51,7 @@ shared uint min_depth;
 shared uint max_depth;
 shared uint n_visible_lights;
 shared vec4 frustum_planes[6];
-shared int local_indices[16];  // indices of visible lights in the current tile
+shared int local_indices[28];  // indices of visible lights in the current tile
 
 void main() {
     // step 0: initialize shared data in the first local invocation (first thread)

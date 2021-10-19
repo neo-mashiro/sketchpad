@@ -8,6 +8,8 @@
 #include "core/log.h"
 #include "components/all.h"
 
+using namespace components;
+
 namespace scene {
 
     class Entity {
@@ -30,12 +32,9 @@ namespace scene {
 
         template<typename T, typename... Args>
         T& AddComponent(Args&&... args) {
-            using namespace components;
-
             CORE_ASERT(!registry->all_of<T>(id), "Component {0} already exists in {1}!", type_name<T>(), name);
-
             if constexpr (std::is_same_v<T, Camera>) {
-                // the camera component should be tied to the entity's transform component
+                // the camera component is tied to the camera's transform component
                 auto& this_transform = registry->get<Transform>(id);
                 return registry->emplace<T>(id, &this_transform, std::forward<Args>(args)...);
             }

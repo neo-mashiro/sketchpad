@@ -22,8 +22,9 @@ namespace core {
         static std::shared_ptr<spdlog::logger> logger;
 
       public:
-        static void Init();
         static std::shared_ptr<spdlog::logger> GetLogger() { return logger; }
+        static void Init();
+        static void CheckGLError(int checkpoint);
     };
 
 }

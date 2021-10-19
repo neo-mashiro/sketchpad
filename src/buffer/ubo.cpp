@@ -4,12 +4,18 @@
 #include "core/log.h"
 #include "buffer/ubo.h"
 
+using namespace core;
+
 namespace buffer {
 
     UBO::UBO(GLuint unit, GLsizeiptr block_size) : Buffer(), unit(unit) {
         // uniform data changes quite often so we always use `GL_DYNAMIC_DRAW` as the hint
-        glGenBuffers(1, &id);
-        glNamedBufferData(id, block_size, NULL, GL_DYNAMIC_DRAW);
+        //glGenBuffers(1, &id);
+        //glNamedBufferData(id, block_size, NULL, GL_DYNAMIC_DRAW);
+        //glBindBufferBase(GL_UNIFORM_BUFFER, unit, id);
+
+        glCreateBuffers(1, &id);
+        glNamedBufferStorage(id, block_size, NULL, GL_DYNAMIC_STORAGE_BIT);
         glBindBufferBase(GL_UNIFORM_BUFFER, unit, id);
     }
 

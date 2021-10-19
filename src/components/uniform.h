@@ -1,14 +1,10 @@
 #pragma once
 
 #include <string>
-#include <type_traits>
 #include <GL/glew.h>
-#include <glm/glm.hpp>
-#include "components/component.h"
 
 namespace components {
 
-    // loose uniforms of dynamic type (locally scoped shader data)
     template<typename T>
     class Uniform {
       public:
@@ -28,35 +24,19 @@ namespace components {
         Uniform(const Uniform&) = default;
         Uniform& operator=(const Uniform&) = default;
 
-        void operator<<(const T& value) {
-            this->value = value;
-            pending_upload = true;
-        }
-
-        void operator<<=(const T* value_ptr) {
-            this->value_ptr = value_ptr;
-            binding_upload = true;
-        }
-
-        void Upload() const {
-            T val = binding_upload ? (*value_ptr) : value;
-
-            /**/ if constexpr (std::is_same_v<T, bool>)      { glUniform1i(location, static_cast<int>(val)); }
-            else if constexpr (std::is_same_v<T, int>)       { glUniform1i(location, val); }
-            else if constexpr (std::is_same_v<T, float>)     { glUniform1f(location, val); }
-            else if constexpr (std::is_same_v<T, glm::vec2>) { glUniform2fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::vec3>) { glUniform3fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::vec4>) { glUniform4fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::mat2>) { glUniformMatrix2fv(location, 1, GL_FALSE, &val[0][0]); }
-            else if constexpr (std::is_same_v<T, glm::mat3>) { glUniformMatrix3fv(location, 1, GL_FALSE, &val[0][0]); }
-            else if constexpr (std::is_same_v<T, glm::mat4>) { glUniformMatrix4fv(location, 1, GL_FALSE, &val[0][0]); }
-            else {
-                // throw a compiler error for any other type of T
-                static_assert(const_false<T>, "Unspecified template uniform type T ...");
-            }
-
-            pending_upload = false;
-        }
+        void operator<<(const T& value);
+        void operator<<=(const T* value_ptr);
+        void Upload() const;
     };
+
+    using uni_int   = Uniform<int>;
+    using uni_bool  = Uniform<bool>;
+    using uni_float = Uniform<float>;
+    using uni_vec2  = Uniform<glm::vec2>;
+    using uni_vec3  = Uniform<glm::vec3>;
+    using uni_vec4  = Uniform<glm::vec4>;
+    using uni_mat2  = Uniform<glm::mat2>;
+    using uni_mat3  = Uniform<glm::mat3>;
+    using uni_mat4  = Uniform<glm::mat4>;
 
 }

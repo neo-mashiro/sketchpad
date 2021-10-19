@@ -29,6 +29,8 @@ namespace scene {
 
     std::queue<entt::entity> Renderer::render_queue {};
 
+    static bool depth_prepass = false;
+
     void Renderer::MSAA(bool on) {
         // the built-in MSAA only works on the default framebuffer (without multi-pass)
         static GLint buffers, samples;
@@ -45,7 +47,7 @@ namespace scene {
     }
 
     void Renderer::DepthPrepass(bool on) {
-        Material::depth_prepass = on;
+        depth_prepass = on;
     }
 
     void Renderer::DepthTest(bool on) {
@@ -111,7 +113,7 @@ namespace scene {
     }
 
     void Renderer::Clear() {
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
         glClearDepth(1.0f);
         glClearStencil(0);  // 8-bit integer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -143,7 +145,8 @@ namespace scene {
                 auto& material  = mesh_group.get<Material>(e);
                 auto tag        = mesh_group.get<Tag>(e).tag;
 
-                material.SetUniform(0, transform.transform);
+                material.SetUniform(0, depth_prepass);
+                material.SetUniform(1, transform.transform);
 
                 if (material.Bind()) {
                     if (tag == ETag::Skybox) {
@@ -165,7 +168,8 @@ namespace scene {
                 auto& model     = model_group.get<Model>(e);
                 auto& material  = model_group.get<Material>(e);  // one material is reused for every mesh
 
-                material.SetUniform(0, transform.transform);
+                material.SetUniform(0, depth_prepass);
+                material.SetUniform(1, transform.transform);
 
                 for (auto& mesh : model.meshes) {
                     GLuint material_id = mesh.material_id;
@@ -173,20 +177,23 @@ namespace scene {
                     auto& properties = model.properties[material_id];
 
                     // update material id for the current mesh
-                    material.SetUniform(1, static_cast<int>(material_id));
+                    material.SetUniform(2, static_cast<int>(material_id));
 
-                    // update textures for the current mesh
-                    for (size_t i = 0; i < textures.size(); i++) {
-                        material.SetTexture(i, textures[i]);  // use array index as texture unit
+                    // update textures for the current mesh if textures are available
+                    if (size_t n = textures.size(); n > 0) {
+                        for (size_t i = 0; i < n; i++) {
+                            material.SetTexture(i, textures[i]);  // use array index as texture unit
+                        }
                     }
-
-                    // update properties for the current mesh
-                    for (size_t i = 0; i < properties.size(); i++) {
-                        auto visitor = [&i, &material](const auto& prop) {
-                            // location 0 and 1 are reserved for the transform and material id
-                            material.SetUniform(i + 2, prop);
-                        };
-                        std::visit(visitor, properties[i]);
+                    // update properties only if no textures are available
+                    else {
+                        for (size_t i = 0; i < properties.size(); i++) {
+                            auto visitor = [&i, &material](const auto& prop) {
+                                // locations 0 ~ 12 are reserved for standard PBR shader use
+                                material.SetUniform(i + 13, prop);
+                            };
+                            std::visit(visitor, properties[i]);
+                        }
                     }
 
                     // commit and push the updates to the shader (notice that the shader is really

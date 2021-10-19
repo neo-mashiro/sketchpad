@@ -108,6 +108,10 @@ namespace buffer {
         
         // allocate memory as an immutable-format texture
         glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH24_STENCIL8, width, height);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         GLint param = 0;
         glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_IMMUTABLE_FORMAT, &param);
@@ -130,14 +134,17 @@ namespace buffer {
     void FBO::EnableMRT() const {
         // enable multiple render targets
         size_t n_color_buff = color_textures.size();
-        GLenum* attachments = new GLenum[n_color_buff];
 
-        for (GLenum i = 0; i < n_color_buff; i++) {
-            *(attachments + i) = GL_COLOR_ATTACHMENT0 + i;
+        if (n_color_buff > 0) {
+            GLenum* attachments = new GLenum[n_color_buff];
+
+            for (GLenum i = 0; i < n_color_buff; i++) {
+                *(attachments + i) = GL_COLOR_ATTACHMENT0 + i;
+            }
+
+            glDrawBuffers(n_color_buff, attachments);
+            delete[] attachments;
         }
-
-        glDrawBuffers(n_color_buff, attachments);
-        delete[] attachments;
     }
 
     bool FBO::CheckStatus() const {

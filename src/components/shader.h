@@ -2,9 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <type_traits>
 #include <GL/glew.h>
-#include "components/component.h"
 
 namespace components {
 
@@ -130,47 +128,26 @@ namespace components {
     */
 
     class ComputeShader : public Shader {
-      private:
-        static GLint max_workgroup_count[3];
-        static GLint max_workgroup_size[3];
-        static GLint max_invocations;
-        
       public:
-        ComputeShader(const std::string& source_path)                : Shader(source_path) {}
-        ComputeShader(const std::string& binary_path, GLenum format) : Shader(binary_path, format) {}
+        ComputeShader(const std::string& source_path);
+        ComputeShader(const std::string& binary_path, GLenum format);
         ~ComputeShader() {}  // the base virtual destructor will be automatically called
 
         ComputeShader(const ComputeShader&) = delete;
         ComputeShader& operator=(const ComputeShader&) = delete;
 
-        ComputeShader(ComputeShader&& other) noexcept : Shader(std::move(other)) {}
-        ComputeShader& operator=(ComputeShader&& other) noexcept {
-            Shader::operator=(std::move(other));
-            return *this;
-        }
+        ComputeShader(ComputeShader&& other) noexcept;
+        ComputeShader& operator=(ComputeShader&& other) noexcept;
 
-        void Bind()   const { Shader::Bind(); }
-        void Unbind() const { Shader::Unbind(); }
-        void Save()   const { Shader::Save(); }
+        void Bind() const;
+        void Unbind() const;
+        void Save() const;
 
         void Dispatch(GLuint nx, GLuint ny, GLuint nz = 1) const;
         void SyncWait(GLbitfield barriers = GL_SHADER_STORAGE_BARRIER_BIT) const;
 
         template<typename T>
-        void SetUniform(GLuint location, const T& value) const {
-            /**/ if constexpr (std::is_same_v<T, bool>)      { glUniform1i(location, static_cast<int>(val)); }
-            else if constexpr (std::is_same_v<T, int>)       { glUniform1i(location, val); }
-            else if constexpr (std::is_same_v<T, float>)     { glUniform1f(location, val); }
-            else if constexpr (std::is_same_v<T, glm::vec2>) { glUniform2fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::vec3>) { glUniform3fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::vec4>) { glUniform4fv(location, 1, &val[0]); }
-            else if constexpr (std::is_same_v<T, glm::mat2>) { glUniformMatrix2fv(location, 1, GL_FALSE, &val[0][0]); }
-            else if constexpr (std::is_same_v<T, glm::mat3>) { glUniformMatrix3fv(location, 1, GL_FALSE, &val[0][0]); }
-            else if constexpr (std::is_same_v<T, glm::mat4>) { glUniformMatrix4fv(location, 1, GL_FALSE, &val[0][0]); }
-            else {
-                static_assert(const_false<T>, "Unspecified template uniform type T ...");
-            }
-        }
+        void SetUniform(GLuint location, const T& val) const;
     };
 
 }

@@ -19,8 +19,8 @@ namespace buffer {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void IBO::SetIndices(GLsizeiptr size, const void* data, GLenum hint) const {
-        glNamedBufferData(id, size, data, hint);
+    void IBO::SetIndices(GLsizeiptr size, const void* data) const {
+        glNamedBufferData(id, size, data, GL_STATIC_DRAW);
     }
 
     void IBO::SetIndices(GLsizeiptr size, const void* data, GLintptr offset) const {

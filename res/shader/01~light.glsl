@@ -14,20 +14,30 @@ layout(std140, binding = 2) uniform Spotlight {
     float range;
 } SL;
 
-layout(std140, binding = 3) uniform PointLight {
+layout(std140, binding = 3) uniform OrbitLight {
     vec3 color;
     vec3 position;
     float intensity;
     float linear;
     float quadratic;
     float range;
-} PL[17];  // 16 point lights on the border + 1 orbit light
+} OL;
+
+const float linear = 0.09;
+const float quadratic = 0.032;
+const float intensity = 0.8;
 
 vec3 PointLightRadience(uint i, vec3 fpos) {
     // the point light attenuation follows the inverse-square law
-    float d = distance(PL[i].position, fpos);
-    float attenuation = d >= PL[i].range ? 0.0 : 1.0 / (1.0 + PL[i].linear * d + PL[i].quadratic * d * d);
-    return attenuation * PL[i].intensity * PL[i].color;
+    float d = distance(light_positions.data[i].xyz, fpos);
+    float attenuation = d >= light_ranges.data[i] ? 0.0 : 1.0 / (1.0 + linear * d + quadratic * d * d);
+    return attenuation * intensity * light_colors.data[i].rgb;
+}
+
+vec3 OrbitLightRadience(vec3 fpos) {
+    float d = distance(OL.position, fpos);
+    float attenuation = d >= OL.range ? 0.0 : 1.0 / (1.0 + OL.linear * d + OL.quadratic * d * d);
+    return attenuation * OL.intensity * OL.color;
 }
 
 vec3 SpotlightRadience(vec3 fpos) {

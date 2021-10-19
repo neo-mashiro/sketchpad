@@ -7,8 +7,6 @@
 #include <crtdbg.h>
 
 #include "core/app.h"
-#include "core/log.h"
-#include "scene/scene.h"
 
 #pragma execution_character_set("utf-8")
 
@@ -36,15 +34,10 @@ int main(int argc, char** argv) {
     SetConsoleTextAttribute(console, 3);  // water blue text, transparent background
 
     std::cout << "=====================================================================\n";
-    std::cout << "  v(^_^)v Welcome to sketchpad! OpenGL context is now active! (~.^)  \n";
+    std::cout << "  v(>.<)v Welcome to sketchpad! OpenGL context is now active! (~.^)  \n";
     std::cout << "=====================================================================\n";
 
     SetConsoleTextAttribute(console, 8);  // light gray text, transparent background
-
-    app.gl_vendor    = std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
-    app.gl_renderer  = std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
-    app.gl_version   = std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-    app.glsl_version = std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
     std::cout << "---------------------------------------------------------------------\n";
     std::cout << "* System Information" << std::endl;
@@ -54,19 +47,34 @@ int main(int argc, char** argv) {
     std::cout << "- OpenGL Version:    " << app.gl_version   << std::endl;
     std::cout << "- GLSL Core Version: " << app.glsl_version << '\n' << std::endl;
 
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &(app.gl_texsize));
-    glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &(app.gl_texsize_3d));
-    glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &(app.gl_texsize_cubemap));
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &(app.gl_max_texture_units));
-
     std::cout << "---------------------------------------------------------------------\n";
     std::cout << "* Maximum supported texture size: " << std::endl;
     std::cout << "---------------------------------------------------------------------\n";
     std::cout << "- 1D / 2D texture (width and height): " << app.gl_texsize << std::endl;
     std::cout << "- 3D texture (width, height & depth): " << app.gl_texsize_3d << std::endl;
     std::cout << "- Cubemap texture (width and height): " << app.gl_texsize_cubemap << std::endl;
-    std::cout << "- Maximum number of samplers supported in the fragment shader: " <<
-        app.gl_max_texture_units << '\n' << std::endl;
+    std::cout << "- Max number of texture image units: "  << app.gl_max_texture_units << '\n' << std::endl;
+
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "* Maximum allowed number of uniform buffers: " << std::endl;
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "- Vertex shader:   " << app.gl_maxv_ubos << std::endl;
+    std::cout << "- Geometry shader: " << app.gl_maxg_ubos << std::endl;
+    std::cout << "- Fragment shader: " << app.gl_maxf_ubos << std::endl;
+    std::cout << "- Compute shader:  " << app.gl_maxc_ubos << '\n' << std::endl;
+
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "* Maximum allowed number of shader storage buffers: " << std::endl;
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "- Fragment shader: " << app.gl_maxf_ssbos << std::endl;
+    std::cout << "- Compute shader:  " << app.gl_maxc_ssbos << '\n' << std::endl;
+
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "* GPGPU limitation of compute shaders: " << std::endl;
+    std::cout << "---------------------------------------------------------------------\n";
+    std::cout << "- Max number of invocations (threads): " << app.cs_max_invocations << std::endl;
+    std::cout << "- Max work group count (x, y, z): " << app.cs_nx << ", " << app.cs_ny << ", " << app.cs_nz << std::endl;
+    std::cout << "- Max work group size  (x, y, z): " << app.cs_sx << ", " << app.cs_sy << ", " << app.cs_sz << '\n' << std::endl;
 
     SetConsoleTextAttribute(console, 15);  // full white text, transparent background
 
@@ -81,15 +89,16 @@ int main(int argc, char** argv) {
         app.PostEventUpdate();  // now we have a chance to do our own update stuff (application level)
     }
 
-    // if the user requested to exit properly, `app.PostEventUpdate()` will clean up context and data
-    // first to make sure all stacks are unwound and all destructors are called, and then safely exit,
-    // so there won't be any memory leaks, and in fact we will never reach here.
+    /* if the user requested to exit properly, `app.PostEventUpdate()` will clean up context and data
+       first to make sure all stacks are unwound and all destructors are called, and then safely exit,
+       so there won't be any memory leaks, and in fact we will never reach here.
 
-    // upon exit, the CRT library may still detect and report a few memory leaks in the debug window,
-    // which are actually just some global static data that lives in the static memory segment, apart
-    // from the heap and the stack. Static variables are intended to be persistent for the lifetime of
-    // the application, they are only destructed before the shutdown of the process. Since the program
-    // is going to terminate anyway, these are not real memory leaks but false positives of the report
+       upon exit, the CRT library may still detect and report a few memory leaks in the debug window,
+       which are actually just some global static data that lives in the static memory segment, apart
+       from the heap and the stack. Static variables are intended to be persistent for the lifetime of
+       the application, they are only destructed before the shutdown of the process. Since the program
+       is going to terminate anyway, these are not real memory leaks but false positives of the report
+    */
 
     app.Clear();
     return 0;

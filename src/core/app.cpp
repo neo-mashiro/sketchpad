@@ -232,11 +232,7 @@ namespace core {
     // core event functions
     // -------------------------------------------------------------------------
     void Application::Init() {
-        gl_vendor = gl_renderer = gl_version = glsl_version = "";
-        gl_texsize = gl_texsize_3d = gl_texsize_cubemap = gl_max_texture_units = 0;
-
         opengl_context_active = false;
-
         std::cout << ".........\n" << std::endl;
 
         Log::Init();
@@ -309,6 +305,41 @@ namespace core {
         // opengl context is now active
         opengl_context_active = true;
         std::cout << std::endl;
+
+        // load hardware information
+        gl_vendor    = std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+        gl_renderer  = std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+        gl_version   = std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+        glsl_version = std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
+
+        // limit on texture size and max number of texture units (including image units)
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE,          &gl_texsize);
+        glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE,       &gl_texsize_3d);
+        glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &gl_texsize_cubemap);
+        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS,   &gl_max_texture_units);
+
+        // max number of uniform blocks in each shader stage
+        glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS,   &gl_maxv_ubos);
+        glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &gl_maxg_ubos);
+        glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &gl_maxf_ubos);
+        glGetIntegerv(GL_MAX_COMPUTE_UNIFORM_BLOCKS,  &gl_maxc_ubos);
+
+        // max number of shader storage blocks in the fragment shader and compute shader
+        glGetIntegerv(GL_MAX_FRAGMENT_SHADER_STORAGE_BLOCKS, &gl_maxf_ssbos);
+        glGetIntegerv(GL_MAX_COMPUTE_SHADER_STORAGE_BLOCKS,  &gl_maxc_ssbos);
+
+        // max number of work groups in the compute shader
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &cs_nx);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &cs_ny);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &cs_nz);
+
+        // compute shader work groups size limit
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &cs_sx);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &cs_sy);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &cs_sz);
+
+        // max number of threads in the compute shader
+        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &cs_max_invocations);
     }
 
     void Application::Start() {
