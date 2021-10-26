@@ -23,9 +23,6 @@ namespace components {
         return type;
     }
 
-    template<typename T>
-    inline constexpr bool const_false = false;
-
     template <typename... Args>
     auto val_ptr(Args&&... args) -> decltype(glm::value_ptr(std::forward<Args>(args)...)) {
         return glm::value_ptr(std::forward<Args>(args)...);

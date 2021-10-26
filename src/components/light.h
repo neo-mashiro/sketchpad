@@ -48,7 +48,7 @@ namespace components {
 
         using Light::Light;
 
-        void SetCutoff(float range, float inner_cutoff = 30.0f, float outer_cutoff = 60.0f);
+        void SetCutoff(float range, float inner_cutoff = 15.0f, float outer_cutoff = 30.0f);
         float GetInnerCosine() const;
         float GetOuterCosine() const;
         float GetAttenuation(float distance) const;

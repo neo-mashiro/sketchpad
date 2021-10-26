@@ -340,6 +340,13 @@ namespace core {
 
         // max number of threads in the compute shader
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &cs_max_invocations);
+
+        // max number of drawable color buffers in a custom framebuffer
+        GLint max_color_attachments, max_draw_buffers;
+        glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
+        glGetIntegerv(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
+
+        gl_max_color_buffs = std::min(max_color_attachments, max_draw_buffers);
     }
 
     void Application::Start() {

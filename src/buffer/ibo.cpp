@@ -4,7 +4,7 @@
 namespace buffer {
 
     IBO::IBO() {
-        glGenBuffers(1, &id);
+        glCreateBuffers(1, &id);
     }
 
     IBO::~IBO() {
@@ -19,11 +19,11 @@ namespace buffer {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
-    void IBO::SetIndices(GLsizeiptr size, const void* data) const {
+    void IBO::SetData(GLsizeiptr size, const void* data) const {
         glNamedBufferData(id, size, data, GL_STATIC_DRAW);
     }
 
-    void IBO::SetIndices(GLsizeiptr size, const void* data, GLintptr offset) const {
+    void IBO::SetData(GLsizeiptr size, const void* data, GLintptr offset) const {
         glNamedBufferSubData(id, offset, size, data);
     }
 

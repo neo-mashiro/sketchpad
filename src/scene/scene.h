@@ -33,7 +33,7 @@ namespace scene {
         std::map<GLuint, FBO> FBOs;  // stores a list of indexed framebuffers
 
         void AddUBO(GLuint shader_id);
-        FBO& AddFBO(GLuint n_color_buff, GLuint width, GLuint height);
+        FBO& AddFBO(GLuint width, GLuint height);
 
         Entity CreateEntity(const std::string& name, ETag tag = ETag::Untagged);
         void DestroyEntity(Entity entity);
@@ -67,6 +67,7 @@ namespace scene {
         constexpr glm::vec3 black { 0.0f };
         constexpr glm::vec3 red { 1.0f, 0.0f, 0.0f };
         constexpr glm::vec3 green { 0.0f, 1.0f, 0.0f };
+        constexpr glm::vec3 lime { 0.5f, 1.0f, 0.0f };
         constexpr glm::vec3 blue { 0.0f, 0.0f, 1.0f };
         constexpr glm::vec3 cyan { 0.0f, 1.0f, 1.0f };
         constexpr glm::vec3 yellow { 1.0f, 1.0f, 0.0f };

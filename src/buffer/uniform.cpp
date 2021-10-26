@@ -2,12 +2,18 @@
 
 #include <type_traits>
 #include <glm/glm.hpp>
-#include "components/uniform.h"
-#include "components/component.h"
+#include "buffer/uniform.h"
 
 using namespace glm;
 
-namespace components {
+namespace buffer {
+
+    template<typename T>
+    inline constexpr bool const_false = false;
+
+    template<typename T>
+    Uniform<T>::Uniform(GLuint owner_id, GLuint location, char* name)
+        : owner_id(owner_id), location(location), name(name), value(0), value_ptr(nullptr) {}
 
     template<typename T>
     void Uniform<T>::operator<<(const T& value) {

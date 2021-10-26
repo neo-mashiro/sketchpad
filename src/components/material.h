@@ -5,14 +5,16 @@
 #include <glm/glm.hpp>
 
 #include "core/log.h"
+#include "buffer/uniform.h"
 #include "components/component.h"
-#include "components/uniform.h"
 
 namespace components {
 
     // forward declaration
     class Shader;
-    class Texture;
+    class buffer::Texture;
+
+    using namespace buffer;
 
     // supported uniform variants
     using uniform_variant = std::variant<

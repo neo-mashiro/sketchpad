@@ -11,14 +11,27 @@ using namespace core;
 
 namespace components {
 
+    const std::vector<GLint> Mesh::vertex_attribute_offset = {
+        offsetof(Vertex, position),
+        offsetof(Vertex, normal),
+        offsetof(Vertex, uv),
+        offsetof(Vertex, uv2),
+        offsetof(Vertex, tangent),
+        offsetof(Vertex, bitangent)
+    };
+
+    const std::vector<GLint> Mesh::vertex_attribute_size = { 3, 3, 2, 2, 3, 3 };
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
     void Mesh::CreateSphere(float radius) {
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
         static constexpr float PI = 3.141592653589f;
 
-        // mesh grid size (default LOD = 500x500 vertices)
-        unsigned int n_rows = 500;
-        unsigned int n_cols = 500;
+        // mesh grid size (default LOD = 100x100 vertices)
+        unsigned int n_rows = 100;
+        unsigned int n_cols = 100;
 
         for (unsigned int col = 0; col <= n_cols; ++col) {
             for (unsigned int row = 0; row <= n_rows; ++row) {
@@ -246,13 +259,13 @@ namespace components {
 
     Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices) {
         CreateBuffers(vertices, indices);
-        material_id = vao->id;  // only this ctor will be called when loading external models
+        material_id = vao->GetID();  // only this ctor will be called when loading external models
     }
 
     Mesh::~Mesh() {
         // log message to the console so that we are aware of the *hidden* destructor calls
         if (vao != nullptr) {
-            CORE_WARN("Destructing mesh data (VAO = {0})!", vao->id);
+            CORE_WARN("Destructing mesh data (VAO = {0})!", vao->GetID());
         }
     }
 
@@ -268,6 +281,7 @@ namespace components {
             ibo = nullptr;
 
             n_verts = n_tris = material_id = 0;
+            render_mode = RenderMode::Triangle;
 
             // transfer ownership of all members
             std::swap(vao, other.vao);
@@ -276,6 +290,7 @@ namespace components {
             std::swap(n_verts, other.n_verts);
             std::swap(n_tris, other.n_tris);
             std::swap(material_id, other.material_id);
+            std::swap(render_mode, other.render_mode);
         }
 
         return *this;
@@ -286,19 +301,17 @@ namespace components {
         vbo = LoadBuffer<VBO>();
         ibo = LoadBuffer<IBO>();
 
-        vao->Bind();
-        vbo->Bind();
-
-        vao->SetLayout();
         vbo->SetData(vertices.size() * sizeof(Vertex), &vertices[0]);
-        // vbo->Unbind();  // this is optional (actually not desired)
+        ibo->SetData(indices.size() * sizeof(GLuint), &indices[0]);
 
-        ibo->Bind();
-        ibo->SetIndices(indices.size() * sizeof(GLuint), &indices[0]);
-        // ibo->Unbind();  // do not unbind IBO until VAO has been unbound first
+        GLuint vbo_id = vbo->GetID();
+        GLuint ibo_id = ibo->GetID();
 
-        vao->Unbind();
-        // ibo->Unbind();  // now it's safe to unbind IBO, but not recommended
+        for (GLuint i = 0; i < 6; i++) {
+            vao->SetVBO(vbo_id, i, vertex_attribute_offset[i], vertex_attribute_size[i], sizeof(Vertex));
+        }
+
+        vao->SetIBO(ibo_id);
 
         n_verts = indices.size();
         n_tris = n_verts / 3;

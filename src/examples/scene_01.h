@@ -38,9 +38,7 @@ namespace scene {
         buffer_ref<SSBO<GLfloat>>   pl_range_ssbo;
         buffer_ref<SSBO<GLint>>     pl_index_ssbo;
 
-        //asset_ref<Shader> depth_prepass_shader;
         asset_ref<ComputeShader> light_cull_compute_shader;
 
-        asset_ref<Shader> test_shader;
     };
 }

@@ -153,10 +153,10 @@ namespace scene {
         }
     }
 
-    FBO& Scene::AddFBO(GLuint n_color_buff, GLuint width, GLuint height) {
+    FBO& Scene::AddFBO(GLuint width, GLuint height) {
         // framebuffers are simply indexed by the order of creation
         GLuint key = FBOs.size();
-        FBOs.try_emplace(key, n_color_buff, width, height);
+        FBOs.try_emplace(key, width, height);
         return FBOs[key];
     }
 
@@ -165,12 +165,12 @@ namespace scene {
     static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
-        welcome_screen = LoadAsset<Texture>(GL_TEXTURE_2D, TEXTURE + "misc\\welcome.png");
-        welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->id);
+        welcome_screen = LoadAsset<Texture>(TEXTURE + "misc\\welcome.png", 1);
+        welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->GetID());
     }
 
     void Scene::OnSceneRender() {
-        Renderer::Clear();
+        Renderer::Clear(color::black);
     }
 
     void Scene::OnImGuiRender() {

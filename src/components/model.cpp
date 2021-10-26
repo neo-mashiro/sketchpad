@@ -2,9 +2,9 @@
 
 #include "core/log.h"
 #include "buffer/vao.h"
+#include "buffer/texture.h"
 #include "components/mesh.h"
 #include "components/model.h"
-#include "components/texture.h"
 #include "utils/path.h"
 
 namespace components {
@@ -132,7 +132,7 @@ namespace components {
         }
     }
 
-    void Model::Import(const std::string& material_name, std::vector<asset_ref<Texture>>& tex_refs) {
+    void Model::Import(const std::string& material_name, std::vector<buffer_ref<Texture>>& tex_refs) {
         if (materials_cache.count(material_name) == 0) {
             CORE_ERROR("Invalid material name: {0}", material_name);
             return;
@@ -161,9 +161,6 @@ namespace components {
     }
 
     void Model::ProcessMesh(aiMesh* ai_mesh) {
-        std::vector<Vertex> vertices;
-        std::vector<GLuint> indices;
-
         // determine vertex format in the first run (from the first mesh)
         if (n_verts == 0) {
             vtx_format.set(0, ai_mesh->HasPositions());
@@ -185,9 +182,15 @@ namespace components {
 
         CORE_ASERT(condition, "Inconsistent vertex format! Mesh data is corrupted...");
 
+        // allocate storage for vertices and indices upfront (std::vector dynamic resizing is expensive)
+        std::vector<Mesh::Vertex> vertices;
+        std::vector<GLuint> indices;
+        vertices.reserve(ai_mesh->mNumVertices);
+        indices.reserve(ai_mesh->mNumFaces * 3);  // our polygons are always triangles
+
         // construct vertices data
         for (unsigned int i = 0; i < ai_mesh->mNumVertices; i++) {
-            Vertex vertex {};
+            Mesh::Vertex vertex {};
 
             if (vtx_format.test(0)) {
                 aiVector3D& ai_position = ai_mesh->mVertices[i];
@@ -228,10 +231,12 @@ namespace components {
         for (unsigned int i = 0; i < ai_mesh->mNumFaces; i++) {
             aiFace& triangle = ai_mesh->mFaces[i];
 
+            CORE_ASERT(triangle.mNumIndices == 3, "This polygon is not a triangle!");
+
             // assimp's default winding order agrees with OpenGL (which is CCW)
-            for (unsigned int j = 0; j < triangle.mNumIndices; j++) {
-                indices.push_back(triangle.mIndices[j]);
-            }
+            indices.push_back(triangle.mIndices[0]);
+            indices.push_back(triangle.mIndices[1]);
+            indices.push_back(triangle.mIndices[2]);
         }
 
         auto& mesh = meshes.emplace_back(vertices, indices);  // move construct mesh in-place
@@ -276,7 +281,7 @@ namespace components {
 
         aiString buffer;
         if (ai_material->Get(AI_MATKEY_NAME, buffer) != AI_SUCCESS) {
-            CORE_ERROR("Unable to load mesh's material (VAO = {0})...", mesh.GetVAO()->id);
+            CORE_ERROR("Unable to load mesh's material (VAO = {0})...", mesh.GetVAO()->GetID());
             __debugbreak();
         }
 
@@ -318,7 +323,7 @@ namespace components {
 
             // if we are here, the material has a regular texture map of this type
             txtr_names.push_back(texture_name);
-            txtr_values.push_back(LoadAsset<Texture>(GL_TEXTURE_2D, texture_path));
+            txtr_values.push_back(LoadAsset<Texture>(texture_path));
         }
 
         // find properties in the material

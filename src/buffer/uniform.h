@@ -3,23 +3,23 @@
 #include <string>
 #include <GL/glew.h>
 
-namespace components {
+namespace buffer {
 
     template<typename T>
     class Uniform {
-      public:
-        GLuint owner_id;  // id of the shader that owns this uniform
+      private:
         GLuint location;
-        std::string name;
-
+        GLuint owner_id;  // id of the shader that owns this uniform
         T value;
         const T* value_ptr;
+
+      public:
+        std::string name;
         mutable bool pending_upload = false;
         mutable bool binding_upload = false;
 
         Uniform() = default;
-        Uniform(GLuint owner_id, GLuint location, char* name)
-            : owner_id(owner_id), location(location), name(name), value(0), value_ptr(nullptr) {}
+        Uniform(GLuint owner_id, GLuint location, char* name);
 
         Uniform(const Uniform&) = default;
         Uniform& operator=(const Uniform&) = default;

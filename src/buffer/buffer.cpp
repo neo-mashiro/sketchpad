@@ -10,4 +10,8 @@ namespace buffer {
         CORE_ASERT(core::Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
     }
 
+    GLuint Buffer::GetID() const {
+        return this->id;
+    }
+
 }

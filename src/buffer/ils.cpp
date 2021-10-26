@@ -5,13 +5,11 @@
 
 namespace buffer {
 
-    ILS::ILS(GLsizei width, GLsizei height, GLuint unit, GLenum format)
-        : Buffer(), width(width), height(height), unit(unit), format(format) {
+    ILS::ILS(GLuint width, GLuint height, GLenum internal_format)
+        : Buffer(), width(width), height(height), internal_format(internal_format) {
 
-        glGenTextures(1, &id);
-        glBindTexture(GL_TEXTURE_2D, id);
-        glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glCreateTextures(GL_TEXTURE_2D, 1, &id);
+        glTextureStorage2D(id, 1, internal_format, width, height);
     }
 
     ILS::~ILS() {
@@ -19,12 +17,24 @@ namespace buffer {
         glDeleteTextures(1, &id);        
     }
 
-    void ILS::Bind() const {
-        glBindImageTexture(unit, id, 0, GL_FALSE, 0, GL_READ_WRITE, format);
+    void ILS::Bind(GLuint unit) const {
+        glBindImageTexture(unit, id, 0, GL_FALSE, 0, GL_READ_WRITE, internal_format);
     }
 
-    void ILS::Unbind() const {
-        glBindImageTexture(unit, 0, 0, GL_FALSE, 0, GL_READ_WRITE, format);
+    void ILS::Unbind(GLuint unit) const {
+        glBindImageTexture(unit, 0, 0, GL_FALSE, 0, GL_READ_WRITE, internal_format);
+    }
+
+    void ILS::Transfer(const ILS& fr, const ILS& to) {
+        GLuint fw = fr.width;
+        GLuint fh = fr.height;
+
+        if (fw != to.width || fh != to.height) {
+            CORE_ERROR("Unable to transfer ILS data store, width or height mismatch!");
+            return;
+        }
+
+        glCopyImageSubData(fr.id, GL_TEXTURE_2D, 0, 0, 0, 0, to.id, GL_TEXTURE_2D, 0, 0, 0, 0, fw, fh, 1);
     }
 
 }

@@ -2,8 +2,8 @@
 
 #include "core/app.h"
 #include "core/log.h"
+#include "buffer/texture.h"
 #include "components/shader.h"
-#include "components/texture.h"
 #include "components/material.h"
 #include "utils/path.h"
 
@@ -54,8 +54,9 @@ namespace components {
 
         // rebind textures to the unit slots
         for (const auto& pair : textures) {
-            auto& texture = pair.second;
-            texture->Bind(pair.first);
+            if (auto& texture = pair.second; texture != nullptr) {
+                texture->Bind(pair.first);
+            }
         }
 
         return true;
@@ -64,8 +65,9 @@ namespace components {
     void Material::Unbind() const {
         // clean up texture units
         for (const auto& pair : textures) {
-            auto& texture = pair.second;
-            texture->Unbind(pair.first);
+            if (auto& texture = pair.second; texture != nullptr) {
+                texture->Unbind(pair.first);
+            }
         }
 
         CORE_ASERT(shader, "Unable to unbind the material, please set a valid shader first...");
@@ -84,30 +86,23 @@ namespace components {
     }
 
     void Material::SetTexture(GLuint unit, asset_ref<Texture> texture_ref) {
-        // remove texture from the unit slot
-        if (texture_ref == nullptr) {
-            if (textures.count(unit) == 0) {
-                CORE_WARN("Unit {0} is already empty, operation ignored...", unit);
-                return;
-            }
+        size_t max_samplers = core::Application::GetInstance().gl_max_texture_units;
+        size_t n_textures = 0;
 
-            textures.erase(unit);
+        for (const auto& pair : textures) {
+            if (pair.second != nullptr) {
+                n_textures++;
+            }
         }
 
-        // add texture to the unit slot
-        else {
-            size_t max_samplers = core::Application::GetInstance().gl_max_texture_units;
-            if (textures.size() >= max_samplers) {
-                CORE_WARN("{0} samplers limit has reached, failed to add texture...", max_samplers);
-                return;
-            }
-
-            // if (textures.count(unit) > 0) {
-            //     CORE_WARN("Unit {0} is not empty, previous texture will be replaced...", unit);
-            // }
-
-            textures[unit] = texture_ref;
+        if (texture_ref != nullptr && n_textures >= max_samplers) {
+            CORE_WARN("{0} samplers limit has reached, failed to add texture...", max_samplers);
+            return;
         }
+
+        // even if texture_ref is nullptr, we don't really need to erase or clear the unit slot
+        // it's fine to set the slot to nullptr, a null slot will be skipped on bind and unbind
+        textures[unit] = texture_ref;
     }
 
     template<typename T>
@@ -126,7 +121,7 @@ namespace components {
 
         if (!std::holds_alternative<Uniform<T>>(unif_variant)) {
             CORE_ERROR("Mismatched value type, unable to set uniform in {0}", __FUNCSIG__);
-            return;
+            __debugbreak();
         }
 
         if (bind) {

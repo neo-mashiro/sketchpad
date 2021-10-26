@@ -12,7 +12,8 @@ namespace buffer {
         void Bind() const override;
         void Unbind() const override;
 
-        void SetLayout() const;
+        void SetVBO(GLuint vbo, GLuint attribute_id, GLint offset, GLint size, GLint stride) const;
+        void SetIBO(GLuint ibo) const;
     };
 
 }

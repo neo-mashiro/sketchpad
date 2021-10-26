@@ -49,13 +49,15 @@ namespace scene {
         static void DepthTest(bool on);
         static void StencilTest(bool on);
         static void FaceCulling(bool on);
+        static void SeamlessCubemap(bool on);
         static void SetFrontFace(bool ccw);
+        static void SetViewport(GLuint width, GLuint height);
 
         // core event functions
         static void Attach(const std::string& title);
         static void Detach();
 
-        static void Clear();
+        static void Clear(const glm::vec3& color, float depth = 1.0f, int stencil = 0);
         static void Flush();
         static void Render();
 

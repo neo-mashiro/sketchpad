@@ -4,7 +4,7 @@
 namespace buffer {
 
     VBO::VBO() {
-        glGenBuffers(1, &id);
+        glCreateBuffers(1, &id);
     }
 
     VBO::~VBO() {

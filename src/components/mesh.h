@@ -98,6 +98,20 @@ namespace components {
     */
 
     class Mesh : public Component {
+      public:
+        struct Vertex {
+            glm::vec3 position;
+            glm::vec3 normal;
+            glm::vec2 uv;
+            glm::vec2 uv2;  // second UV channel
+            glm::vec3 tangent;
+            glm::vec3 bitangent;
+        };
+
+        static_assert(sizeof(Vertex) == 16 * sizeof(float));
+        static const std::vector<GLint> vertex_attribute_size;
+        static const std::vector<GLint> vertex_attribute_offset;
+
       private:
         buffer_ref<VAO> vao;
         buffer_ref<VBO> vbo;
@@ -105,7 +119,6 @@ namespace components {
 
       private:
         void CreateBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices);
-
         void CreateSphere(float radius = 1.0f);
         void CreateCube(float size = 1.0f);
         void CreateCylinder(float radius = 1.0f);
@@ -114,7 +127,7 @@ namespace components {
 
       public:
         size_t n_verts, n_tris;
-        RenderMode render_mode;
+        RenderMode render_mode = RenderMode::Triangle;
 
         Mesh(Primitive object);
         Mesh(buffer_ref<VAO> vao, size_t n_verts);

@@ -23,9 +23,14 @@ layout(std140, binding = 3) uniform OrbitLight {
     float range;
 } OL;
 
-const float linear = 0.09;
-const float quadratic = 0.032;
-const float intensity = 0.8;
+layout(std140, binding = 4) uniform LightCluster {
+    // the whole 28 point lights cluster shares the same light intensity and attenuation
+    // coefficients, the intensity value can be controlled dynamically by ImGui sliders.
+    // light cluster colors, positions and ranges are globally fixed (stored in SSBOs)
+    float intensity;
+    float linear;
+    float quadratic;
+};
 
 vec3 PointLightRadience(uint i, vec3 fpos) {
     // the point light attenuation follows the inverse-square law

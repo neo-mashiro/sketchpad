@@ -27,4 +27,9 @@ namespace core {
         static void CheckGLError(int checkpoint);
     };
 
+    class NotImplementedError : public std::logic_error {
+      public:
+        NotImplementedError(const char* message) : std::logic_error(message) {};
+    };
+
 }

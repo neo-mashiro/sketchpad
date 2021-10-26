@@ -1,19 +1,12 @@
 #include "pch.h"
 
-#include <numeric>
 #include "core/log.h"
 #include "buffer/ubo.h"
-
-using namespace core;
 
 namespace buffer {
 
     UBO::UBO(GLuint unit, GLsizeiptr block_size) : Buffer(), unit(unit) {
-        // uniform data changes quite often so we always use `GL_DYNAMIC_DRAW` as the hint
-        //glGenBuffers(1, &id);
-        //glNamedBufferData(id, block_size, NULL, GL_DYNAMIC_DRAW);
-        //glBindBufferBase(GL_UNIFORM_BUFFER, unit, id);
-
+        // uniform data changes quite often so we always use dynamic as the hint
         glCreateBuffers(1, &id);
         glNamedBufferStorage(id, block_size, NULL, GL_DYNAMIC_STORAGE_BIT);
         glBindBufferBase(GL_UNIFORM_BUFFER, unit, id);
@@ -22,6 +15,24 @@ namespace buffer {
     UBO::~UBO() {
         CORE_WARN("Deleting uniform buffer (id = {0})!", id);
         glDeleteBuffers(1, &id);
+    }
+
+    UBO::UBO(UBO&& other) noexcept {
+        *this = std::move(other);
+    }
+
+    UBO& UBO::operator=(UBO&& other) noexcept {
+        if (this != &other) {
+            offset.clear();
+            size.clear();
+
+            std::swap(id, other.id);
+            std::swap(unit, other.unit);
+            std::swap(offset, other.offset);
+            std::swap(size, other.size);
+        }
+
+        return *this;
     }
 
     void UBO::Bind() const {

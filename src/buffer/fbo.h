@@ -62,42 +62,56 @@ namespace buffer {
            fbo.DebugDraw(-2);  // visualize the stencil buffer
     */
 
+    // forward declaration
+    class RBO;
+    class Texture;
+    class TexView;
+
     class FBO : public Buffer {
       private:
+        GLenum status;
         GLuint width, height;
-        asset_ref<Shader> debug_shader;
 
-        std::unique_ptr<Mesh>     virtual_mesh;      // a framebuffer's mesh is simply a fullscreen quad
-        std::unique_ptr<Material> virtual_material;  // user-defined material for uploading FBO's textures
+        std::vector<Texture>     color_textures;      // the vector of color attachments
+        std::unique_ptr<RBO>     depst_renderbuffer;  // depth & stencil as a renderbuffer
+        std::unique_ptr<Texture> depst_texture;       // depth & stencil as a texture
+        std::unique_ptr<TexView> stencil_view;        // temporary stencil texture view
 
-        void AttachColorBuffer(GLenum idx);
-        void AttachDepthStencilBuffer();
-        void EnableMRT() const;
-        bool CheckStatus() const;
+        std::unique_ptr<Mesh>     virtual_mesh;       // for rendering the framebuffer (a quad)
+        std::unique_ptr<Shader>   virtual_shader;     // for debugging the framebuffer
+        std::unique_ptr<Material> virtual_material;   // for postprocessing the framebuffer
 
       public:
-        std::vector<GLuint> color_textures;
-        GLuint depth_stencil_texture, stencil_view;
-
         FBO() = default;
-        FBO(GLuint n_color_buff, GLuint width, GLuint height);
+        FBO(GLuint width, GLuint height);
         ~FBO();
+
+        FBO(const FBO&) = delete;
+        FBO& operator=(const FBO&) = delete;
+
+        FBO(FBO&& other) noexcept;
+        FBO& operator=(FBO&& other) noexcept;
+
+        void AddColorTexture(GLuint count);
+        void AddDepStTexture();
+        void AddDepStRenderBuffer();
+
+        const Texture& GetColorTexture(GLenum index) const;
+        const Texture& GetDepthTexture() const;
+        const TexView& GetStencilTexView() const;
+
+        Material& GetVirtualMaterial();
         
         void Bind() const override;
         void Unbind() const override;
-        void BindBuffer(GLint buffer_id, GLuint unit) const;
-        void UnbindBuffer(GLuint unit) const;
-
-        Material* const GetVirtualMaterial();
 
         void PostProcessDraw() const;
-        void DebugDraw(GLint buffer_id) const;
-        void Clear(GLint buffer_id) const;
+        void DebugDraw(GLint index) const;
+        void Clear(GLint index) const;
 
-        // transfer pixels data between user-defined FBOs (not with the default framebuffer)
-        static void TransferColor(FBO* in, GLuint in_buff, FBO* out, GLuint out_buff);
-        static void TransferDepth(FBO* in, FBO* out);
-        static void TransferStencil(FBO* in, FBO* out);
+        static void TransferColor(const FBO& fr, GLuint fr_idx, const FBO& to, GLuint to_idx);
+        static void TransferDepth(const FBO& fr, const FBO& to);
+        static void TransferStencil(const FBO& fr, const FBO& to);
     };
 
 }

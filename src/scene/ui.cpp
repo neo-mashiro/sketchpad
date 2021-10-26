@@ -553,7 +553,7 @@ namespace ui {
         const static float bar_w = 268.0f;
         const static float bar_h = 80.0f;
 
-        scene::Renderer::Clear();
+        scene::Renderer::Clear(color::black);
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2(win_w, win_h));

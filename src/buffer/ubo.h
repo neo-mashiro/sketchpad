@@ -11,8 +11,7 @@ namespace buffer {
 
     class UBO : public Buffer {
       private:
-        GLuint unit;  // uniform block's binding point specified in `layout(std140)`
-        
+        GLuint unit;                 // uniform block's binding point
         std::vector<GLuint> offset;  // each uniform's aligned offset in the block
         std::vector<size_t> size;    // each uniform's size in bytes in the block
 
@@ -20,6 +19,12 @@ namespace buffer {
         UBO() = default;
         UBO(GLuint unit, GLsizeiptr block_size);
         ~UBO();
+
+        UBO(const UBO&) = delete;
+        UBO& operator=(const UBO&) = delete;
+
+        UBO(UBO&& other) noexcept;
+        UBO& operator=(UBO&& other) noexcept;
 
         void Bind() const override;
         void Unbind() const override;

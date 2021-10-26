@@ -12,8 +12,8 @@ namespace buffer {
         void Bind() const override;
         void Unbind() const override;
 
-        void SetIndices(GLsizeiptr size, const void* data) const;
-        void SetIndices(GLsizeiptr size, const void* data, GLintptr offset) const;
+        void SetData(GLsizeiptr size, const void* data) const;
+        void SetData(GLsizeiptr size, const void* data, GLintptr offset) const;
     };
 
 }

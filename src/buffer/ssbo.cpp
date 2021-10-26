@@ -6,14 +6,10 @@
 namespace buffer {
 
     template<typename T>
-    SSBO<T>::SSBO(GLuint array_size, GLuint index) : Buffer(), array_size(array_size), index(index) {
-        glGenBuffers(1, &id);
+    SSBO<T>::SSBO(GLuint array_size) : Buffer(), array_size(array_size) {
+        glCreateBuffers(1, &id);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
-
-        // SSBO's buffer data is mostly dynamic, by default we use `GL_DYNAMIC_DRAW` as the hint.
-        // here we only allocate GPU memory for the buffer, but its data is left uninitialized
-        glBufferData(GL_SHADER_STORAGE_BUFFER, array_size * sizeof(T), NULL, GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, id);
+        glNamedBufferData(id, array_size * sizeof(T), NULL, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
@@ -24,14 +20,13 @@ namespace buffer {
     }
 
     template<typename T>
-    void SSBO<T>::Bind() const {
-        // multiple SSBOs can share the same index (binding point of an SSBO buffer block in GLSL)
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, id);
+    void SSBO<T>::Bind(GLuint unit) const {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, unit, id);
     }
 
     template<typename T>
-    void SSBO<T>::Unbind() const {
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, 0);
+    void SSBO<T>::Unbind(GLuint unit) const {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, unit, 0);
     }
 
     template<typename T>
@@ -67,8 +62,7 @@ namespace buffer {
         glNamedBufferData(id, array_size * sizeof(T), &zeros[0], GL_DYNAMIC_DRAW);
     }
 
-    // the template type T is explicitly instantiated to `int`, `uint`, `float`, `vec2` and `vec4`
-    // users are not allowed to use other generic data types (but feel free to extend it)
+    // explicit template class instantiation
     template class SSBO<GLint>;
     template class SSBO<GLuint>;
     template class SSBO<GLfloat>;

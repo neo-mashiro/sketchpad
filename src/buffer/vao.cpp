@@ -1,12 +1,12 @@
 #include "pch.h"
 
-#include "buffer/vao.h"
 #include "core/log.h"
+#include "buffer/vao.h"
 
 namespace buffer {
 
     VAO::VAO() {
-        glGenVertexArrays(1, &id);
+        glCreateVertexArrays(1, &id);
     }
 
     VAO::~VAO() {
@@ -21,28 +21,15 @@ namespace buffer {
         glBindVertexArray(0);
     }
 
-    void VAO::SetLayout() const {
-        GLint vbo = 0;
-        glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &vbo);
+    void VAO::SetVBO(GLuint vbo, GLuint attribute_id, GLint offset, GLint size, GLint stride) const {
+        glVertexArrayVertexBuffer(id, attribute_id, vbo, offset, stride);
+        glEnableVertexArrayAttrib(id, attribute_id);
+        glVertexArrayAttribFormat(id, attribute_id, size, GL_FLOAT, GL_FALSE, 0);
+        glVertexArrayAttribBinding(id, attribute_id, attribute_id);
+    }
 
-        if (vbo <= 0) {
-            CORE_ERROR("No active VBO is currently bound, unable to set the vertex layout...");
-            return;
-        }
-
-        glEnableVertexAttribArray(0);  // position
-        glEnableVertexAttribArray(1);  // normal
-        glEnableVertexAttribArray(2);  // uv
-        glEnableVertexAttribArray(3);  // uv2
-        glEnableVertexAttribArray(4);  // tangent
-        glEnableVertexAttribArray(5);  // bitangent
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, position));
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, normal));
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv));
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, uv2));
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, tangent));
-        glVertexAttribPointer(5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, bitangent));
+    void VAO::SetIBO(GLuint ibo) const {
+        glVertexArrayElementBuffer(id, ibo);
     }
 
 }

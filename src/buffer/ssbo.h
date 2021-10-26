@@ -5,8 +5,7 @@
 
 namespace buffer {
 
-    /*
-       SSBOs are mostly used as data buffers in the compute shader, the most typical use
+    /* SSBOs are mostly used as data buffers in the compute shader, the most typical use
        cases are: particle systems, water or cloth simulation and forward plus rendering.
        for computations that naturally fit onto a 2D Grid, you can also use ILS (image load
        store), but the advantage of SSBO is that it can store much larger data (>= 128 MB).
@@ -52,18 +51,22 @@ namespace buffer {
 
     template<typename T>
     class SSBO : public Buffer {
+      private:
+        void Bind() const override {}
+        void Unbind() const override {}
+
       public:
-        GLuint index, array_size;
+        GLuint array_size;
 
         SSBO() = default;
-        SSBO(GLuint array_size, GLuint index);
+        SSBO(GLuint array_size);
         ~SSBO();
 
-        SSBO(const SSBO&) = delete;
-        SSBO& operator=(const SSBO&) = delete;
+        SSBO(const SSBO&) = default;
+        SSBO& operator=(const SSBO&) = default;
         
-        void Bind() const override;
-        void Unbind() const override;
+        void Bind(GLuint unit) const;
+        void Unbind(GLuint unit) const;
 
         void Write(const std::vector<T>& data) const;
         void Write(const std::vector<T>& data, GLintptr offset, GLsizeiptr size) const;

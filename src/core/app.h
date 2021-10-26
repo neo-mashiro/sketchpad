@@ -13,7 +13,9 @@ namespace core {
 
       public:
         std::string gl_vendor, gl_renderer, gl_version, glsl_version;
+
         GLint gl_texsize, gl_texsize_3d, gl_texsize_cubemap, gl_max_texture_units;
+        GLint gl_max_color_buffs;
         GLint gl_maxv_ubos, gl_maxg_ubos, gl_maxf_ubos, gl_maxc_ubos;
         GLint gl_maxf_ssbos, gl_maxc_ssbos;
         GLint cs_nx, cs_ny, cs_nz, cs_sx, cs_sy, cs_sz, cs_max_invocations;

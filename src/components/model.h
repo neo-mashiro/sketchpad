@@ -7,6 +7,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "buffer/texture.h"
 #include "components/component.h"
 
 namespace components {
@@ -82,7 +83,6 @@ namespace components {
 
     // forward declaration
     class Mesh;
-    class Texture;
 
     // import quality preset
     enum class Quality : uint32_t {
@@ -132,7 +132,7 @@ namespace components {
 
         std::vector<Mesh> meshes;
         std::unordered_map<GLuint, std::vector<property_variant>> properties;
-        std::unordered_map<GLuint, std::vector<asset_ref<Texture>>> textures;
+        std::unordered_map<GLuint, std::vector<buffer_ref<Texture>>> textures;
 
       public:
         Model(const std::string& filepath, Quality quality = Quality::Auto);
@@ -145,7 +145,7 @@ namespace components {
         Model& operator=(Model&& other) noexcept = default;
 
         void Report();
-        void Import(const std::string& material_name, std::vector<asset_ref<Texture>>& tex_refs);
+        void Import(const std::string& material_name, std::vector<buffer_ref<Texture>>& tex_refs);
     };
 
 }
