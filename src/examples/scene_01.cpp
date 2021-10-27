@@ -9,13 +9,14 @@
 #include "scene/renderer.h"
 #include "scene/ui.h"
 #include "utils/math.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 #include "examples/scene_01.h"
 
 using namespace core;
 using namespace buffer;
 using namespace components;
+using namespace utils;
 
 namespace scene {
 
@@ -40,39 +41,44 @@ namespace scene {
         // name your scene title (will appear in the top menu)
         this->title = "Example Scene";
 
+        auto& model_path   = paths::models;
+        auto& shader_path  = paths::shaders;
+        auto& texture_path = paths::textures;
+        auto& cubemap_path = paths::cubemaps;
+
         // load shader and texture assets upfront
-        this->light_cull_compute_shader   = LoadAsset<ComputeShader>(SHADER + "light_cull.glsl");
+        this->light_cull_compute_shader   = LoadAsset<ComputeShader>(shader_path + "light_cull.glsl");
 
-        asset_ref<Shader> pbr_shader      = LoadAsset<Shader>(SHADER + "01_pbr.glsl");
-        asset_ref<Shader> light_shader    = LoadAsset<Shader>(SHADER + "light_cube.glsl");
-        //asset_ref<Shader> skybox_shader   = LoadAsset<Shader>(SHADER + "skybox.glsl");
+        asset_ref<Shader> pbr_shader      = LoadAsset<Shader>(shader_path + "01_pbr.glsl");
+        asset_ref<Shader> light_shader    = LoadAsset<Shader>(shader_path + "light_cube.glsl");
+        //asset_ref<Shader> skybox_shader   = LoadAsset<Shader>(shader_path + "skybox.glsl");
 
-        //asset_ref<Texture> space_cube     = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, SKYBOX + "space");
-        asset_ref<Texture> checkerboard   = LoadAsset<Texture>(TEXTURE + "misc\\checkboard.png");
-        asset_ref<Texture> ball_albedo    = LoadAsset<Texture>(TEXTURE + "meshball4\\albedo.jpg");
-        asset_ref<Texture> ball_normal    = LoadAsset<Texture>(TEXTURE + "meshball4\\normal.jpg");
-        asset_ref<Texture> ball_metallic  = LoadAsset<Texture>(TEXTURE + "meshball4\\metallic.jpg");
-        asset_ref<Texture> ball_roughness = LoadAsset<Texture>(TEXTURE + "meshball4\\roughness.jpg");
-        asset_ref<Texture> ball_displace  = LoadAsset<Texture>(TEXTURE + "meshball4\\displacement.jpg");
+        //asset_ref<Texture> space_cube     = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, cubemap_path + "space");
+        asset_ref<Texture> checkerboard   = LoadAsset<Texture>(texture_path + "misc\\checkboard.png");
+        asset_ref<Texture> ball_albedo    = LoadAsset<Texture>(texture_path + "meshball4\\albedo.jpg");
+        asset_ref<Texture> ball_normal    = LoadAsset<Texture>(texture_path + "meshball4\\normal.jpg");
+        asset_ref<Texture> ball_metallic  = LoadAsset<Texture>(texture_path + "meshball4\\metallic.jpg");
+        asset_ref<Texture> ball_roughness = LoadAsset<Texture>(texture_path + "meshball4\\roughness.jpg");
+        asset_ref<Texture> ball_displace  = LoadAsset<Texture>(texture_path + "meshball4\\displacement.jpg");
 
         std::vector<asset_ref<Texture>> runestone_pillar {
-            LoadAsset<Texture>(MODEL + "runestone\\pillars_albedo.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\pillars_normal.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\pillars_metallic.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\pillars_roughness.png")
+            LoadAsset<Texture>(model_path + "runestone\\pillars_albedo.png"),
+            LoadAsset<Texture>(model_path + "runestone\\pillars_normal.png"),
+            LoadAsset<Texture>(model_path + "runestone\\pillars_metallic.png"),
+            LoadAsset<Texture>(model_path + "runestone\\pillars_roughness.png")
         };
 
         std::vector<asset_ref<Texture>> runestone_platform {
-            LoadAsset<Texture>(MODEL + "runestone\\platform_albedo.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\platform_normal.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\platform_metallic.png"),
-            LoadAsset<Texture>(MODEL + "runestone\\platform_roughness.png"),
+            LoadAsset<Texture>(model_path + "runestone\\platform_albedo.png"),
+            LoadAsset<Texture>(model_path + "runestone\\platform_normal.png"),
+            LoadAsset<Texture>(model_path + "runestone\\platform_metallic.png"),
+            LoadAsset<Texture>(model_path + "runestone\\platform_roughness.png"),
             nullptr,  // runestone platform does not have AO map, use a null placeholder
-            LoadAsset<Texture>(MODEL + "runestone\\platform_emissive.png")
+            LoadAsset<Texture>(model_path + "runestone\\platform_emissive.png")
         };
 
         // create uniform buffer objects (UBO) from shaders
-        AddUBO(pbr_shader->id);
+        AddUBO(pbr_shader->GetID());
 
         // create frame buffer objects (FBO)
         FBO& depth_framebuffer = AddFBO(Window::width, Window::height);
@@ -81,7 +87,7 @@ namespace scene {
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
-        camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 2.5f, 4.0f));
+        camera.GetComponent<Transform>().Translate(glm::vec3(0.0f, 6.0f, 16.0f));
         camera.GetComponent<Transform>().Rotate(glm::radians(180.0f), world::up);
         camera.AddComponent<Camera>(View::Perspective);
         camera.AddComponent<Spotlight>(glm::vec3(1.0f, 0.553f, 0.0f), 3.8f);  // attach a flashlight
@@ -147,7 +153,7 @@ namespace scene {
         runestone.GetComponent<Transform>().Scale(0.02f);
         runestone.GetComponent<Transform>().Translate(world::up * -4.0f);
 
-        auto& model = runestone.AddComponent<Model>(MODEL + "runestone\\runestone.fbx", Quality::Auto);
+        auto& model = runestone.AddComponent<Model>(model_path + "runestone\\runestone.fbx", Quality::Auto);
         runestone.GetComponent<Material>().SetShader(pbr_shader);
         model.Import("pillars", runestone_pillar);     // material id 6 (may differ on your PC)
         model.Import("platform", runestone_platform);  // material id 5 (may differ on your PC)
@@ -183,17 +189,12 @@ namespace scene {
 
         // setup the shader storage buffers for 28 static point lights
         const unsigned int n_pl = 28;
+        light_cull_compute_shader->SetUniform(0, n_pl);
+
         pl_color_ssbo    = LoadBuffer<SSBO<glm::vec4>>(n_pl);
         pl_position_ssbo = LoadBuffer<SSBO<glm::vec4>>(n_pl);
         pl_range_ssbo    = LoadBuffer<SSBO<GLfloat>>(n_pl);
         pl_index_ssbo    = LoadBuffer<SSBO<GLint>>(n_pl * n_tiles);
-
-        // unlike regular shaders which are managed by the material, a compute shader is a
-        // standalone program intended for GPGPU computations, so you have to bind it first
-        // before setting any uniforms, this `SetUniform()` will take effect immediately.
-
-        light_cull_compute_shader->Bind();
-        light_cull_compute_shader->SetUniform(0, n_pl);
 
         // light culling in forward+ rendering can be applied to both static and dynamic lights,
         // in the latter case, it is required that users update the input SSBO buffer data every
@@ -225,7 +226,7 @@ namespace scene {
 
             // for each point light, generate a random color that is not too dark
             while (glm::length2(rand_color) < 1.5f) {
-                rand_color = glm::vec3(RandomFloat01(), RandomFloat01(), RandomFloat01());
+                rand_color = glm::vec3(math::RandomFloat01(), math::RandomFloat01(), math::RandomFloat01());
             }
 
             point_lights[index] = CreateEntity("Point Light " + std::to_string(index));
@@ -333,7 +334,7 @@ namespace scene {
             Renderer::Clear(color::black);
             Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id);
             Renderer::Submit(orbit_light.id);
-            //Renderer::Submit(skybox.id);  // it is advised to submit the skybox last to save performance
+            //Renderer::Submit(skybox.id);
             Renderer::Render();
             depth_framebuffer.Unbind();
         }
@@ -422,9 +423,28 @@ namespace scene {
         Renderer::DepthPrepass(false);
         Renderer::MSAA(true);  // MSAA works fine in forward+ renderers (not true for deferred renderers)
         Renderer::Clear(color::blue);
+
+        // note: when you submit a list of entities to the renderer, they are internally stored in a queue
+        // and will be drawn in the order of submission, this order can not only affect alpha blending but
+        // can also make a huge difference in performance.
+
+        // tips: it is advised to submit the skybox last to the renderer because it's the farthest object
+        // in the scene, this can save us quite a lot fragment invocations as the pixels that already fail
+        // the depth test will be instantly discarded.
+
+        // tips: it is advised to submit similar entities as close as possible to each other, especially
+        // when you have a large number of entities. To be specific, entities that share the same shader
+        // or use the same textures should be grouped together as much as possible, this can help reduce
+        // the number of context switching, which is expensive. The shader, texture and uniform class have
+        // been optimized to support smart bindings and smart uploads, you should make the most of these
+        // features to avoid unnecessary binding operations of shaders and textures, and uniform uploads.
+
+        // tips: if a list of entities use the same shader, textures as well as meshes, you should enable
+        // batch rendering on the meshes, submit only one of them and handle batch rendering in the shader
+
         Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id);
         Renderer::Submit(orbit_light.id);
-        //Renderer::Submit(skybox.id);
+        //Renderer::Submit(skybox.id);  // it is advised to submit the skybox last to save performance
 
         for (int i = 0; i < 28; i++) {
             Renderer::Submit(point_lights[i].id);

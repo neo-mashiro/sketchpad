@@ -10,27 +10,31 @@ namespace components {
        there are 2 different flavors of constructors. The first ctor constructs the GLSL program
        by compiling from a user-provided shader source, which is the absolute path of a file with
        the ".glsl" extension, the second ctor does not compile or link anything, but instead load
-       from a pre-compiled shader binary file on your local disk. The usages are detailed below.
+       from a pre-compiled shader binary file on your local disk.
+
+       # all shaders in one file
 
        many people like to use a separate file for each type of shader and group them in a folder,
        this is the most obvious way of handling shaders. However, the downside of this is that we
        would end up with lots of code duplication, also, beyond a certain point, we would have too
        many files and folders for different objects in the scene, it's not only hard to manage but
-       also can be extremely painful in common scenarios, for example, when you modify a shared
-       uniform buffer that is declared in multiple files, then you have to modify every file......
+       also can be extremely painful to modify every file just to change one thing......
+
        the way we choose to deal with shaders is to write all shaders in a single large ".glsl"
        file: all shared code is placed on the top of the file to avoid duplication, followed by
        code blocks that are specific to each shader type, for each type of shader, its own code is
        enclosed between a pair of "#ifdef" and "#endif" preprocessor guards, when the class reads
        the file, it will loop through all possible shader types and "#define" them before actually
        compiling, so that the compiler can selectively compile shaders one at a time (note that
-       compute shaders are handled differently down below)
+       compute shaders are handled differently though)
 
        as per the GLSL specification, "#version" must be the first line of preprocessor directive
        in the shader code, otherwise it would fallback to the default version 1.1, which is not
        the version we want. Therefore, instead of grabbing the entire buffer all at once, this
        class will read the source file line by line, and then insert a "#define" before the first
        occurrence of "#ifdef", in order to "#define" the current shader type.
+
+       # custom include directive
 
        apart from the "#ifdef" and "#endif" guards, we also added another preprocessor directive
        called "#include" to enhance the power of our shader class. This directive works similar to
@@ -39,49 +43,64 @@ namespace components {
        code clutter and duplication, which also makes it easier to modify. If you have a bunch of
        data buffer blocks or custom functions that are frequently used by many shaders, it's often
        a nice idea to group them in a single file, and then "#include" it whenever you need it.
+
        there's only one rule you need to keep in mind, that the file to include must be in the
        same directory as the shader that calls "#include". If the file does not exist or cannot
        open (probably misspelled), the class will ignore the line and continue to compile the rest,
        in this case, the console will print a warning message so that users are likely aware of it.
+
+       # save/load shader binaries
 
        in order to use the second ctor, you must first `Save()` an already compiled shader program
        to the local disk and then load from it. On save, the program will be saved into the same
        directory in a ".bin" file, whose filename is a format number (integer) that depends on the
        hardware, such as 3274 on my dedicated AMD card, or 1 on my integrated Intel card. If there
        is no format number supported, the console will log a warning message to notify the user.
+
        it should be noted that the save function is implementation-dependent, which differs across
        hardware drivers, so you can only load a binary that is saved by yourself, but you may not
        be able to load one that is saved by a different platform or even a previous driver version.
        last but not least, loading from a SPIR-V binary is currently not supported...
 
-       in this demo, our shader class is in the "components" namespace. Despite the fact that it's
-       not a component, it's directly used by our "Material" component, so does the texture class.
-       in a professional rendering or game engine, shaders and textures are usually classified as
-       external asset resources, all of which are managed by a specialized asset manager, which
-       takes on the single responsibility to load or free them as appropriate. That said, we won't
-       bother with that in this demo, I found it easier to work with this way.
+       # why we are in the "components" namespace
 
-       you may have noticed that our shader class doesn't have any functions for querying uniform
-       locations or setting uniform values, this is on purpose! In fact, we would never query the
-       locations of uniforms at all, the user must explicitly specify the locations in GLSL (this
-       enforcement is also applied to uniform buffer binding points, shader storage buffer indices,
-       subroutine uniform indices, ILS image units and so on) to keep the code clean. Doing so has
-       the benefit of 0 overhead, it can also help automate certain tasks, as long as you remember
-       the locations of uniforms, the template uniform class and material class will handle the
-       rest for you, no worries about the different data types or uploading values to the shader!
+       despite the fact that shader is not a component, most of the time it's directly managed by
+       the material component so they are closely related. In a professional rendering engine or
+       game engine, shaders are usually classified as external asset resources and are managed by
+       a specialized asset manager, which takes on the single responsibility to load or free them
+       as appropriate. But for our simple demo, I found it easier to work with this way.
+
+       # how do I set uniforms, where's the interface?
+
+       no you don't, the shader class doesn't have any functions for querying uniform locations or
+       setting uniform values, this is on purpose. We would never query locations of uniforms at
+       all, users must explicitly specify the locations in GLSL (also applies to uniform buffer
+       binding points, shader storage buffer indices, subroutine uniform indices, ILS image units
+       and so on) to keep the code clean. Doing so has the benefit of 0 overhead, it can also help
+       automate certain tasks, you only set uniforms on a material with a location and value, the
+       material class will handle the rest for you (the uniform class can handle generic types)
+
+       # smart bindings
+
+       the uniform class keeps track of each uniform update, it'll only upload a uniform when it
+       sees a change (unless the uniform is bound to a variable), similarly, this class supports
+       smart shader bindings, the previously bound shader id is always remembered, trying to bind
+       a shader that is already bound has 0 overhead, there's no context switching in this case.
+       in case you don't know, our texture class also has smart bindings support.
     */
 
     class Shader {
       private:
+        std::string source_path;
         std::vector<GLuint> shaders;
 
         void LoadShader(GLenum type);
         void LinkShaders();
 
-      public:
+      protected:
         GLuint id;
-        std::string source_path;
 
+      public:
         Shader(const std::string& source_path);
         Shader(const std::string& binary_path, GLenum format);
         virtual ~Shader();
@@ -96,6 +115,8 @@ namespace components {
         void Unbind() const;
         void Save() const;
 
+        GLuint GetID() const { return id; }
+
         static void Sync(GLbitfield barriers);
     };
 
@@ -104,6 +125,8 @@ namespace components {
        the usage of compute shader is exactly the same as a normal shader, you can still save and
        load binaries, use the "#ifdef" and "#include" directives, but the shader file can only
        contain the code of a compute shader, not with other types of shaders.
+
+       # data store and memory access
        
        for a compute shader, it's important to keep in mind that the dispatched tasks are fired up
        in parallel on the GPU, and that this parallelism of the threads needs to be synchronized
@@ -121,10 +144,16 @@ namespace components {
 
        if you're only concerned about thread safety or data integrity, put the calls together:
 
-           compute_shader.Bind();
-           compute_shader.Dispatch(nx, ny, nz);
-           compute_shader.SyncWait(GL_ALL_BARRIER_BITS);  // wait for everything
-           compute_shader.Unbind();
+       -- compute_shader.Bind();
+       -- compute_shader.Dispatch(nx, ny, nz);
+       -- compute_shader.SyncWait(GL_ALL_BARRIER_BITS);  // wait for everything
+       -- compute_shader.Unbind();
+
+       # direct state access
+
+       since compute shaders are standalone programs, we do have an interface for setting uniforms
+       directly. The `SetUniform()` function uses DSA calls internally, so that users can upload
+       uniforms without having to bind the compute shader first.
     */
 
     class ComputeShader : public Shader {

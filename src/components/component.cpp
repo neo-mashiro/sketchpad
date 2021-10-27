@@ -6,7 +6,7 @@
 namespace components {
 
     Component::Component()
-        : uuid(RandomUInt64()), enabled(true) {}
+        : uuid(utils::math::RandomUInt64()), enabled(true) {}
 
     uint64_t Component::GetUUID() const {
         return uuid;

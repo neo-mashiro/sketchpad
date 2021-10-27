@@ -5,7 +5,7 @@
 #include "scene/scene.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 using namespace core;
 using namespace buffer;
@@ -165,7 +165,7 @@ namespace scene {
     static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
-        welcome_screen = LoadAsset<Texture>(TEXTURE + "misc\\welcome.png", 1);
+        welcome_screen = LoadAsset<Texture>(utils::paths::textures + "misc\\welcome.png", 1);
         welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->GetID());
     }
 

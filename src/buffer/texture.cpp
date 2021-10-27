@@ -6,6 +6,11 @@
 
 namespace buffer {
 
+    // optimize context switching by avoiding unnecessary binds and unbinds
+    static std::vector<GLuint> texture_binding_table(32, 0);  // keep track of textures in each unit
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
     void Texture::SetWrapMode() const {
         if (target == GL_TEXTURE_2D) {
             // 2D textures are mostly seamless, simply repeat the texture
@@ -102,11 +107,14 @@ namespace buffer {
     }
 
     Texture::~Texture() {
-        if (id > 0) {
-            CORE_WARN("Destructing texture data (target = {0}, id = {1})!", target, id);
-        }
-
+        CORE_WARN("Destructing texture data (target = {0}, id = {1})!", target, id);
         glDeleteTextures(1, &id);
+
+        for (int i = 0; i < texture_binding_table.size(); i++) {
+            if (texture_binding_table[i] = id) {
+                texture_binding_table[i] = 0;
+            }
+        }
     }
 
     Texture::Texture(Texture&& other) noexcept {
@@ -117,6 +125,7 @@ namespace buffer {
         if (this != &other) {
             // it's safe to delete texture 0 (a default fallback texture that is all black)
             this->id = 0;
+            std::fill(texture_binding_table.begin(), texture_binding_table.end(), 0);
 
             std::swap(id, other.id);
             std::swap(target, other.target);
@@ -131,12 +140,17 @@ namespace buffer {
     }
 
     void Texture::Bind(GLuint unit) const {
+        // keep track of the texture in each unit to avoid unnecessary binds
         // the DSA call does not alter the global state of active texture unit
-        glBindTextureUnit(unit, id);
+        if (id != texture_binding_table[unit]) {
+            glBindTextureUnit(unit, id);
+            texture_binding_table[unit] = id;
+        }
     }
 
     void Texture::Unbind(GLuint unit) const {
         glBindTextureUnit(unit, 0);
+        texture_binding_table[unit] = 0;
     }
 
     void Texture::Clear() const {
@@ -159,14 +173,25 @@ namespace buffer {
 
     TexView::~TexView() {
         glDeleteTextures(1, &id);
+
+        for (int i = 0; i < texture_binding_table.size(); i++) {
+            if (texture_binding_table[i] = id) {
+                texture_binding_table[i] = 0;
+            }
+        }
     }
 
     void TexView::Bind(GLuint unit) const {
-        glBindTextureUnit(unit, id);
+        // keep track of the texture in each unit to avoid unnecessary binds
+        if (id != texture_binding_table[unit]) {
+            glBindTextureUnit(unit, id);
+            texture_binding_table[unit] = id;
+        }
     }
 
     void TexView::Unbind(GLuint unit) const {
         glBindTextureUnit(unit, 0);
+        texture_binding_table[unit] = 0;
     }
 
 }

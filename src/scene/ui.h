@@ -10,7 +10,7 @@
 #include "components/all.h"
 #include "scene/entity.h"
 
-namespace ui {
+namespace scene::ui {
 
     extern ImFont* truetype_font;
     extern ImFont* opentype_font;

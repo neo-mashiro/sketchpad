@@ -16,16 +16,15 @@
 #include "scene/factory.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 using namespace core;
 using namespace components;
-using namespace scene;
 
-namespace ui {
+namespace scene::ui {
 
-    ImFont* truetype_font;  // default font: TrueType, QuickSand-Regular, 17pt
-    ImFont* opentype_font;  // reserved font: OpenType, Palatino Linotype, 15pt
+    ImFont* truetype_font;  // default font: TrueType, Lato-Regular, 18pt
+    ImFont* opentype_font;  // reserved font: OpenType, Palatino Linotype, 17pt
 
     // private global variables
     static ImVec2 window_center;
@@ -51,8 +50,8 @@ namespace ui {
         config.OversampleV = 1;
         config.GlyphExtraSpacing.x = 0.0f;
         
-        truetype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\Lato.ttf").c_str(), 18.0f);
-        opentype_font = io.Fonts->AddFontFromFileTTF((RES + "fonts\\palatino.ttf").c_str(), 17.0f, &config);
+        truetype_font = io.Fonts->AddFontFromFileTTF((utils::paths::fonts + "Lato.ttf").c_str(), 18.0f);
+        opentype_font = io.Fonts->AddFontFromFileTTF((utils::paths::fonts + "palatino.ttf").c_str(), 17.0f, &config);
 
         // build font textures
         unsigned char* pixels;

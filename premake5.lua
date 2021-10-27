@@ -175,14 +175,14 @@ local function setup_vendor_library()
             location(ROOT_DIR .. WIN_IDE .. "/")
 
             files {
-                VENDOR_DIR .. "imgui/" .. "*.h",
-                VENDOR_DIR .. "imgui/" .. "*.cpp"
+                VENDOR_DIR .. "imgui/include/imgui/" .. "*.h",
+                VENDOR_DIR .. "imgui/include/imgui/" .. "*.cpp"
             }
 
             vpaths {
                 ["Sources/*"] = {
-                    VENDOR_DIR .. "imgui/" .. "*.h",
-                    VENDOR_DIR .. "imgui/" .. "*.cpp"
+                    VENDOR_DIR .. "imgui/include/imgui/" .. "*.h",
+                    VENDOR_DIR .. "imgui/include/imgui/" .. "*.cpp"
                 }
             }
 

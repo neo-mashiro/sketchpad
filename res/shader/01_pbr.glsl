@@ -199,7 +199,7 @@ void main() {
     // mind that emission values do not participate in lighting calculations
 
     // add emission color value to the calculated irradiance
-    if (material_id == 5) {
+    if (material_id == 4) {
         Lo += pow(texture(emission_map, uv).rgb, vec3(2.2));
     }
 

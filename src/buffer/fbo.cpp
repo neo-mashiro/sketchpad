@@ -9,7 +9,7 @@
 #include "components/mesh.h"
 #include "components/shader.h"
 #include "components/material.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 using namespace core;
 using namespace components;
@@ -31,7 +31,7 @@ namespace buffer {
         // attach a virtual mesh, virtual material and virtual shader
         virtual_mesh     = std::make_unique<Mesh>(Primitive::Quad2D);
         virtual_material = std::make_unique<Material>();
-        virtual_shader   = std::make_unique<Shader>(SHADER + "fullscreen.glsl");
+        virtual_shader   = std::make_unique<Shader>(utils::paths::shaders + "fullscreen.glsl");
     }
 
     FBO::~FBO() {

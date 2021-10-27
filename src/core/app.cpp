@@ -7,6 +7,7 @@
 #include "core/window.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
+#include "utils/filesystem.h"
 
 using namespace scene;
 
@@ -236,10 +237,12 @@ namespace core {
         std::cout << ".........\n" << std::endl;
 
         Log::Init();
-
         CORE_INFO("Initializing console logger ...");
-        CORE_INFO("Initializing application window ...");
 
+        CORE_INFO("Loading project path tree ...");
+        utils::paths::LoadPathTree();
+        
+        CORE_INFO("Initializing application window ...");
         Window::Init();
 
         // create the main freeglut window

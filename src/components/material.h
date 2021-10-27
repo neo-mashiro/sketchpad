@@ -64,14 +64,13 @@ namespace components {
 
     class Material : public Component {
       private:
+        asset_ref<Shader> shader;
         std::map<GLuint, uniform_variant> uniforms;
         std::map<GLuint, asset_ref<Texture>> textures;
 
         void LoadActiveUniforms();
 
       public:
-        asset_ref<Shader> shader;
-
         Material();
         ~Material() {}
 

@@ -11,17 +11,19 @@ using namespace core;
 namespace components {
 
     Camera::Camera(Transform* T, View view)
-        : fov(90.0f), near_clip(0.1f), far_clip(100.0f),
-          T(T), view(view), move_speed(3.0f), rotate_speed(0.3f) {}
+        : fov(90.0f), near_clip(0.1f), far_clip(100.0f), T(T), view(view), move_speed(5.0f), rotate_speed(0.3f) {}
 
     glm::mat4 Camera::GetViewMatrix() const {
         return glm::lookAt(T->position, T->position + T->forward, T->up);
     }
 
     glm::mat4 Camera::GetProjectionMatrix() const {
-        return view == View::Orthographic
-            ? glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_clip, far_clip)
-            : glm::perspective(glm::radians(fov), Window::aspect_ratio, near_clip, far_clip);
+        if (view == View::Orthographic) {
+            return glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_clip, far_clip);
+        }
+        else if (view == View::Perspective) {
+            return glm::perspective(glm::radians(fov), Window::aspect_ratio, near_clip, far_clip);
+        }
     }
 
     void Camera::Update() {

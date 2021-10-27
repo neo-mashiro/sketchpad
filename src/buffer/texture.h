@@ -27,11 +27,19 @@ namespace buffer {
 
        # examples
 
-         Texture(GL_TEXTURE_2D, 256, 256, GL_RG16F);               // BRDF integration map (single layer)
-         Texture(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGBA16F);         // irradiance map (single layer)
-         Texture(GL_TEXTURE_CUBE_MAP, 1024, 1024, GL_RGBA16F, 0);  // environment map (with mipmaps)
+       -- Texture(".../albedo_map.png");         // load an image texture, automatic mipmaps
+       -- Texture(".../welcome_screen.png", 1);  // load an image texture, only the base level
 
-       # texture views: https://www.khronos.org/opengl/wiki/Texture_Storage#Texture_views
+       -- Texture(GL_TEXTURE_2D, 256, 256, GL_RG16F);               // BRDF map (single layer)
+       -- Texture(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGBA16F);         // irradiance map (single layer)
+       -- Texture(GL_TEXTURE_CUBE_MAP, 1024, 1024, GL_RGBA16F, 0);  // environment map (with mipmaps)
+
+       # smart bindings
+
+       just like the shader and uniform class, this class keeps track of textures in each texture
+       unit to avoid unnecessary binding operations, trying to bind a texture that is already in
+       the given texture unit has 0 overhead, there's no context switching in this case. However,
+       this feature only applies to textures and texture views, excluding image load/store (ILS).
     */
 
     class TexView;

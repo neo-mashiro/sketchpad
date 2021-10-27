@@ -246,11 +246,8 @@ namespace components {
             case Primitive::Cylinder: CreateCylinder();  break;
             case Primitive::Plane:    CreatePlane();     break;
             case Primitive::Quad2D:   Create2DQuad();    break;
-
             default:
-                CORE_ERROR("Undefined primitive mesh...");
-                std::cin.get();  // pause the console before exiting
-                exit(EXIT_FAILURE);
+                CORE_ASERT(false, "Unable to construct the mesh, primitive undefined...");
         }
     }
 

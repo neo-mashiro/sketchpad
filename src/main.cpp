@@ -3,20 +3,20 @@
 #ifndef _CRTDBG_MAP_ALLOC
 #define _CRTDBG_MAP_ALLOC
 #endif
+
 #include <stdlib.h>
 #include <crtdbg.h>
-
 #include "core/app.h"
 
 #pragma execution_character_set("utf-8")
-
-using namespace core;
 
 extern "C" {
     // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
     __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
     __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
+
+using namespace core;
 
 int main(int argc, char** argv) {
     // set the console code page to utf-8

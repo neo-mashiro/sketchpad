@@ -5,7 +5,7 @@
 #include "buffer/texture.h"
 #include "components/mesh.h"
 #include "components/model.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 namespace components {
 

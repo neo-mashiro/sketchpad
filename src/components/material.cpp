@@ -5,7 +5,7 @@
 #include "buffer/texture.h"
 #include "components/shader.h"
 #include "components/material.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 namespace components {
 
@@ -44,8 +44,8 @@ namespace components {
             }
         };
 
-        CORE_ASERT(shader, "Unable to bind the material, please set a valid shader first...");
-        shader->Bind();
+        CORE_ASERT(shader != nullptr, "Unable to bind the material, please set a valid shader first...");
+        shader->Bind();  // the rendering state won't be changed if the shader is already bound
 
         // upload uniform values to the shader
         for (const auto& pair : uniforms) {
@@ -63,15 +63,18 @@ namespace components {
     }
 
     void Material::Unbind() const {
-        // clean up texture units
-        for (const auto& pair : textures) {
-            if (auto& texture = pair.second; texture != nullptr) {
-                texture->Unbind(pair.first);
-            }
-        }
+        // our shader, texture and uniform class now support smart bindings and smart uploads,
+        // there's no need to unbind the shader or clean up the texture units, so we'll simply
+        // keep the current rendering state untouched, keep the texture bindings, let the next
+        // object's material bind does its optimization work as much as possible.
 
-        CORE_ASERT(shader, "Unable to unbind the material, please set a valid shader first...");
-        shader->Unbind();
+        // for (const auto& pair : textures) {
+        //     if (auto& texture = pair.second; texture != nullptr) {
+        //         texture->Unbind(pair.first);
+        //     }
+        // }
+
+        // shader->Unbind();
     }
 
     void Material::SetShader(asset_ref<Shader> shader_ref) {
@@ -110,7 +113,7 @@ namespace components {
         if (uniforms.count(location) == 0) {
             static bool warned = false;
             if (!warned) {
-                CORE_WARN("Uniform location {0} is not active in shader: {1}", location, shader->id);
+                CORE_WARN("Uniform location {0} is not active in shader: {1}", location, shader->GetID());
                 CORE_WARN("The uniform may have been optimized out by the GLSL compiler");
                 warned = true;
             }
@@ -133,7 +136,7 @@ namespace components {
     }
 
     void Material::LoadActiveUniforms() {
-        GLuint id = shader->id;
+        GLuint id = shader->GetID();
         CORE_INFO("Parsing active uniforms in shader (id = {0}): ...", id);
 
         GLint n_uniforms;

@@ -10,6 +10,11 @@ using namespace core;
 
 namespace components {
 
+    // optimize context switching by avoiding unnecessary binds and unbinds
+    static GLuint prev_bound_shader_id = 0;  // keep track of the current rendering state
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
     Shader::Shader(const std::string& source_path) : id(0), source_path(source_path) {
         CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Compiling shader source: {0}", source_path);
@@ -67,15 +72,13 @@ namespace components {
     }
 
     Shader::~Shader() {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
-
-        // log message to the console so that we are aware of the *hidden* destructor calls
-        // this can be super useful in case our data accidentally goes out of scope
-        if (id > 0) {
-            CORE_WARN("Deleting shader program (id = {0})!", id);
-        }
-
+        CORE_WARN("Deleting shader program (id = {0})!", id);
         glDeleteProgram(id);
+
+        // reset the global static field of tracked shader id on each destructor call.
+        // this may introduce a few extra bindings (only if the scene destroys shaders
+        // on the fly, which is rare), but helps ensure safety when we switch scenes.
+        prev_bound_shader_id = 0;
     }
 
     Shader::Shader(Shader&& other) noexcept {
@@ -84,9 +87,7 @@ namespace components {
 
     Shader& Shader::operator=(Shader&& other) noexcept {
         if (this != &other) {
-            glDeleteProgram(id);
-            id = 0;
-
+            id = prev_bound_shader_id = 0;
             std::swap(id, other.id);
             std::swap(source_path, other.source_path);
             std::swap(shaders, other.shaders);
@@ -96,12 +97,16 @@ namespace components {
     }
 
     void Shader::Bind() const {
-        CORE_ASERT(id > 0, "Attempting to use an invalid shader (id <= 0)!");
-        glUseProgram(id);
+        // keep track of the previously bound shader id to avoid unnecessary binds
+        if (id != prev_bound_shader_id) {
+            glUseProgram(id);
+            prev_bound_shader_id = id;
+        }
     }
 
     void Shader::Unbind() const {
         glUseProgram(0);
+        prev_bound_shader_id = 0;
     }
 
     void Shader::Save() const {
@@ -262,7 +267,9 @@ namespace components {
             }
         }
 
-        id = program_id;
+        if (this->id = program_id; this->id <= 0) {
+            CORE_WARN("Invalid shader program, results of shader execution will be undefined");
+        }
     }
 
     void Shader::Sync(GLbitfield barriers) {
@@ -303,11 +310,13 @@ namespace components {
         // is <= `app.cs_max_invocations`, and that the local size of each work group (defined in the
         // shader by `layout(sx, sy, sz)`) does not exceed the size limit in every dimension.
 
-        auto& app = Application::GetInstance();
+        static GLuint cs_nx = Application::GetInstance().cs_nx;
+        static GLuint cs_ny = Application::GetInstance().cs_ny;
+        static GLuint cs_nz = Application::GetInstance().cs_nz;
 
-        CORE_ASERT(nx >= 1 && nx <= app.cs_nx, "Invalid compute space size x: {0}", nx);
-        CORE_ASERT(ny >= 1 && ny <= app.cs_ny, "Invalid compute space size y: {0}", ny);
-        CORE_ASERT(nz >= 1 && nz <= app.cs_nz, "Invalid compute space size z: {0}", nz);
+        CORE_ASERT(nx >= 1 && nx <= cs_nx, "Invalid compute space size x: {0}", nx);
+        CORE_ASERT(ny >= 1 && ny <= cs_ny, "Invalid compute space size y: {0}", ny);
+        CORE_ASERT(nz >= 1 && nz <= cs_nz, "Invalid compute space size z: {0}", nz);
 
         glDispatchCompute(nx, ny, nz);
     }
@@ -320,16 +329,25 @@ namespace components {
     void ComputeShader::SetUniform(GLuint location, const T& val) const {
         using namespace glm;
 
-        /**/ if constexpr (std::is_same_v<T, bool>)   { glUniform1i(location, static_cast<int>(val)); }
-        else if constexpr (std::is_same_v<T, int>)    { glUniform1i(location, val); }
-        else if constexpr (std::is_same_v<T, float>)  { glUniform1f(location, val); }
-        else if constexpr (std::is_same_v<T, GLuint>) { glUniform1ui(location, val); }
-        else if constexpr (std::is_same_v<T, vec2>)   { glUniform2fv(location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec3>)   { glUniform3fv(location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec4>)   { glUniform4fv(location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, mat2>)   { glUniformMatrix2fv(location, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat3>)   { glUniformMatrix3fv(location, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat4>)   { glUniformMatrix4fv(location, 1, GL_FALSE, &val[0][0]); }
+        // regular shaders are automatic managed by the material class so they don't need interface
+        // for manually setting uniforms, the uniforms are smartly uploaded by the material while
+        // the shaders are bound (which is guaranteed), that's why they use non-DSA calls.
+
+        // compute shaders, however, are standalone programs directly managed by the user, they are
+        // not wrapped inside a material, so we provide this function for users to set up uniforms.
+        // since there is no guarantee that the shader is bound when this function gets called, we
+        // must use the DSA calls so that users can safely proceed without having to bind it first.
+
+        /**/ if constexpr (std::is_same_v<T, bool>)   { glProgramUniform1i(id, location, static_cast<int>(val)); }
+        else if constexpr (std::is_same_v<T, int>)    { glProgramUniform1i(id, location, val); }
+        else if constexpr (std::is_same_v<T, float>)  { glProgramUniform1f(id, location, val); }
+        else if constexpr (std::is_same_v<T, GLuint>) { glProgramUniform1ui(id, location, val); }
+        else if constexpr (std::is_same_v<T, vec2>)   { glProgramUniform2fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec3>)   { glProgramUniform3fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec4>)   { glProgramUniform4fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, mat2>)   { glProgramUniformMatrix2fv(id, location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat3>)   { glProgramUniformMatrix3fv(id, location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat4>)   { glProgramUniformMatrix4fv(id, location, 1, GL_FALSE, &val[0][0]); }
         else {
             static_assert(const_false<T>, "Unspecified template uniform type T ...");
         }

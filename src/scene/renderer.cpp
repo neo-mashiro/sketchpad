@@ -16,7 +16,7 @@
 #include "scene/renderer.h"
 #include "scene/scene.h"
 #include "scene/ui.h"
-#include "utils/path.h"
+#include "utils/filesystem.h"
 
 using namespace core;
 using namespace buffer;
@@ -207,10 +207,8 @@ namespace scene {
                     else {
                         for (size_t i = 0; i < properties.size(); i++) {
                             auto visitor = [&i, &material](const auto& prop) {
-                                // for model-native properties, by default they use uniform locations
-                                // from 100 and upwards, so as not to conflict with other user-defined
-                                // or internally reserved uniforms. This is safe as modern GPUs have
-                                // at least 1024 active uniforms available in each shader stage
+                                // model properties use uniform locations starting from 100, so as not
+                                // to conflict with user-defined and internally reserved uniforms
                                 material.SetUniform(i + 100, prop);
                             };
                             std::visit(visitor, properties[i]);
