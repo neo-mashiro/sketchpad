@@ -91,7 +91,7 @@ namespace utils {
         std::unique_ptr<uint8_t, deleter> pixels;
 
       public:
-        Image(const std::string& filepath, GLuint read_channels = 0);
+        Image(const std::string& filepath, GLuint read_channels = 0, bool flip = false);
 
         Image(const Image&) = delete;
         Image& operator=(const Image&) = delete;

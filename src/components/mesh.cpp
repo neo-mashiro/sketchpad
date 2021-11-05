@@ -27,7 +27,7 @@ namespace components {
     void Mesh::CreateSphere(float radius) {
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
-        static constexpr float PI = 3.141592653589f;
+        static constexpr float PI = glm::pi<float>();
 
         // mesh grid size (default LOD = 100x100 vertices)
         unsigned int n_rows = 100;
@@ -262,7 +262,7 @@ namespace components {
     Mesh::~Mesh() {
         // log message to the console so that we are aware of the *hidden* destructor calls
         if (vao != nullptr) {
-            CORE_WARN("Destructing mesh data (VAO = {0})!", vao->GetID());
+            CORE_WARN("Destructing mesh data (VAO = {0})...", vao->GetID());
         }
     }
 

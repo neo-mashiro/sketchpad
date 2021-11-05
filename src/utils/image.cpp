@@ -12,10 +12,8 @@ namespace utils {
         stbi_image_free(buffer);
     }
 
-    Image::Image(const std::string& filepath, GLuint read_channels) : width(0), height(0), n_channels(0) {
-        // window space and view space in OpenGL use the bottom-left corner as the origin
-        // but the first pixel pointed to by `stbi_load` is the top-left one in the image
-        stbi_set_flip_vertically_on_load(false);
+    Image::Image(const std::string& filepath, GLuint read_channels, bool flip) : width(0), height(0), n_channels(0) {
+        stbi_set_flip_vertically_on_load(flip);
 
         // supported file extensions (will support ".psd", ".tga" and ".gif" in the future)
         static const std::vector<std::string> extensions {
@@ -33,7 +31,6 @@ namespace utils {
         this->is_hdr = stbi_is_hdr(filepath.c_str());
 
         if (is_hdr) {
-            CORE_TRACE("HDR colors are loaded as linear floats to preserve the full dynamic range");
             float* buffer = stbi_loadf(filepath.c_str(), &width, &height, &n_channels, 3);
 
             if (buffer == nullptr) {
@@ -41,9 +38,33 @@ namespace utils {
                 CORE_ERROR("STBI failure reason: {0}", stbi_failure_reason());
                 return;
             }
+
+            // report HDR image statistics before the buffer pointer is reset (useful in shading)
+            size_t n_pixels = width * height;
+            float min_luminance = 0.0f;
+            float max_luminance = 0.0f;
+            float sum_log_luminance = 0.0f;
+
+            for (size_t i = 0; i < n_pixels; i++) {
+                float* pixel_ptr = buffer + (i * 3);  // move forward 3 channels
+
+                auto color = glm::vec3(pixel_ptr[0], pixel_ptr[1], pixel_ptr[2]);
+                auto luminance = glm::dot(color, glm::vec3(0.2126f, 0.7152f, 0.0722f));
+
+                min_luminance = std::min(min_luminance, luminance);
+                max_luminance = std::max(max_luminance, luminance);
+                sum_log_luminance += std::max(log(luminance + 0.00001f), 0.0f);  // avoid `log(0)` on black pixels
+            }
+
+            float log_average_luminance = exp(sum_log_luminance / n_pixels);
+
+            CORE_TRACE("Minimum luminance of the HDR image is: {0}", min_luminance);
+            CORE_TRACE("Maximum luminance of the HDR image is: {0}", max_luminance);
+            CORE_TRACE("Log average luminance of the HDR image is: {0}", log_average_luminance);
             
             pixels.reset(reinterpret_cast<uint8_t*>(buffer));
         }
+
         else {
             CORE_ASERT(read_channels <= 4, "You can only force read up to 4 channels!");
             uint8_t* buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, read_channels);

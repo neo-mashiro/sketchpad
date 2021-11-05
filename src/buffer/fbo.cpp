@@ -3,12 +3,11 @@
 #include "core/app.h"
 #include "core/log.h"
 #include "core/window.h"
+#include "buffer/vao.h"
 #include "buffer/rbo.h"
 #include "buffer/fbo.h"
 #include "buffer/texture.h"
-#include "components/mesh.h"
 #include "components/shader.h"
-#include "components/material.h"
 #include "utils/filesystem.h"
 
 using namespace core;
@@ -17,25 +16,30 @@ using namespace components;
 namespace buffer {
 
     FBO::FBO(GLuint width, GLuint height) : Buffer(), width(width), height(height), status(0) {
-        // globally turn off colorspace correction
+        // important! turn off colorspace correction globally
         glDisable(GL_FRAMEBUFFER_SRGB);
 
-        // framebuffer size (texture size) must be less than or equal to the window size
-        if (width > Window::width || height > Window::height) {
-            CORE_ERROR("Framebuffer size cannot exceed the window size!");
-            return;
-        }
+        // framebuffer size (texture size) doesn't have to be less than the window size
+        // there are cases that we would want to render to a texture of arbitrary shape
+
+        // if (width > Window::width || height > Window::height) {
+        //     CORE_ERROR("Framebuffer size cannot exceed the window size!");
+        //     return;
+        // }
 
         glCreateFramebuffers(1, &id);
 
-        // attach a virtual mesh, virtual material and virtual shader
-        virtual_mesh     = std::make_unique<Mesh>(Primitive::Quad2D);
-        virtual_material = std::make_unique<Material>();
-        virtual_shader   = std::make_unique<Shader>(utils::paths::shaders + "fullscreen.glsl");
+        // attach a static dummy VAO and debug shader for debug drawing
+        if (debug_vao == nullptr) {
+            debug_vao = std::make_unique<VAO>();
+        }
+        if (debug_shader == nullptr) {
+            debug_shader = std::make_unique<Shader>(utils::paths::shaders + "fullscreen.glsl");
+        }
     }
 
     FBO::~FBO() {
-        CORE_WARN("Destroying framebuffer: {0}...", id);
+        CORE_WARN("Destroying framebuffer (id = {0})...", id);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &id);
     }
@@ -51,10 +55,6 @@ namespace buffer {
             depst_texture = nullptr;
             depst_renderbuffer = nullptr;
 
-            virtual_mesh = nullptr;
-            virtual_shader = nullptr;
-            virtual_material = nullptr;
-
             std::swap(id, other.id);
             std::swap(width, other.width);
             std::swap(height, other.height);
@@ -64,16 +64,12 @@ namespace buffer {
             std::swap(depst_texture, other.depst_texture);
             std::swap(depst_renderbuffer, other.depst_renderbuffer);
             std::swap(stencil_view, other.stencil_view);
-
-            std::swap(virtual_mesh, other.virtual_mesh);
-            std::swap(virtual_shader, other.virtual_shader);
-            std::swap(virtual_material, other.virtual_material);
         }
 
         return *this;
     }
 
-    void FBO::AddColorTexture(GLuint count) {
+    void FBO::AddColorTexture(GLuint count, bool multisample) {
         size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
         size_t n_color_buffs = color_textures.size();
 
@@ -83,10 +79,21 @@ namespace buffer {
             return;
         }
 
+        static const float border[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
         for (GLuint i = 0; i < count; i++) {
-            color_textures.emplace_back(GL_TEXTURE_2D, width, height, GL_RGBA16F);
+            GLenum texture_target = multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+            color_textures.emplace_back(texture_target, width, height, GL_RGBA16F, 1, multisample);
+
             auto& texture = color_textures.back();
-            glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + n_color_buffs + i, texture.GetID(), 0);
+            GLuint tid = texture.GetID();
+
+            glTextureParameteri(tid, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTextureParameteri(tid, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTextureParameteri(tid, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            glTextureParameteri(tid, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            glTextureParameterfv(tid, GL_TEXTURE_BORDER_COLOR, border);
+            glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + n_color_buffs + i, tid, 0);
         }
 
         // enable multiple render targets
@@ -104,16 +111,36 @@ namespace buffer {
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
 
-    void FBO::AddDepStTexture() {
+    void FBO::SetColorTexture(GLenum index, GLuint cubemap_texture, GLuint face) {
+        size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
+        size_t n_color_buffs = color_textures.size();
+
+        CORE_ASERT(index < max_color_buffs, "Color attachment index {0} is out of range!", index);
+        CORE_ASERT(index >= n_color_buffs, "Color attachment {0} is already occupied!", index);
+        CORE_ASERT(face < 6, "Invalid cubemap face id, must be a number between 0 and 5!");
+
+        glNamedFramebufferTextureLayer(id, GL_COLOR_ATTACHMENT0 + index, cubemap_texture, 0, face);
+        status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
+    }
+
+    void FBO::AddDepStTexture(bool multisample) {
         // a framebuffer can only have one depth stencil buffer, either as a texture or a renderbuffer
         if (depst_renderbuffer != nullptr) {
             CORE_ERROR("This framebuffer already has a depth stencil renderbuffer...");
             return;
         }
 
+        // depth stencil textures are meant to be filtered anyway, it doesn't make sense to use a depth
+        // stencil texture for MSAA because filtering on multisampled textures is not allowed by OpenGL.
+        if (multisample) {
+            CORE_ERROR("Multisampled depth stencil texture is not supported, it is a waste of memory!");
+            CORE_ERROR("If you need MSAA, please add a multisampled renderbuffer (RBO) instead...");
+            return;
+        }
+
         // depth and stencil values are combined in a single immutable-format texture
         // each 32-bit pixel contains 24 bits of depth value and 8 bits of stencil value
-        depst_texture = std::make_unique<Texture>(GL_TEXTURE_2D, width, height, GL_DEPTH24_STENCIL8);
+        depst_texture = std::make_unique<Texture>(GL_TEXTURE_2D, width, height, GL_DEPTH24_STENCIL8, 1);
         glTextureParameteri(depst_texture->GetID(), GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
 
         GLint immutable_format;
@@ -133,7 +160,7 @@ namespace buffer {
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
 
-    void FBO::AddDepStRenderBuffer() {
+    void FBO::AddDepStRenderBuffer(bool multisample) {
         // a framebuffer can only have one depth stencil buffer, either as a texture or a renderbuffer
         if (depst_texture != nullptr) {
             CORE_ERROR("This framebuffer already has a depth stencil texture...");
@@ -143,7 +170,7 @@ namespace buffer {
         // depth and stencil values are combined in a single render buffer (RBO)
         // each 32-bit pixel contains 24 bits of depth value and 8 bits of stencil value
 
-        depst_renderbuffer = std::make_unique<RBO>(width, height);
+        depst_renderbuffer = std::make_unique<RBO>(width, height, multisample);
         depst_renderbuffer->Bind();
         glNamedFramebufferRenderbuffer(id, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depst_renderbuffer->GetID());
 
@@ -168,10 +195,6 @@ namespace buffer {
         return *stencil_view;
     }
 
-    Material& FBO::GetVirtualMaterial() {
-        return *virtual_material;
-    }
-
     void FBO::Bind() const {
         CORE_ASERT(status == GL_FRAMEBUFFER_COMPLETE, "Incomplete framebuffer status: {0}", status);
         glBindFramebuffer(GL_FRAMEBUFFER, id);
@@ -181,39 +204,31 @@ namespace buffer {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void FBO::PostProcessDraw() const {
-        size_t n = color_textures.size();
-
-        if (virtual_material->Bind()) {
-            // bind all color textures to texture units 0 ~ n-1
-            for (size_t i = 0; i < n; i++) {
-                color_textures[i].Bind(i);
-            }
-
-            // bind the depth component to texture unit n
-            if (depst_texture != nullptr) {
-                depst_texture->Bind(n);
-            }
-
-            // bind the stencil component to texture unit n+1
-            if (stencil_view != nullptr) {
-                stencil_view->Bind(n + 1);
-            }
-
-            // draw the quad mesh while the virtual material is bound
-            virtual_mesh->Draw();
-
-            // unbind all textures after the draw call
-            for (size_t i = 0; i < n + 2; i++) {
-                glBindTextureUnit(i, 0);
-            }
-
-            virtual_material->Unbind();
-        }
+    void FBO::SetDrawBuffer(GLuint index) const {
+        CORE_ASERT(index < color_textures.size(), "Color buffer index out of bound!");
+        const GLenum buffers[] = { GL_COLOR_ATTACHMENT0 + index };
+        glNamedFramebufferDrawBuffers(id, 1, buffers);
     }
 
-    void FBO::DebugDraw(GLint index) const {
-        virtual_shader->Bind();
+    void FBO::SetDrawBuffers(std::vector<GLuint> indices) const {
+        size_t n_buffs = color_textures.size();
+        size_t n_index = indices.size();
+        GLenum* buffers = new GLenum[n_index];
+
+        for (GLenum i = 0; i < n_index; i++) {
+            GLuint index = indices[i];
+            CORE_ASERT(index < n_buffs, "Color buffer index {0} out of bound!", index);
+            // the `layout(location = i) out` variable will write to this attachment
+            *(buffers + i) = GL_COLOR_ATTACHMENT0 + index;
+        }
+
+        glNamedFramebufferDrawBuffers(id, n_index, buffers);
+        delete[] buffers;
+    }
+
+    void FBO::Draw(GLint index) const {
+        debug_shader->Bind();
+        debug_vao->Bind();
 
         // subroutine indexes are explicitly specified in the shader, see "fullscreen.glsl"
         static GLuint subroutine_index = 0;
@@ -252,8 +267,8 @@ namespace buffer {
         // single time (fragment shader won't remember the subroutine uniform's previous value)
         glUniformSubroutinesuiv(GL_FRAGMENT_SHADER, 1, &subroutine_index);
 
-        virtual_mesh->Draw();
-        virtual_shader->Unbind();
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        debug_shader->Unbind();
     }
 
     void FBO::Clear(GLint index) const {
@@ -261,22 +276,37 @@ namespace buffer {
         static GLfloat clear_depth = 1.0f;
         static GLint clear_stencil = 0;
 
+        // a framebuffer always has a depth buffer, a stencil buffer and all color buffers,
+        // an empty one just doesn't have any textures attached to it, but all buffers are
+        // still there. It's ok to clear a buffer even if there's no textures attached, we
+        // don't need to check `index < color_textures.size()` or `depst_texture != nullptr`
+
+        static size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
+
         // clear one of the color attachments
-        if (index >= 0 && index < color_textures.size()) {
+        if (index >= 0 && index < max_color_buffs) {
             glClearNamedFramebufferfv(id, GL_COLOR, index, clear_color);
         }
         // clear the depth buffer
-        else if (index == -1 && depst_texture) {
+        else if (index == -1) {
             glClearNamedFramebufferfv(id, GL_DEPTH, 0, &clear_depth);
         }
         // clear the stencil buffer
-        else if (index == -2 && stencil_view) {
+        else if (index == -2) {
             glClearNamedFramebufferiv(id, GL_STENCIL, 0, &clear_stencil);
         }
         else {
             CORE_ERROR("Buffer index {0} is not valid in the framebuffer!", index);
-            CORE_ERROR("Valid indices: 0-{0} (colors), -1 (depth), -2 (stencil)", color_textures.size() - 1);
+            CORE_ERROR("Valid indices: 0-{0} (colors), -1 (depth), -2 (stencil)", max_color_buffs - 1);
         }
+    }
+
+    void FBO::ClearAll() const {
+        for (int i = 0; i < color_textures.size(); i++) {
+            Clear(i);
+        }
+        Clear(-1);
+        Clear(-2);
     }
 
     void FBO::TransferColor(const FBO& fr, GLuint fr_idx, const FBO& to, GLuint to_idx) {
@@ -292,12 +322,16 @@ namespace buffer {
     }
 
     void FBO::TransferDepth(const FBO& fr, const FBO& to) {
+        // make sure that GL_FRAMEBUFFER_SRGB is globally disabled when calling this function!
+        // if colorspace correction is enabled, depth values will be gamma encoded during blits...
         GLuint fw = fr.width, fh = fr.height;
         GLuint tw = to.width, th = to.height;
         glBlitNamedFramebuffer(fr.id, to.id, 0, 0, fw, fh, 0, 0, tw, th, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
     }
 
     void FBO::TransferStencil(const FBO& fr, const FBO& to) {
+        // make sure that GL_FRAMEBUFFER_SRGB is globally disabled when calling this function!
+        // if colorspace correction is enabled, stencil values will be gamma encoded during blits...
         GLuint fw = fr.width, fh = fr.height;
         GLuint tw = to.width, th = to.height;
         glBlitNamedFramebuffer(fr.id, to.id, 0, 0, fw, fh, 0, 0, tw, th, GL_STENCIL_BUFFER_BIT, GL_NEAREST);

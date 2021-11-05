@@ -52,18 +52,20 @@ namespace buffer {
     template<typename T>
     class SSBO : public Buffer {
       private:
+        GLuint array_size;
         void Bind() const override {}
         void Unbind() const override {}
 
       public:
-        GLuint array_size;
-
         SSBO() = default;
         SSBO(GLuint array_size);
         ~SSBO();
 
-        SSBO(const SSBO&) = default;
-        SSBO& operator=(const SSBO&) = default;
+        SSBO(const SSBO&) = delete;
+        SSBO& operator=(const SSBO&) = delete;
+
+        SSBO(SSBO&& other) noexcept;
+        SSBO& operator=(SSBO&& other) noexcept;
         
         void Bind(GLuint unit) const;
         void Unbind(GLuint unit) const;

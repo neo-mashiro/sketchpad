@@ -1,8 +1,5 @@
 #version 460
 
-// this shader is used by the skybox
-////////////////////////////////////////////////////////////////////////////////
-
 layout(std140, binding = 0) uniform Camera {
     vec3 position;
     vec3 direction;
@@ -42,9 +39,13 @@ void main() {
 #ifdef fragment_shader
 
 layout(location = 0) in vec3 _tex_coords;
+
 layout(location = 0) out vec4 color;
+layout(location = 1) out vec4 bloom;
 
 layout(binding = 0) uniform samplerCube skybox;
+
+layout(location = 3) uniform float brightness;
 
 void main() {
     // in the depth prepass, we don't draw anything in the fragment shader
@@ -52,7 +53,21 @@ void main() {
         return;
     }
 
-    color = texture(skybox, _tex_coords);
+    vec3 hdr_color = texture(skybox, _tex_coords).rgb;
+
+    // skybox is usually loaded from HDR images, so it often looks different across apps
+    // or even scenes. Since tone mapping operators may depend on the maximum or average
+    // luminance of a scene, skybox's color can be affected by other objects in the scene.
+    // if the skybox appears too dark after getting toned down, you can manually adjust
+    // its brightness uniform before tone mapping is applied, or do some other fun stuff.
+
+    hdr_color *= brightness;
+
+    hdr_color = hdr_color / (hdr_color + vec3(1.0));
+    hdr_color = pow(hdr_color, vec3(1.0/2.2));
+
+    color = vec4(hdr_color, 1.0);
+    bloom = vec4(0.0, 0.0, 0.0, 1.0);  // make sure our skybox doesn't get blurred
 }
 
 #endif

@@ -15,8 +15,8 @@ namespace scene {
 
     Scene::Scene(const std::string& title) : title(title), directory() {
         // add a default (empty) material component whenever a mesh or model component is added
-        registry.on_construct<Mesh>().connect<&entt::registry::emplace_or_replace<Material>>();
-        registry.on_construct<Model>().connect<&entt::registry::emplace_or_replace<Material>>();
+        // registry.on_construct<Mesh>().connect<&entt::registry::emplace_or_replace<Material>>();
+        // registry.on_construct<Model>().connect<&entt::registry::emplace_or_replace<Material>>();
     }
 
     Scene::~Scene() {
@@ -165,12 +165,12 @@ namespace scene {
     static ImTextureID welcome_screen_texture_id;
 
     void Scene::Init() {
-        welcome_screen = LoadAsset<Texture>(utils::paths::textures + "misc\\welcome.png", 1);
+        welcome_screen = LoadAsset<Texture>(utils::paths::textures + "common\\welcome.png", 1);
         welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->GetID());
     }
 
     void Scene::OnSceneRender() {
-        Renderer::Clear(color::black);
+        Renderer::Clear();
     }
 
     void Scene::OnImGuiRender() {

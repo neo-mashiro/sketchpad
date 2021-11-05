@@ -44,10 +44,11 @@ namespace components {
        data buffer blocks or custom functions that are frequently used by many shaders, it's often
        a nice idea to group them in a single file, and then "#include" it whenever you need it.
 
-       there's only one rule you need to keep in mind, that the file to include must be in the
-       same directory as the shader that calls "#include". If the file does not exist or cannot
+       there's only one rule you need to keep in mind, that the file to include must be inside the
+       same directory or parent directory of the shader file. If the file does not exist or cannot
        open (probably misspelled), the class will ignore the line and continue to compile the rest,
        in this case, the console will print a warning message so that users are likely aware of it.
+       other directories won't be searched.
 
        # save/load shader binaries
 
@@ -62,23 +63,13 @@ namespace components {
        be able to load one that is saved by a different platform or even a previous driver version.
        last but not least, loading from a SPIR-V binary is currently not supported...
 
-       # why we are in the "components" namespace
+       # why in the "components" namespace
 
        despite the fact that shader is not a component, most of the time it's directly managed by
        the material component so they are closely related. In a professional rendering engine or
        game engine, shaders are usually classified as external asset resources and are managed by
        a specialized asset manager, which takes on the single responsibility to load or free them
        as appropriate. But for our simple demo, I found it easier to work with this way.
-
-       # how do I set uniforms, where's the interface?
-
-       no you don't, the shader class doesn't have any functions for querying uniform locations or
-       setting uniform values, this is on purpose. We would never query locations of uniforms at
-       all, users must explicitly specify the locations in GLSL (also applies to uniform buffer
-       binding points, shader storage buffer indices, subroutine uniform indices, ILS image units
-       and so on) to keep the code clean. Doing so has the benefit of 0 overhead, it can also help
-       automate certain tasks, you only set uniforms on a material with a location and value, the
-       material class will handle the rest for you (the uniform class can handle generic types)
 
        # smart bindings
 
@@ -87,6 +78,13 @@ namespace components {
        smart shader bindings, the previously bound shader id is always remembered, trying to bind
        a shader that is already bound has 0 overhead, there's no context switching in this case.
        in case you don't know, our texture class also has smart bindings support.
+
+       # setting uniforms
+
+       this class provides the interface for setting uniforms using direct state access. However,
+       the vast majority of shaders are automatically managed by the material class, users hardly
+       need to set uniforms manually, the uniforms will be smartly uploaded by the material. This
+       function should only be used by utility shaders that are not attached to any entity.
     */
 
     class Shader {
@@ -116,6 +114,9 @@ namespace components {
         void Save() const;
 
         GLuint GetID() const { return id; }
+
+        template<typename T>
+        void SetUniform(GLuint location, const T& val) const;
 
         static void Sync(GLbitfield barriers);
     };

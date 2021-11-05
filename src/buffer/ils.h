@@ -33,6 +33,12 @@ namespace buffer {
         ILS() = default;
         ILS(GLuint width, GLuint height, GLenum internal_format);
         ~ILS();
+
+        ILS(const ILS&) = delete;
+        ILS& operator=(const ILS&) = delete;
+
+        ILS(ILS&& other) noexcept;
+        ILS& operator=(ILS&& other) noexcept;
         
         void Bind(GLuint unit) const;
         void Unbind(GLuint unit) const;

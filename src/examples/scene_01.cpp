@@ -21,6 +21,7 @@ using namespace utils;
 namespace scene {
 
     static bool show_plane = true;
+    static bool show_light_cluster = true;
     static bool draw_depth_buffer = false;
     static bool orbit = true;
 
@@ -35,32 +36,54 @@ namespace scene {
 
     static float plane_roughness = 0.1f;
     static float light_cluster_intensity = 10.0f;
+    static float skybox_brightness = 0.5f;
+
+    static int tone_mapping_mode = 3;
+    static int bloom_effect = 3;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     // this is called before the first frame, use this function to initialize your scene
     void Scene01::Init() {
         // name your scene title (will appear in the top menu)
         this->title = "Example Scene";
 
-        auto& model_path   = paths::models;
-        auto& shader_path  = paths::shaders;
-        auto& texture_path = paths::textures;
-        auto& cubemap_path = paths::cubemaps;
+        // load the string paths to various assets
+        auto& model_path   = utils::paths::models;
+        auto& shader_path  = utils::paths::shaders;
+        auto& texture_path = utils::paths::textures;
+        auto& cubemap_path = utils::paths::cubemaps;
 
-        // load shader and texture assets upfront
-        this->light_cull_compute_shader   = LoadAsset<ComputeShader>(shader_path + "light_cull.glsl");
+        // shaders that apply to entities are managed by material components, they are considered
+        // to be assets like textures, which can be shared across entities, you only need to load
+        // them at local scope and attach to the materials.
+        asset_ref<Shader> pbr_shader    = LoadAsset<Shader>(shader_path + "scene_01\\pbr.glsl");
+        asset_ref<Shader> light_shader  = LoadAsset<Shader>(shader_path + "light_source.glsl");
+        asset_ref<Shader> skybox_shader = LoadAsset<Shader>(shader_path + "scene_01\\skybox.glsl");
 
-        asset_ref<Shader> pbr_shader      = LoadAsset<Shader>(shader_path + "01_pbr.glsl");
-        asset_ref<Shader> light_shader    = LoadAsset<Shader>(shader_path + "light_cube.glsl");
-        //asset_ref<Shader> skybox_shader   = LoadAsset<Shader>(shader_path + "skybox.glsl");
+        asset_ref<Material> pbr_material    = CreateAsset<Material>(pbr_shader);
+        asset_ref<Material> light_material  = CreateAsset<Material>(light_shader);
+        asset_ref<Material> skybox_material = CreateAsset<Material>(skybox_shader);
 
-        //asset_ref<Texture> space_cube     = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, cubemap_path + "space");
-        asset_ref<Texture> checkerboard   = LoadAsset<Texture>(texture_path + "misc\\checkboard.png");
-        asset_ref<Texture> ball_albedo    = LoadAsset<Texture>(texture_path + "meshball4\\albedo.jpg");
-        asset_ref<Texture> ball_normal    = LoadAsset<Texture>(texture_path + "meshball4\\normal.jpg");
-        asset_ref<Texture> ball_metallic  = LoadAsset<Texture>(texture_path + "meshball4\\metallic.jpg");
-        asset_ref<Texture> ball_roughness = LoadAsset<Texture>(texture_path + "meshball4\\roughness.jpg");
-        asset_ref<Texture> ball_displace  = LoadAsset<Texture>(texture_path + "meshball4\\displacement.jpg");
+        // compute shaders and shaders that act upon framebuffers are deemed utility shaders
+        // which are not part of the entity-component system, that's why they are declared
+        // in the header file as class members, users are supposed to control them directly
+        blur_shader       = std::make_unique<Shader>(shader_path + "scene_01\\blur.glsl");
+        blend_shader      = std::make_unique<Shader>(shader_path + "scene_01\\blend.glsl");
+        light_cull_shader = std::make_unique<ComputeShader>(shader_path + "light_culling.glsl");
+        light_cull_shader->SetUniform(0, n_point_lights);
 
+        // load texture assets upfront
+        asset_ref<Texture> checkerboard   = LoadAsset<Texture>(texture_path + "common\\checkboard.png");
+        asset_ref<Texture> ball_albedo    = LoadAsset<Texture>(texture_path + "meshball\\albedo.jpg");
+        asset_ref<Texture> ball_normal    = LoadAsset<Texture>(texture_path + "meshball\\normal.jpg");
+        asset_ref<Texture> ball_metallic  = LoadAsset<Texture>(texture_path + "meshball\\metallic.jpg");
+        asset_ref<Texture> ball_roughness = LoadAsset<Texture>(texture_path + "meshball\\roughness.jpg");
+
+        // load skybox cubemap from hdr image
+        asset_ref<Texture> space_cubemap = LoadAsset<Texture>(cubemap_path + "cosmic\\", ".hdr", 2048, 1);
+
+        // textures for external models that require manual import are sorted in a vector
         std::vector<asset_ref<Texture>> runestone_pillar {
             LoadAsset<Texture>(model_path + "runestone\\pillars_albedo.png"),
             LoadAsset<Texture>(model_path + "runestone\\pillars_normal.png"),
@@ -77,13 +100,46 @@ namespace scene {
             LoadAsset<Texture>(model_path + "runestone\\platform_emissive.png")
         };
 
-        // create uniform buffer objects (UBO) from shaders
-        AddUBO(pbr_shader->GetID());
+        // check errors periodically in case the built-in debug message callback fails
+        CheckGLError(0);  // checkpoint 0
 
-        // create frame buffer objects (FBO)
-        FBO& depth_framebuffer = AddFBO(Window::width, Window::height);
-        depth_framebuffer.AddDepStTexture();
-        // depth_prepass.GetVirtualMaterial()->SetShader(...);  // set a postprocess shader
+        // create uniform buffer objects (UBO) from shaders (duplicates will be skipped)
+        AddUBO(pbr_shader->GetID());
+        AddUBO(light_shader->GetID());
+
+        // create samplers (sampling state objects) for Gaussian blur filter and bloom
+        const float border[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        point_sampler = std::make_unique<Sampler>();
+        point_sampler->SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        point_sampler->SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        point_sampler->SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        point_sampler->SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        point_sampler->SetParam(GL_TEXTURE_BORDER_COLOR, border);
+
+        bilinear_sampler = std::make_unique<Sampler>();
+        bilinear_sampler->SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        bilinear_sampler->SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        bilinear_sampler->SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        bilinear_sampler->SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        bilinear_sampler->SetParam(GL_TEXTURE_BORDER_COLOR, border);
+
+        CheckGLError(1);
+
+        // create intermediate framebuffer objects (FBO)
+        FBO& depth_prepass = AddFBO(Window::width, Window::height);
+        depth_prepass.AddDepStTexture();
+
+        FBO& bloom_filter_pass = AddFBO(Window::width, Window::height);
+        bloom_filter_pass.AddColorTexture(2, true);    // multisampled textures for MSAA
+        bloom_filter_pass.AddDepStRenderBuffer(true);  // multisampled RBO for MSAA
+
+        FBO& msaa_resolve_pass = AddFBO(Window::width, Window::height);
+        msaa_resolve_pass.AddColorTexture(2);
+
+        FBO& blur_pass = AddFBO(Window::width / 2, Window::height / 2);  // two-pass Gaussian blur
+        blur_pass.AddColorTexture(2);
+
+        CheckGLError(2);
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
@@ -94,10 +150,12 @@ namespace scene {
         camera.GetComponent<Spotlight>().SetCutoff(4.0f);
         
         // skybox
-        //skybox = CreateEntity("Skybox", ETag::Skybox);
-        //skybox.AddComponent<Mesh>(Primitive::Cube);
-        //skybox.GetComponent<Material>().SetShader(skybox_shader);
-        //skybox.GetComponent<Material>().SetTexture(0, space_cube);
+        skybox = CreateEntity("Skybox", ETag::Skybox);
+        skybox.AddComponent<Mesh>(Primitive::Cube);
+        if (auto& mat = skybox.AddComponent<Material>(skybox_material); true) {
+            mat.SetTexture(0, space_cubemap);
+            mat.SetUniform(3, skybox_brightness, true);
+        }
 
         // create renderable entities...
         sphere = CreateEntity("Sphere");
@@ -106,8 +164,7 @@ namespace scene {
         sphere.GetComponent<Transform>().Scale(2.0f);
 
         // a material is automatically attached to the entity when you add a mesh or model
-        if (auto& mat = sphere.GetComponent<Material>(); true) {
-            mat.SetShader(pbr_shader);
+        if (auto& mat = sphere.AddComponent<Material>(pbr_material); true) {
             // it's possible to bind a uniform to a variable and observe changes in the shader
             // automatically. In this case, you only need to bind it once inside this `Init()`
             // function, which saves you from having to set uniforms every frame.
@@ -126,13 +183,11 @@ namespace scene {
         ball.GetComponent<Transform>().Translate(world::up * 6.0f);
         ball.GetComponent<Transform>().Scale(2.0f);
 
-        if (auto& mat = ball.GetComponent<Material>(); true) {
-            mat.SetShader(pbr_shader);
+        if (auto& mat = ball.AddComponent<Material>(pbr_material); true) {
             mat.SetTexture(0, ball_albedo);
             mat.SetTexture(1, ball_normal);
             mat.SetTexture(2, ball_metallic);
             mat.SetTexture(3, ball_roughness);
-            mat.SetTexture(6, ball_displace);
             if (false) {
                 mat.SetShader(nullptr);      // this is how you can reset a material's shader
                 mat.SetTexture(0, nullptr);  // this is how you can reset a material's texture
@@ -143,8 +198,8 @@ namespace scene {
         plane.AddComponent<Mesh>(Primitive::Plane);
         plane.GetComponent<Transform>().Translate(world::up * -4.0f);
         plane.GetComponent<Transform>().Scale(3.0f);
-        if (auto& mat = plane.GetComponent<Material>(); true) {
-            mat.SetShader(pbr_shader);
+
+        if (auto& mat = plane.AddComponent<Material>(pbr_material); true) {
             mat.SetUniform(12, plane_roughness, true);
             mat.SetTexture(0, checkerboard);
         }
@@ -152,12 +207,14 @@ namespace scene {
         runestone = CreateEntity("Runestone");
         runestone.GetComponent<Transform>().Scale(0.02f);
         runestone.GetComponent<Transform>().Translate(world::up * -4.0f);
+        runestone.AddComponent<Material>(pbr_material);
 
         auto& model = runestone.AddComponent<Model>(model_path + "runestone\\runestone.fbx", Quality::Auto);
-        runestone.GetComponent<Material>().SetShader(pbr_shader);
-        model.Import("pillars", runestone_pillar);     // material id 6 (may differ on your PC)
-        model.Import("platform", runestone_platform);  // material id 5 (may differ on your PC)
+        model.Import("pillars", runestone_pillar);
+        model.Import("platform", runestone_platform);
         model.Report();  // a report that helps you learn how to load the model asset
+
+        CheckGLError(3);
 
         // create light sources, start from the ambient light (directional light)
         direct_light = CreateEntity("Directional Light");
@@ -176,25 +233,24 @@ namespace scene {
         // for dynamic lights, the UBO's data will be set in `OnSceneRender()` every frame
         orbit_light = CreateEntity("Orbit Light");
         orbit_light.GetComponent<Transform>().Translate(glm::vec3(0.0f, 8.0f, orbit_radius));
-        orbit_light.GetComponent<Transform>().Scale(0.03f);
+        orbit_light.GetComponent<Transform>().Scale(0.3f);
         orbit_light.AddComponent<PointLight>(color::lime, 0.8f);
         orbit_light.GetComponent<PointLight>().SetAttenuation(0.09f, 0.032f);
-        orbit_light.AddComponent<Mesh>(Primitive::Cube);
-        orbit_light.GetComponent<Material>().SetShader(light_shader);
+        orbit_light.AddComponent<Mesh>(sphere_mesh.GetVAO(), sphere_mesh.n_verts);
+        orbit_light.AddComponent<Material>(light_shader);
+
+        CheckGLError(4);
 
         // forward+ rendering setup (a.k.a tiled forward rendering)
         nx = (Window::width + tile_size - 1) / tile_size;
         ny = (Window::height + tile_size - 1) / tile_size;
         n_tiles = nx * ny;
 
-        // setup the shader storage buffers for 28 static point lights
-        const unsigned int n_pl = 28;
-        light_cull_compute_shader->SetUniform(0, n_pl);
-
-        pl_color_ssbo    = LoadBuffer<SSBO<glm::vec4>>(n_pl);
-        pl_position_ssbo = LoadBuffer<SSBO<glm::vec4>>(n_pl);
-        pl_range_ssbo    = LoadBuffer<SSBO<GLfloat>>(n_pl);
-        pl_index_ssbo    = LoadBuffer<SSBO<GLint>>(n_pl * n_tiles);
+        // setup shader storage buffers for the 28 static point lights
+        pl_color_ssbo    = LoadBuffer<SSBO<glm::vec4>>(n_point_lights);
+        pl_position_ssbo = LoadBuffer<SSBO<glm::vec4>>(n_point_lights);
+        pl_range_ssbo    = LoadBuffer<SSBO<GLfloat>>(n_point_lights);
+        pl_index_ssbo    = LoadBuffer<SSBO<GLint>>(n_point_lights * n_tiles);
 
         // light culling in forward+ rendering can be applied to both static and dynamic lights,
         // in the latter case, it is required that users update the input SSBO buffer data every
@@ -202,7 +258,7 @@ namespace scene {
         // unless you have thousands of lights whose colors or positions are constantly changing.
         // in this demo, we will only cull the 28 (or even 2800 if you have space) static point
         // lights, so the input SSBO buffer data only needs to be set up once. The spotlight and
-        // orbit light will participate in lighting calculations anyway.
+        // orbit light will always participate in lighting calculations every frame.
 
         std::vector<glm::vec4> colors {};
         std::vector<glm::vec4> positions {};
@@ -222,21 +278,21 @@ namespace scene {
 
             // translate light positions to the range that is symmetrical about the origin
             auto position = glm::vec3(row - 3.5f, 1.5f, col - 3.5f) * 9.0f;
-            auto rand_color = glm::vec3(0.0f);
 
-            // for each point light, generate a random color that is not too dark
-            while (glm::length2(rand_color) < 1.5f) {
-                rand_color = glm::vec3(math::RandomFloat01(), math::RandomFloat01(), math::RandomFloat01());
-            }
+            // for each point light, generate a random highly saturated, bright color
+            // [wikipedia]: fully saturated colors are placed around a circle at a lightness value of 0.5
+            float random = math::RandomFloat01();
+            auto hsl_color = glm::vec3(random, 0.7f + random * 0.3f, 0.4f + random * 0.2f);
+            auto rand_color = HSL2RGB(hsl_color);
 
             point_lights[index] = CreateEntity("Point Light " + std::to_string(index));
             auto& pl = point_lights[index];
             pl.GetComponent<Transform>().Translate(position - world::origin);
-            pl.GetComponent<Transform>().Scale(0.2f);
+            pl.GetComponent<Transform>().Scale(0.8f);
             pl.AddComponent<PointLight>(rand_color, 1.5f);
             pl.GetComponent<PointLight>().SetAttenuation(0.09f, 0.032f);
-            pl.AddComponent<Mesh>(Primitive::Cube);
-            pl.GetComponent<Material>().SetShader(light_shader);
+            pl.AddComponent<Mesh>(sphere_mesh.GetVAO(), sphere_mesh.n_verts);
+            pl.AddComponent<Material>(light_material);
 
             // the effective range of the light is calculated for you by `SetAttenuation()`
             colors.push_back(glm::vec4(rand_color, 1.0f));
@@ -255,16 +311,219 @@ namespace scene {
         pl_range_ssbo->Write(ranges);
         pl_range_ssbo->Bind(2);
 
+        CheckGLError(5);
+
         Renderer::FaceCulling(true);
+        Renderer::SeamlessCubemap(true);
     }
 
     // this is called every frame, update your scene here and submit the entities to the renderer
     void Scene01::OnSceneRender() {
-        (void)glGetError();
+        UpdateEntities();
+        UpdateUBOs();
+
+        // pass 1: render depth values into the prepass depth buffer
+        DepthPrepass();
+
+        // optionally check if depth values are correctly written to the framebuffer
+        if (draw_depth_buffer) {
+            Renderer::DepthTest(false);
+            Renderer::Clear();  // a deep blue clear color (easier to debug depth)
+            auto& depth_prepass_framebuffer = FBOs[0];
+            depth_prepass_framebuffer.Draw(-1);
+            return;
+        }
+
+        // pass 2: dispatch light culling computations on the compute shader
+        LightCullPass();
+
+        // pass 3: render objects to the multisampled bloom filter buffer (multiple render targets)
+        UpdateUniforms();  // update uniforms before actual shading
+        BloomFilterPass();
+
+        // pass 4: resolve the previously written multisampled textures to normal textures
+        MSAAResolvePass();
+
+        // pass 5: apply two-pass Gaussian blur filter on the bloom highlights texture
+        GaussianBlurPass();
+
+        // pass 6: blend the bloom texture (blurred mipmap) with the original scene texture
+        BloomBlendPass();
+    }
+
+    // this is called every frame, update your ImGui widgets here to control entities in the scene
+    void Scene01::OnImGuiRender() {
+        static bool show_sphere_gizmo     = false;
+        static bool show_plane_gizmo      = false;
+        static bool edit_sphere_albedo    = false;
+        static bool edit_flashlight_color = false;
+
+        static ImVec4 sphere_color = ImVec4(0.22f, 0.0f, 1.0f, 0.0f);
+        static ImVec4 flashlight_color = ImVec4(1.0f, 0.553f, 0.0f, 1.0f);
+        static const ImVec4 text_color = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
+
+        static ImGuiColorEditFlags color_flags = ImGuiColorEditFlags_NoSidePreview
+            | ImGuiColorEditFlags_PickerHueWheel
+            | ImGuiColorEditFlags_DisplayRGB
+            | ImGuiColorEditFlags_NoPicker;
+
+        static const char* tone_mappings[] = {
+            "Simple Reinhard",
+            // "Extended Reinhard (Luminance)",
+            "Reinhard-Jodie (Shadertoy)",
+            "Uncharted 2 Hable Filmic",
+            "Approximated ACES (Unreal Engine 4)"
+        };
+
+        static const char tone_mapping_guide[] = "Here is a number of algorithms for high dynamic "
+            "range tone mapping, select one that looks best on your scene.";
+
+        static const char tone_mapping_note[] = "Approximated ACES filmic tonemapper might not be "
+            "the most visually attractive one, but it is the most physically correct.";
+
+        ui::LoadInspectorConfig();
+
+        if (ImGui::Begin("Inspector##1", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+            if (ImGui::BeginTabBar("InspectorTab", ImGuiTabBarFlags_None)) {
+
+                if (ImGui::BeginTabItem("Scene")) {
+                    ImGui::Indent(5.0f);
+                    ImGui::Checkbox("Show Plane", &show_plane);
+                    ImGui::Separator();
+                    ImGui::Checkbox("Show Light Cluster", &show_light_cluster);
+                    ImGui::Separator();
+                    ImGui::Checkbox("Orbit Light", &orbit);
+                    ImGui::Separator();
+                    ImGui::Checkbox("Show Sphere Gizmo", &show_sphere_gizmo);
+                    ImGui::Separator();
+                    ImGui::Checkbox("Show Plane Gizmo", &show_plane_gizmo);
+                    ImGui::Separator();
+                    ImGui::Checkbox("Visualize Depth Buffer", &draw_depth_buffer);
+                    ImGui::Separator();
+                    ImGui::PushItemWidth(130.0f);
+                    ImGui::SliderFloat("Light Cluster Intensity", &light_cluster_intensity, 3.0f, 20.0f);
+                    ImGui::Separator();
+                    ImGui::SliderFloat("Skybox Brightness", &skybox_brightness, 0.2f, 8.0f);
+                    ImGui::Separator();
+                    ImGui::PopItemWidth();
+                    ImGui::Spacing();
+                    if (ImGui::Button("  New Colors  ")) {
+                        UpdatePLColors();
+                    }
+                    ImGui::SameLine(0.0f, 10.0f);
+                    ImGui::Text("Reset Light Cluster Colors");
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::SetTooltip("New colors will be generated at random.");
+                    }
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Unindent(5.0f);
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("Material")) {
+                    ImGui::Indent(5.0f);
+                    ImGui::PushItemWidth(100.0f);
+                    ImGui::SliderFloat("Sphere Metalness", &sphere_metalness, 0.05f, 1.0f);
+                    ImGui::SliderFloat("Sphere Roughness", &sphere_roughness, 0.05f, 1.0f);
+                    ImGui::SliderFloat("Sphere AO", &sphere_ao, 0.0f, 1.0f);
+                    ImGui::SliderFloat("Plane Roughness", &plane_roughness, 0.1f, 0.3f);
+                    ImGui::PopItemWidth();
+                    ImGui::Separator();
+
+                    ImGui::Checkbox("Edit Sphere Albedo", &edit_sphere_albedo);
+                    if (edit_sphere_albedo) {
+                        ImGui::Spacing();
+                        ImGui::Indent(10.0f);
+                        ImGui::ColorPicker3("##Sphere Albedo", (float*)&sphere_color, color_flags);
+                        ImGui::Unindent(10.0f);
+                    }
+
+                    ImGui::Checkbox("Edit Flashlight Color", &edit_flashlight_color);
+                    if (edit_flashlight_color) {
+                        ImGui::Spacing();
+                        ImGui::Indent(10.0f);
+                        ImGui::ColorPicker3("##Flashlight Color", (float*)&flashlight_color, color_flags);
+                        ImGui::Unindent(10.0f);
+                    }
+
+                    ImGui::Unindent(5.0f);
+                    ImGui::EndTabItem();
+                }
+
+                if (ImGui::BeginTabItem("HDR/Bloom")) {
+                    ImGui::Indent(5.0f);
+                    ImGui::PushItemWidth(180.0f);
+                    ImGui::Text("Bloom Effect (Light Cluster)");
+                    ImGui::SliderInt(" ##Bloom", &bloom_effect, 3, 5);
+                    ImGui::PopItemWidth();
+                    ImGui::Separator();
+                    ImGui::PushStyleColor(ImGuiCol_Text, text_color);
+                    ImGui::PushTextWrapPos(280.0f);
+                    ImGui::TextWrapped(tone_mapping_guide);
+                    ImGui::TextWrapped(tone_mapping_note);
+                    ImGui::PopTextWrapPos();
+                    ImGui::PopStyleColor();
+                    ImGui::Separator();
+                    ImGui::PushItemWidth(295.0f);
+                    ImGui::Combo(" ", &tone_mapping_mode, tone_mappings, 4);
+                    ImGui::PopItemWidth();
+                    ImGui::Unindent(5.0f);
+                    ImGui::EndTabItem();
+                }
+
+                ImGui::EndTabBar();
+            }
+        }
+
+        ImGui::End();
+
+        if (show_sphere_gizmo) {
+            ui::DrawGizmo(camera, sphere);
+        }
+
+        if (show_plane_gizmo && show_plane) {
+            ui::DrawGizmo(camera, plane);
+        }
+
+        sphere_albedo = glm::vec3(sphere_color.x, sphere_color.y, sphere_color.z);
+
+        if (auto& sl = camera.GetComponent<Spotlight>(); true) {
+            sl.color = glm::vec3(flashlight_color.x, flashlight_color.y, flashlight_color.z);
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    glm::vec3 Scene01::HSL2RGB(const glm::vec3& hsl) {
+        // adapted from: https://www.shadertoy.com/view/XljGzV
+        using namespace glm;
+        float h = hsl.r, s = hsl.g, l = hsl.b;
+        vec3 rgb = clamp(abs(mod(h * 6.0f + vec3(0.0f, 4.0f, 2.0f), 6.0f) - 3.0f) - 1.0f, 0.0f, 1.0f);
+        return l + s * (rgb - 0.5f) * (1.0f - abs(2.0f * l - 1.0f));
+    }
+
+    void Scene01::UpdatePLColors() {
+        std::vector<glm::vec4> colors;
+
+        for (int i = 0; i < 28; i++) {
+            auto hue = math::RandomFloat01();
+            auto rand_color = HSL2RGB(glm::vec3(hue, 0.7f + hue * 0.3f, 0.4f + hue * 0.2f));
+            colors.push_back(glm::vec4(rand_color, 1.0f));
+
+            auto& pl = point_lights[i].GetComponent<PointLight>();
+            pl.color = rand_color;  // update the point light color
+        }
+
+        pl_color_ssbo->Write(colors);  // also update the colors SSBO
+        pl_color_ssbo->Bind(0);
+    }
+
+    void Scene01::UpdateEntities() {
         auto& main_camera = camera.GetComponent<Camera>();
         main_camera.Update();
 
-        // update the scene first: rotate the orbit light
+        // rotate the orbit light
         if (orbit) {
             auto& transform = orbit_light.GetComponent<Transform>();
             float x = orbit_radius * sin(orbit_time * orbit_speed);
@@ -273,9 +532,12 @@ namespace scene {
             orbit_time += Clock::delta_time;
             transform.Translate(glm::vec3(x, y, z) - transform.position);
         }
+    }
 
+    void Scene01::UpdateUBOs() {
         // update camera's uniform buffer
         if (auto& ubo = UBOs[0]; true) {
+            auto& main_camera = camera.GetComponent<Camera>();
             ubo.Bind();
             ubo.SetData(0, val_ptr(main_camera.T->position));
             ubo.SetData(1, val_ptr(main_camera.T->forward));
@@ -324,53 +586,9 @@ namespace scene {
             ubo.SetData(2, &(pl.quadratic));
             ubo.Unbind();
         }
+    }
 
-        // a demo of how to do physically-based shading in the context of tiled forward renderers
-        // pass 1: render depth values into the prepass depth buffer
-        auto& depth_framebuffer = FBOs[0];
-        if (depth_framebuffer.Bind(); true) {
-            Renderer::DepthTest(true);
-            Renderer::DepthPrepass(true);  // enable early z-test
-            Renderer::Clear(color::black);
-            Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id);
-            Renderer::Submit(orbit_light.id);
-            //Renderer::Submit(skybox.id);
-            Renderer::Render();
-            depth_framebuffer.Unbind();
-        }
-
-        // optionally check if depth values are correctly written to the framebuffer
-        if (draw_depth_buffer) {
-            Renderer::DepthTest(false);
-            Renderer::Clear(color::blue);  // use a non-black clear color to debug the depth buffer
-            depth_framebuffer.DebugDraw(-1);
-            return;
-        }
-
-        // pass 2: dispatch light culling computations on the compute shader.
-        // in this pass we only update SSBOs, there's no rendering operations involved...
-        if (light_cull_compute_shader->Bind(); true) {
-            depth_framebuffer.GetDepthTexture().Bind(0);  // bind the depth buffer
-            pl_index_ssbo->Clear();  // recalculate light indices every frame
-            pl_index_ssbo->Bind(3);
-            light_cull_compute_shader->Dispatch(nx, ny, 1);
-        }
-
-        // now let's wait until the compute shader finishes and then unbind the states....
-        // ideally, `SyncWait()` should be placed closest to the code that actually uses
-        // the SSBO to avoid unnecessary waits, but in this demo we need it right away....
-
-        light_cull_compute_shader->SyncWait();  // sync here to make sure all writes are visible
-        light_cull_compute_shader->Unbind();    // unbind the compute shader
-        depth_framebuffer.GetDepthTexture().Unbind(0);  // unbind the depth buffer
-
-        // pass 3: render objects as you normally do, but this time using the SSBOs to look up
-        // visible lights rather than looping through every light source in the fragment shader
-
-        // first, we need to update uniforms for every entity's material, this is required even
-        // if a uniform value stays put, keep in mind that the PBR shader is shared by multiple
-        // entities so they can be overwritten by other materials, but setting uniform is cheap
-
+    void Scene01::UpdateUniforms() {
         if (auto& mat = sphere.GetComponent<Material>(); true) {
             for (int i = 3; i <= 9; i++) {
                 mat.SetUniform(i, 0);  // sphere doesn't have any PBR textures
@@ -381,15 +599,15 @@ namespace scene {
             for (int i = 3; i <= 6; i++) {
                 mat.SetUniform(i, 1);
             }
-            mat.SetUniform(7, 0);      // ball does not have AO map
-            mat.SetUniform(8, 0);      // ball does not have emission map
-            mat.SetUniform(9, 1);      // ball does have displacement map
+            mat.SetUniform(7, 0);
+            mat.SetUniform(8, 0);
+            mat.SetUniform(9, 0);
             mat.SetUniform(13, 1.0f);  // ambient occlussion
-            mat.SetUniform(14, glm::vec2(3.2f, 1.8f));  // uv scale
+            mat.SetUniform(14, glm::vec2(1.6f, 0.9f));  // uv scale
         }
 
         if (auto& mat = plane.GetComponent<Material>(); true) {
-            mat.SetUniform(3, 1);      // plane only has an albedo_map
+            mat.SetUniform(3, 1);  // plane only has an albedo map
             for (int i = 4; i <= 9; i++) {
                 mat.SetUniform(i, 0);
             }
@@ -403,133 +621,168 @@ namespace scene {
                 mat.SetUniform(i, 1);
             }
             mat.SetUniform(7, 0);      // runestone does not have AO map
-            mat.SetUniform(8, 1);      // runestone does have emission map
-            mat.SetUniform(9, 0);      // runestone does not have displacement map
+            mat.SetUniform(8, 1);      // runestone does have an emission map
+            mat.SetUniform(9, 0);      // runestone does not use displacement map
             mat.SetUniform(13, 1.0f);  // specify ambient occlussion explicitly
             mat.SetUniform(14, glm::vec2(1.0f));  // uv scale
         }
 
         if (auto& mat = orbit_light.GetComponent<Material>(); true) {
-            mat.SetUniform(3, orbit_light.GetComponent<PointLight>().color);
+            auto& pl = orbit_light.GetComponent<PointLight>();
+            mat.SetUniform(3, pl.color);
+            mat.SetUniform(4, pl.intensity);
+            mat.SetUniform(5, 2.0f);  // bloom multiplier (color saturation)
         }
 
         for (int i = 0; i < 28; i++) {
             auto& mat = point_lights[i].GetComponent<Material>();
-            auto& color = point_lights[i].GetComponent<PointLight>().color;
-            mat.SetUniform(3, color);
+            auto& pl = point_lights[i].GetComponent<PointLight>();
+            mat.SetUniform(3, pl.color);
+            mat.SetUniform(4, pl.intensity);
+            mat.SetUniform(5, 7.0f);  // bloom multiplier (color saturation)
         }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+
+    void Scene01::DepthPrepass() {
+        auto& depth_prepass_framebuffer = FBOs[0];
+        depth_prepass_framebuffer.Bind();
+        depth_prepass_framebuffer.Clear(-1);
+
+        // the written depth values are only used for light culling in the next pass,
+        // we can skip the 28 light sources here because shading of the static light
+        // cube itself is not affected by any other incoming lights.
 
         Renderer::DepthTest(true);
-        Renderer::DepthPrepass(false);
-        Renderer::MSAA(true);  // MSAA works fine in forward+ renderers (not true for deferred renderers)
-        Renderer::Clear(color::blue);
-
-        // note: when you submit a list of entities to the renderer, they are internally stored in a queue
-        // and will be drawn in the order of submission, this order can not only affect alpha blending but
-        // can also make a huge difference in performance.
-
-        // tips: it is advised to submit the skybox last to the renderer because it's the farthest object
-        // in the scene, this can save us quite a lot fragment invocations as the pixels that already fail
-        // the depth test will be instantly discarded.
-
-        // tips: it is advised to submit similar entities as close as possible to each other, especially
-        // when you have a large number of entities. To be specific, entities that share the same shader
-        // or use the same textures should be grouped together as much as possible, this can help reduce
-        // the number of context switching, which is expensive. The shader, texture and uniform class have
-        // been optimized to support smart bindings and smart uploads, you should make the most of these
-        // features to avoid unnecessary binding operations of shaders and textures, and uniform uploads.
-
-        // tips: if a list of entities use the same shader, textures as well as meshes, you should enable
-        // batch rendering on the meshes, submit only one of them and handle batch rendering in the shader
-
+        Renderer::DepthPrepass(true);  // enable early z-test
         Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id);
         Renderer::Submit(orbit_light.id);
-        //Renderer::Submit(skybox.id);  // it is advised to submit the skybox last to save performance
+        Renderer::Submit(skybox.id);
+        Renderer::Render();
+        Renderer::DepthPrepass(false);  // disable early z-test
 
-        for (int i = 0; i < 28; i++) {
-            Renderer::Submit(point_lights[i].id);
+        depth_prepass_framebuffer.Unbind();
+    }
+
+    void Scene01::LightCullPass() {
+        // in this pass we only update SSBOs, there's no rendering operations involved
+        auto& depth_prepass_framebuffer = FBOs[0];
+        auto& depth_texture = depth_prepass_framebuffer.GetDepthTexture();
+        depth_texture.Bind(0);  // bind the depth buffer
+
+        pl_index_ssbo->Clear();  // recalculate light indices every frame
+        pl_index_ssbo->Bind(3);
+        light_cull_shader->Bind();
+        light_cull_shader->Dispatch(nx, ny, 1);
+        light_cull_shader->SyncWait();  // sync here to make sure all writes are visible
+        light_cull_shader->Unbind();  // unbind the compute shader
+
+        // ideally, `SyncWait()` should be placed closest to the code that actually uses
+        // the SSBO to avoid unnecessary waits, but in this demo we need it right away....
+
+        depth_texture.Unbind(0);  // unbind the depth buffer
+    }
+
+    void Scene01::BloomFilterPass() {
+        // this is the actual shading pass after the light culling pass, rather than looping through
+        // every light in the fragment shader, we look up visible lights in the computed index SSBO.
+        // here in this pass, we still have the geometry information of entities in the scene, so we
+        // must make sure that MSAA is enabled before actual rendering. After this pass, we will no
+        // longer be able to apply MSAA, because we would only have framebuffer textures.
+
+        FBO& bloom_filter_framebuffer = FBOs[1];
+        bloom_filter_framebuffer.ClearAll();
+        bloom_filter_framebuffer.Bind();
+
+        Renderer::MSAA(true);  // make sure to enable MSAA before actual rendering
+        Renderer::DepthTest(true);
+        Renderer::Submit(sphere.id, ball.id, show_plane ? plane.id : entt::null, runestone.id);
+        Renderer::Submit(orbit_light.id);
+        Renderer::Submit(skybox.id);
+
+        if (show_light_cluster) {
+            for (int i = 0; i < n_point_lights; i++) {
+                Renderer::Submit(point_lights[i].id);
+            }
         }
 
         Renderer::Render();
 
-        CheckGLError(5);
-
-        // optionally you can include another pass for postprocessing stuff (HDR, Bloom, Blur Effects, etc)
+        bloom_filter_framebuffer.Unbind();
     }
 
-    // this is called every frame, update your ImGui widgets here to control entities in the scene
-    void Scene01::OnImGuiRender() {
-        static bool show_sphere_gizmo     = false;
-        static bool show_plane_gizmo      = false;
-        static bool edit_sphere_albedo    = false;
-        static bool edit_flashlight_color = false;
+    void Scene01::MSAAResolvePass() {
+        // resolve the multisampled framebuffer `FBOs[1]` to normal framebuffer `FBOs[2]`
+        FBO& source = FBOs[1];
+        FBO& target = FBOs[2];
+        target.ClearAll();
 
-        static ImVec4 sphere_color = ImVec4(0.22f, 0.0f, 1.0f, 0.0f);
-        static ImVec4 flashlight_color = ImVec4(1.0f, 0.553f, 0.0f, 1.0f);
-
-        static ImGuiColorEditFlags color_flags
-            = ImGuiColorEditFlags_NoSidePreview
-            | ImGuiColorEditFlags_PickerHueWheel
-            | ImGuiColorEditFlags_DisplayRGB
-            | ImGuiColorEditFlags_NoPicker;
-
-        ui::LoadInspectorConfig();
-
-        if (ImGui::Begin("Inspector##1", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-            ImGui::Checkbox("Show Plane", &show_plane);
-            ImGui::Separator();
-            ImGui::Checkbox("Orbit Light", &orbit);
-            ImGui::Separator();
-            ImGui::Checkbox("Show Sphere Gizmo", &show_sphere_gizmo);
-            ImGui::Separator();
-            ImGui::Checkbox("Show Plane Gizmo", &show_plane_gizmo);
-            ImGui::Separator();
-            ImGui::Checkbox("Visualize Depth Buffer", &draw_depth_buffer);
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            ImGui::PushItemWidth(100.0f);
-            ImGui::SliderFloat("Sphere Metalness", &sphere_metalness, 0.05f, 1.0f);
-            ImGui::SliderFloat("Sphere Roughness", &sphere_roughness, 0.05f, 1.0f);
-            ImGui::SliderFloat("Sphere AO", &sphere_ao, 0.0f, 1.0f);
-            ImGui::SliderFloat("Plane Roughness", &plane_roughness, 0.1f, 0.3f);
-            ImGui::SliderFloat("Light Cluster Intensity", &light_cluster_intensity, 1.0f, 20.0f);
-            ImGui::PopItemWidth();
-            ImGui::Separator();
-
-            ImGui::Checkbox("Edit Sphere Albedo", &edit_sphere_albedo);
-            if (edit_sphere_albedo) {
-                ImGui::Spacing();
-                ImGui::Indent(15.0f);
-                ImGui::ColorPicker3("##Sphere Albedo", (float*)&sphere_color, color_flags);
-                ImGui::Unindent(15.0f);
-            }
-
-            ImGui::Checkbox("Edit Flashlight Color", &edit_flashlight_color);
-            if (edit_flashlight_color) {
-                ImGui::Spacing();
-                ImGui::Indent(15.0f);
-                ImGui::ColorPicker3("##Flashlight Color", (float*)&flashlight_color, color_flags);
-                ImGui::Unindent(15.0f);
-            }
-        }
-
-        ImGui::End();
-
-        if (show_sphere_gizmo) {
-            ui::DrawGizmo(camera, sphere);
-        }
-
-        if (show_plane_gizmo && show_plane) {
-            ui::DrawGizmo(camera, plane);
-        }
-
-        sphere_albedo = glm::vec3(sphere_color.x, sphere_color.y, sphere_color.z);
-
-        if (auto& sl = camera.GetComponent<Spotlight>(); true) {
-            sl.color = glm::vec3(flashlight_color.x, flashlight_color.y, flashlight_color.z);
-        }
-
-        //ImGui::ShowDemoWindow();
+        FBO::TransferColor(source, 0, target, 0);
+        FBO::TransferColor(source, 1, target, 1);
     }
+
+    void Scene01::GaussianBlurPass() {
+        FBO& blur_framebuffer = FBOs[3];
+        blur_framebuffer.ClearAll();
+
+        auto& ping_texture = blur_framebuffer.GetColorTexture(0);
+        auto& pong_texture = blur_framebuffer.GetColorTexture(1);
+        auto& source_texture = FBOs[2].GetColorTexture(1);
+
+        // enable point filtering (nearest neighbor) on the ping-pong textures
+        point_sampler->Bind(0);
+        point_sampler->Bind(1);
+
+        // make sure the view port is resized to fit the entire texture
+        Renderer::SetViewport(ping_texture.width, ping_texture.height);
+        Renderer::DepthTest(false);
+
+        if (blur_framebuffer.Bind(); true) {
+            blur_shader->Bind();
+            source_texture.Bind(0);
+            ping_texture.Bind(1);
+            pong_texture.Bind(2);
+
+            bool ping = true;  // read from ping, write to pong
+
+            for (int i = 0; i < bloom_effect * 2; i++, ping = !ping) {
+                blur_framebuffer.SetDrawBuffer(static_cast<GLuint>(ping));
+                blur_shader->SetUniform(0, i == 0);
+                blur_shader->SetUniform(1, ping);                
+                Renderer::DrawQuad();
+            }
+
+            source_texture.Unbind(0);
+            ping_texture.Unbind(1);
+            pong_texture.Unbind(2);
+            blur_shader->Unbind();
+            blur_framebuffer.Unbind();
+        }
+
+        // after an even number of iterations, the blurred results are stored in texture "ping"
+        // also don't forget to restore the view port back to normal window size
+        Renderer::SetViewport(Window::width, Window::height);
+    }
+
+    void Scene01::BloomBlendPass() {
+        // finally we are back on the default framebuffer
+        auto& original_texture = FBOs[2].GetColorTexture(0);
+        auto& blurred_texture = FBOs[3].GetColorTexture(0);
+        
+        original_texture.Bind(0);
+        blurred_texture.Bind(1);
+        bilinear_sampler->Bind(1);  // bilinear filtering will introduce extra blurred effects
+
+        if (blend_shader->Bind(); true) {
+            blend_shader->SetUniform(0, tone_mapping_mode);
+            Renderer::Clear();
+            Renderer::DrawQuad();
+            blend_shader->Unbind();
+        }
+
+        bilinear_sampler->Unbind(0);
+        bilinear_sampler->Unbind(1);
+    }
+
 }

@@ -71,7 +71,8 @@ namespace components {
         void LoadActiveUniforms();
 
       public:
-        Material();
+        Material(asset_ref<Shader> shader_asset);
+        Material(asset_ref<Material> material_asset);
         ~Material() {}
 
         Material(const Material&) = default;

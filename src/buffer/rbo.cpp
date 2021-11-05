@@ -5,9 +5,14 @@
 
 namespace buffer {
 
-    RBO::RBO(GLuint width, GLuint height) : Buffer(), width(width), height(height) {
+    RBO::RBO(GLuint width, GLuint height, bool multisample) : Buffer(), width(width), height(height) {
         glCreateRenderbuffers(1, &id);
-        glNamedRenderbufferStorage(id, GL_DEPTH24_STENCIL8, width, height);
+        if (multisample) {
+            glNamedRenderbufferStorageMultisample(id, 4, GL_DEPTH24_STENCIL8, width, height);
+        }
+        else {
+            glNamedRenderbufferStorage(id, GL_DEPTH24_STENCIL8, width, height);
+        }
     }
 
     RBO::~RBO() {

@@ -72,7 +72,7 @@ namespace components {
     }
 
     Shader::~Shader() {
-        CORE_WARN("Deleting shader program (id = {0})!", id);
+        CORE_WARN("Deleting shader program (id = {0})...", id);
         glDeleteProgram(id);
 
         // reset the global static field of tracked shader id on each destructor call.
@@ -141,6 +141,25 @@ namespace components {
         out_stream.close();
     }
 
+    template<typename T>
+    void Shader::SetUniform(GLuint location, const T& val) const {
+        using namespace glm;
+
+        /**/ if constexpr (std::is_same_v<T, bool>)   { glProgramUniform1i(id, location, static_cast<int>(val)); }
+        else if constexpr (std::is_same_v<T, int>)    { glProgramUniform1i(id, location, val); }
+        else if constexpr (std::is_same_v<T, float>)  { glProgramUniform1f(id, location, val); }
+        else if constexpr (std::is_same_v<T, GLuint>) { glProgramUniform1ui(id, location, val); }
+        else if constexpr (std::is_same_v<T, vec2>)   { glProgramUniform2fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec3>)   { glProgramUniform3fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec4>)   { glProgramUniform4fv(id, location, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, mat2>)   { glProgramUniformMatrix2fv(id, location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat3>)   { glProgramUniformMatrix3fv(id, location, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat4>)   { glProgramUniformMatrix4fv(id, location, 1, GL_FALSE, &val[0][0]); }
+        else {
+            static_assert(const_false<T>, "Unspecified template uniform type T ...");
+        }
+    }
+
     void Shader::LoadShader(GLenum type) {
         // this line may cause access violation if OpenGL context has not been setup
         GLuint shader_id = glCreateShader(type);
@@ -170,14 +189,21 @@ namespace components {
         std::string line;
         bool defined = false;
 
-        // the file to include must be in the same directory as the shader file
-        std::string include_dir = source_path.substr(0, source_path.rfind("\\")) + "\\";
+        // the file to include must be in the same directory or parent directory of the shader file
+        std::string include_dir = source_path.substr(0, source_path.rfind("\\"));
+        std::string parent_dir = std::filesystem::path(include_dir).parent_path().string();
 
         while (getline(file_stream, line)) {
             // replace "#include" with the contents of the include file and copy-paste to the line
             if (size_t pos = line.find("#include "); pos != std::string::npos) {
                 std::string include_file = line.substr(pos + 9);
-                std::string include_path = include_dir + include_file;
+                std::string include_path = include_dir + "\\" + include_file;
+
+                // if cannot find the include file in the source directory, search the parent directory
+                if (auto path = std::filesystem::path(include_path); !std::filesystem::exists(path)) {
+                    include_path = parent_dir + "\\" + include_file;
+                }
+
                 std::ifstream incl_stream(include_path, std::ios::in);
 
                 if (incl_stream.is_open()) {
@@ -327,30 +353,7 @@ namespace components {
 
     template<typename T>
     void ComputeShader::SetUniform(GLuint location, const T& val) const {
-        using namespace glm;
-
-        // regular shaders are automatic managed by the material class so they don't need interface
-        // for manually setting uniforms, the uniforms are smartly uploaded by the material while
-        // the shaders are bound (which is guaranteed), that's why they use non-DSA calls.
-
-        // compute shaders, however, are standalone programs directly managed by the user, they are
-        // not wrapped inside a material, so we provide this function for users to set up uniforms.
-        // since there is no guarantee that the shader is bound when this function gets called, we
-        // must use the DSA calls so that users can safely proceed without having to bind it first.
-
-        /**/ if constexpr (std::is_same_v<T, bool>)   { glProgramUniform1i(id, location, static_cast<int>(val)); }
-        else if constexpr (std::is_same_v<T, int>)    { glProgramUniform1i(id, location, val); }
-        else if constexpr (std::is_same_v<T, float>)  { glProgramUniform1f(id, location, val); }
-        else if constexpr (std::is_same_v<T, GLuint>) { glProgramUniform1ui(id, location, val); }
-        else if constexpr (std::is_same_v<T, vec2>)   { glProgramUniform2fv(id, location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec3>)   { glProgramUniform3fv(id, location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec4>)   { glProgramUniform4fv(id, location, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, mat2>)   { glProgramUniformMatrix2fv(id, location, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat3>)   { glProgramUniformMatrix3fv(id, location, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat4>)   { glProgramUniformMatrix4fv(id, location, 1, GL_FALSE, &val[0][0]); }
-        else {
-            static_assert(const_false<T>, "Unspecified template uniform type T ...");
-        }
+        Shader::SetUniform<T>(location, val);
     }
 
     // explicit template functon instantiation

@@ -17,6 +17,22 @@ namespace buffer {
         glDeleteTextures(1, &id);        
     }
 
+    ILS::ILS(ILS&& other) noexcept {
+        *this = std::move(other);
+    }
+
+    ILS& ILS::operator=(ILS&& other) noexcept {
+        if (this != &other) {
+            this->id = 0;
+            std::swap(id, other.id);
+            std::swap(width, other.width);
+            std::swap(height, other.height);
+            std::swap(internal_format, other.internal_format);
+        }
+
+        return *this;
+    }
+
     void ILS::Bind(GLuint unit) const {
         glBindImageTexture(unit, id, 0, GL_FALSE, 0, GL_READ_WRITE, internal_format);
     }

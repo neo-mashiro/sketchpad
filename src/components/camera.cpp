@@ -11,6 +11,8 @@ using namespace core;
 namespace components {
 
     Camera::Camera(Transform* T, View view)
+        // the near and far clip distances and field of view are fixed, do not change as other
+        // modules may depend on them (depth linearization, forward+ rendering...)
         : fov(90.0f), near_clip(0.1f), far_clip(100.0f), T(T), view(view), move_speed(5.0f), rotate_speed(0.3f) {}
 
     glm::mat4 Camera::GetViewMatrix() const {
@@ -21,9 +23,8 @@ namespace components {
         if (view == View::Orthographic) {
             return glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_clip, far_clip);
         }
-        else if (view == View::Perspective) {
-            return glm::perspective(glm::radians(fov), Window::aspect_ratio, near_clip, far_clip);
-        }
+
+        return glm::perspective(glm::radians(fov), Window::aspect_ratio, near_clip, far_clip);
     }
 
     void Camera::Update() {

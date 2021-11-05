@@ -1,18 +1,14 @@
 #version 460
 
-// this shader is used by: `FBO::DebugDraw()`
-////////////////////////////////////////////////////////////////////////////////
-
 #ifdef vertex_shader
 
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec2 uv;
-layout(location = 0) out vec2 _uv;
+layout(location = 0) out vec2 uv;
 
 void main() {
-    _uv = uv;
-    gl_Position = vec4(position.xy, 0.0, 1.0);
+    // https://trass3r.github.io/coding/2019/09/11/bufferless-rendering.html
+    vec2 position = vec2(gl_VertexID % 2, gl_VertexID / 2) * 4.0 - 1;
+    uv = (position + 1) * 0.5;
+    gl_Position = vec4(position, 0.0, 1.0);
 }
 
 #endif
@@ -21,7 +17,7 @@ void main() {
 
 #ifdef fragment_shader
 
-layout(location = 0) in vec2 _uv;
+layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 color;
 
 layout(binding = 0) uniform sampler2D color_depth_texture;
@@ -36,7 +32,7 @@ layout(location = 0) subroutine uniform draw_buffer buffer_switch;
 layout(index = 0)
 subroutine(draw_buffer)
 vec4 DrawColorBuffer() {
-    return texture(color_depth_texture, _uv);
+    return texture(color_depth_texture, uv);
 }
 
 layout(index = 1)
@@ -46,7 +42,7 @@ vec4 DrawDepthBuffer() {
     // and low for large z-values, we need to linearize depth values before drawing.
     // while `z` is the real linearized depth in [near, far], the visualized value is
     // further divided by `far` in order to fit in the [0, 1] range.
-    float depth = texture(color_depth_texture, _uv).r;
+    float depth = texture(color_depth_texture, uv).r;
     float ndc_depth = depth * 2.0 - 1.0;
     float z = (2.0 * near * far) / (far + near - ndc_depth * (far - near));
     float linear_depth = z / far;
@@ -57,7 +53,7 @@ vec4 DrawDepthBuffer() {
 layout(index = 2)
 subroutine(draw_buffer)
 vec4 DrawStencilBuffer() {
-    uint stencil = texture(stencil_texture, _uv).r;
+    uint stencil = texture(stencil_texture, uv).r;
     return vec4(vec3(stencil), 1.0);
 }
 

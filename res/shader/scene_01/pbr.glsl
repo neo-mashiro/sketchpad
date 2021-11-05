@@ -46,7 +46,7 @@ void main() {
     gl_Position = camera.projection * camera.view * transform * vec4(position, 1.0);
 }
 
-# endif
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -61,7 +61,8 @@ layout(location = 0) in __ {
     in vec3 _bitangent;
 };
 
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec4 irradiance;
+layout(location = 1) out vec4 bloom;
 
 layout(std430, binding = 0) readonly buffer Color {
     vec4 data[];
@@ -133,12 +134,118 @@ vec3 GetNormal(in vec2 uv) {
     return normalize(TBN * ts_normal);
 }
 
-// include light uniform buffers and attenuation functions
-// all include files follow this naming convention: scene number + "~" (tilde) + include name
-#include 01~light.glsl
+layout(std140, binding = 1) uniform DirectionalLight {
+    vec3 color;
+    vec3 direction;
+    float intensity;
+} DL;
 
-// include Cook-Torrance BRDF
-#include 01~brdf.glsl
+layout(std140, binding = 2) uniform Spotlight {
+    vec3 color;
+    vec3 position;
+    vec3 direction;
+    float intensity;
+    float inner_cosine;
+    float outer_cosine;
+    float range;
+} SL;
+
+layout(std140, binding = 3) uniform OrbitLight {
+    vec3 color;
+    vec3 position;
+    float intensity;
+    float linear;
+    float quadratic;
+    float range;
+} OL;
+
+layout(std140, binding = 4) uniform LightCluster {
+    // the whole 28 point lights cluster shares the same light intensity and attenuation
+    // coefficients, the intensity value can be controlled dynamically by ImGui sliders.
+    // light cluster colors, positions and ranges are globally fixed (stored in SSBOs)
+    float intensity;
+    float linear;
+    float quadratic;
+};
+
+float Luminance(vec3 irradiance) {
+    return dot(irradiance, vec3(0.2126, 0.7152, 0.0722));
+}
+
+vec3 PointLightRadience(uint i, vec3 fpos) {
+    // the point light attenuation follows the inverse-square law
+    float d = distance(light_positions.data[i].xyz, fpos);
+    float attenuation = d >= light_ranges.data[i] ? 0.0 : 1.0 / (1.0 + linear * d + quadratic * d * d);
+    return attenuation * intensity * light_colors.data[i].rgb;
+}
+
+vec3 OrbitLightRadience(vec3 fpos) {
+    float d = distance(OL.position, fpos);
+    float attenuation = d >= OL.range ? 0.0 : 1.0 / (1.0 + OL.linear * d + OL.quadratic * d * d);
+    return attenuation * OL.intensity * OL.color;
+}
+
+vec3 SpotlightRadience(vec3 fpos) {
+    // the spotlight distance attenuation uses a linear falloff
+    vec3 ray = fpos - SL.position;  // inward ray from the light to the fragment
+    float projected_distance = dot(SL.direction, ray);
+    float linear_attenuation = 1.0 - clamp(projected_distance / SL.range, 0.0, 1.0);
+
+    // the spotlight angular attenuation fades out from the inner to the outer cone
+    float cosine = dot(SL.direction, normalize(ray));
+    float angular_diff = SL.inner_cosine - SL.outer_cosine;
+    float angular_attenuation = clamp((cosine - SL.outer_cosine) / angular_diff, 0.0, 1.0);
+
+    return linear_attenuation * angular_attenuation * SL.intensity * SL.color;
+}
+
+// Trowbridge-Reitz GGX normal distribution function
+float TRGGX(vec3 N, vec3 H, float _roughness) {
+    float alpha = _roughness * _roughness;
+    float alpha2 = alpha * alpha;
+    float NoH2 = pow(max(dot(N, H), 0.0), 2.0);
+    return alpha2 / (pi * pow(NoH2 * (alpha2 - 1.0) + 1.0, 2.0));
+}
+
+// Schlick-GGX geometry function
+float SchlickGGX(float NoV, float _roughness) {
+    float alpha = _roughness * _roughness;
+    float k = pow(alpha + 1.0, 2.0) / 8.0;  // for direct lighting
+    // float k = alpha * alpha / 2.0;  // for indirect lighting
+    return NoV / (NoV * (1.0 - k) + k);
+}
+
+// Smith's geometry function
+float Smith(vec3 N, vec3 V, vec3 L, float _roughness) {
+    float NoV = max(dot(N, V), 0.0);
+    float NoL = max(dot(N, L), 0.0);
+    return SchlickGGX(NoV, _roughness) * SchlickGGX(NoL, _roughness);
+}
+
+// Fresnel-Schlick approximation
+vec3 FresnelSchlick(vec3 H, vec3 V, vec3 F0) {
+    float HoV = clamp(dot(H, V), 0.0, 1.0);
+    return F0 + (1.0 - F0) * pow(1.0 - HoV, 5.0);
+}
+
+// Cook-Torrance BRDF
+vec3 CookTorranceBRDF(vec3 F0, vec3 N, vec3 V, vec3 L, vec3 _albedo, float _metalness, float _roughness) {
+    vec3 H = normalize(V + L);
+    float NoV = max(dot(N, V), 0.0);
+    float NoL = max(dot(N, L), 0.0);
+
+    vec3 F = FresnelSchlick(H, V, F0);
+    float G = Smith(N, V, L, _roughness);
+    float D = TRGGX(N, H, _roughness);
+
+    vec3 diffuse = _albedo / pi;
+    vec3 specular = (D * G * F) / (4 * NoV * NoL + 0.00001);
+
+    vec3 ks = F;
+    vec3 kd = (vec3(1.0) - ks) * (1.0 - _metalness);
+
+    return kd * diffuse + specular;
+}
 
 void main() {
     // in the depth prepass, we don't draw anything in the fragment shader
@@ -146,6 +253,7 @@ void main() {
         return;
     }
 
+    vec4 emissive_irradiance = vec4(0.0, 0.0, 0.0, 1.0);
     vec2 uv = _uv * uv_scale;
 
     // albedo maps are often encoded in sRGB space so that they appear visually correct
@@ -198,18 +306,23 @@ void main() {
     // for the same reason, so we must first convert it to linear space, keep in
     // mind that emission values do not participate in lighting calculations
 
-    // add emission color value to the calculated irradiance
-    if (material_id == 4) {
-        Lo += pow(texture(emission_map, uv).rgb, vec3(2.2));
+    // add emission color value to the calculated irradiance (runestone platform emission part)
+    if (material_id == 8) {
+        vec3 emission_value = texture(emission_map, uv).rgb;
+        Lo += pow(emission_value, vec3(2.2));
+        float luminance = Luminance(Lo);
+
+        if (luminance > 0.5) {
+            emissive_irradiance += 1.5 * vec4(emission_value, 1.0);
+        }
     }
 
     // physically-based lighting computations are done in linear space and the radiance
-    // varies wildly over a high dynamic range (HDR), so we must exposure map the final
-    // out radiance `Lo` to the LDR range, and then gamma correct it.
+    // varies wildly over a high dynamic range (HDR), so we must apply tone mapping and
+    // gamma correction on the output irradiance. This will be done in the final pass.
 
-    Lo = Lo / (Lo + vec3(1.0));   // tone map HDR
-    Lo = pow(Lo, vec3(1.0/2.2));  // gamma correction
-    color = vec4(Lo, 1.0);
+    irradiance = vec4(Lo, 1.0);
+    bloom = emissive_irradiance;
 }
 
-# endif
+#endif

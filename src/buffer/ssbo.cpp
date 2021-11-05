@@ -20,6 +20,22 @@ namespace buffer {
     }
 
     template<typename T>
+    SSBO<T>::SSBO(SSBO<T>&& other) noexcept {
+        *this = std::move(other);
+    }
+
+    template<typename T>
+    SSBO<T>& SSBO<T>::operator=(SSBO<T>&& other) noexcept {
+        if (this != &other) {
+            id = array_size = 0;
+            std::swap(id, other.id);
+            std::swap(array_size, other.array_size);
+        }
+
+        return *this;
+    }
+
+    template<typename T>
     void SSBO<T>::Bind(GLuint unit) const {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, unit, id);
     }

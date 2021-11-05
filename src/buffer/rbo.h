@@ -9,7 +9,7 @@ namespace buffer {
         GLuint width, height;
 
       public:
-        RBO(GLuint width, GLuint height);
+        RBO(GLuint width, GLuint height, bool multisample = false);
         ~RBO();
 
         void Bind() const override;

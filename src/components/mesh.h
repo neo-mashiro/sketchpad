@@ -148,5 +148,6 @@ namespace components {
         // this field is only used by meshes that are loaded from external models
         mutable GLuint material_id;
         void SetMaterialID(GLuint mid) const;
+
     };
 }

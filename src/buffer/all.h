@@ -9,4 +9,5 @@
 #include "buffer/fbo.h"
 #include "buffer/ils.h"
 #include "buffer/ssbo.h"
+#include "buffer/sampler.h"
 #include "buffer/texture.h"

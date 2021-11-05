@@ -29,16 +29,21 @@ namespace scene {
 
     std::queue<entt::entity> Renderer::render_queue {};
 
+    static std::unique_ptr<buffer::VAO> dummy_vao;
     static bool depth_prepass = false;
 
     void Renderer::MSAA(bool on) {
         // the built-in MSAA only works on the default framebuffer (without multi-pass)
-        static GLint buffers, samples;
-        if (on) {
+        static GLint buffers = 0, samples = 0, max_samples = 0;
+        if (samples == 0) {
             glGetIntegerv(GL_SAMPLE_BUFFERS, &buffers);
             glGetIntegerv(GL_SAMPLES, &samples);
+            glGetIntegerv(GL_MAX_SAMPLES, &max_samples);
             CORE_ASERT(buffers > 0, "MSAA buffers are not available! Check your window context...");
-            CORE_ASERT(samples == 4, "Invalid MSAA buffer size! Expected 4 samples per pixel...");
+            CORE_ASERT(samples == 4, "Invalid MSAA buffer size! 4 samples per pixel is not available...");
+        }
+
+        if (on) {
             glEnable(GL_MULTISAMPLE);
         }
         else {
@@ -125,14 +130,18 @@ namespace scene {
         last_scene = nullptr;
     }
 
-    void Renderer::Clear(const glm::vec3& color, float depth, int stencil) {
+    void Renderer::Clear() {
         // for the default framebuffer, do not use black as the clear color, because we want
         // to clearly see what pixels are background, but black makes it hard to debug many
-        // buffer textures. However, custom framebuffers should always use a black clear color
-        // so that the render buffer is clean, we don't want any dirty values other than 0
-        glClearColor(color.r, color.g, color.b, 1.0f);
-        glClearDepth(depth);
-        glClearStencil(stencil);  // 8-bit integer
+        // buffer textures. Deep blue is a nice color, think of it as Microsoft blue screen.
+        // note: custom framebuffers should always use a black clear color to make sure the
+        // render buffer is clean, we don't want any dirty values other than 0. However, you
+        // should call the `Clear()` method on a framebuffer instead, this function is only
+        // intended for clearing the default framebuffer.
+        
+        glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+        glClearDepth(1.0f);
+        glClearStencil(0);  // 8-bit integer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     }
 
@@ -228,7 +237,7 @@ namespace scene {
             // a non-null entity must have either a mesh or a model component to be considered renderable
             else {
                 CORE_ERROR("Entity {0} in the render list is non-renderable!", e);
-                Clear(color::black);  // in this case just show a black screen (UI stuff is separate)
+                Clear();  // in this case just show a deep blue screen (UI stuff is separate)
             }
 
             render_queue.pop();
@@ -250,7 +259,7 @@ namespace scene {
 
             if (!next_scene_title.empty()) {
                 switch_scene = true;
-                Clear(color::black);
+                Clear();
                 ui::DrawLoadingScreen();
             }
             else {
@@ -299,6 +308,18 @@ namespace scene {
             Detach();                  // blocking call
             Attach(next_scene_title);  // blocking call (could take 30 minutes if scene is huge)
         }
+    }
+
+    void Renderer::DrawQuad() {
+        if (dummy_vao == nullptr) {
+            dummy_vao = std::make_unique<VAO>();
+        }
+
+        // bufferless rendering in OpenGL:
+        // https://trass3r.github.io/coding/2019/09/11/bufferless-rendering.html
+        // https://stackoverflow.com/a/59739538/10677643
+        dummy_vao->Bind();
+        glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
 }

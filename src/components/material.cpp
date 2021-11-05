@@ -20,7 +20,11 @@ namespace components {
         GL_SAMPLER_2D_MULTISAMPLE  // sampler2DMS
     };
 
-    Material::Material() {}
+    Material::Material(asset_ref<Shader> shader_asset) {
+        SetShader(shader_asset);
+    }
+
+    Material::Material(asset_ref<Material> material_asset) : Material(*material_asset) {}
 
     Material::Material(Material&& other) noexcept {
         *this = std::move(other);

@@ -27,12 +27,18 @@ namespace buffer {
 
        # examples
 
-       -- Texture(".../albedo_map.png");         // load an image texture, automatic mipmaps
-       -- Texture(".../welcome_screen.png", 1);  // load an image texture, only the base level
+       > Texture("../albedo.png", 0);                // load a normal image into a 2D texture, with mipmaps
+       > Texture("../screen.png", 1);                // load a normal image into a 2D texture, base layer only
+       > Texture("../equirectangular.hdr", 1);       // load an HDR image as a 2D texture, no mipmaps
+       > Texture("../equirectangular.hdr", 512, 1);  // load an HDR image as a cubemap texture, no mipmaps
+       > Texture("../equirectangular.jpg", 512, 1);  // load a normal image as a cubemap texture, low quality
 
-       -- Texture(GL_TEXTURE_2D, 256, 256, GL_RG16F);               // BRDF map (single layer)
-       -- Texture(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGBA16F);         // irradiance map (single layer)
-       -- Texture(GL_TEXTURE_CUBE_MAP, 1024, 1024, GL_RGBA16F, 0);  // environment map (with mipmaps)
+       > Texture("../cubemap", ".exr", 512, 1);      // load 6 separate faces into a cubemap texture, no mipmaps
+       > Texture("../cubemap", ".hdr", 1024, 0);     // this ctor only accepts ".hdr" and ".exr" file extensions
+
+       > Texture(GL_TEXTURE_2D, 256, 256, GL_RG16F, 1);         // create an empty BRDF lookup texture, no mipmaps
+       > Texture(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGB16F, 1);    // create an empty irradiance map, no mipmaps
+       > Texture(GL_TEXTURE_CUBE_MAP, 512, 512, GL_RGB16F, 0);  // create an empty environment map, with mipmaps
 
        # smart bindings
 
@@ -42,24 +48,25 @@ namespace buffer {
        this feature only applies to textures and texture views, excluding image load/store (ILS).
     */
 
-    class TexView;
-
     class Texture : public Buffer {
       private:
+        friend class Sampler;
         friend class TexView;
+
         GLenum target;
         GLenum format, internal_format;
-        GLuint width, height, n_levels;
+        GLuint n_levels;
 
         void Bind() const override {}
         void Unbind() const override {}
 
-        void SetWrapMode() const;
-        void SetFilterMode() const;
-
       public:
-        Texture(const std::string& path, GLsizei levels = 0);
-        Texture(GLenum target, GLuint width, GLuint height, GLenum internal_format, GLuint levels = 1);
+        GLuint width, height;
+
+        Texture(const std::string& img_path, GLuint levels = 0);
+        Texture(const std::string& img_path, GLuint resolution, GLuint levels);
+        Texture(const std::string& directory, const std::string& extension, GLuint resolution, GLuint levels);
+        Texture(GLenum target, GLuint width, GLuint height, GLenum internal_format, GLuint levels, bool multisample = false);
         ~Texture();
 
         Texture(const Texture&) = delete;

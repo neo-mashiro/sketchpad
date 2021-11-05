@@ -14,6 +14,11 @@ namespace components {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
 
+    template<typename T, typename... Args>
+    constexpr asset_ref<T> CreateAsset(Args&&... args) {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+
     // MSVC intrinsic type name deduction
     template<typename T>
     constexpr auto type_name() noexcept {
