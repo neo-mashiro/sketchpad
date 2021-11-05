@@ -1,8 +1,8 @@
-## Resources
+# Resources
 
 This folder contains the collection of assets used in the application, such as fonts, textures and external models, as well as our shaders. Some licensed assets are not published here, but I'll provide the sources. For sources and copyright information, see [CREDITS.md](https://github.com/neo-mashiro/sketchpad/blob/main/CREDITS.md).
 
----
+## Cubemap splitter
 
 You can use the following script to convert a single cubemap (non-HDR) image to the six cube faces and save them on local disks.
 
