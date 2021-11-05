@@ -1,6 +1,6 @@
 # Resources
 
-This folder contains the collection of assets used in the application, such as fonts, textures and external models, as well as our shaders. Some licensed assets are not published here, but I'll provide the sources. For sources and copyright information, see [CREDITS.md](https://github.com/neo-mashiro/sketchpad/blob/main/CREDITS.md).
+This folder contains the collection of assets used in the application, such as fonts, textures and external models, as well as our shaders. Some of the licensed assets are not published here, but I'll provide the sources. For sources and copyright information, see [CREDITS.md](https://github.com/neo-mashiro/sketchpad/blob/main/CREDITS.md).
 
 ## Cubemap splitter
 
