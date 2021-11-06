@@ -28,11 +28,11 @@ namespace scene::ui {
 
     // private global variables
     static ImVec2 window_center;
-    static ImVec4 red           = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
-    static ImVec4 yellow        = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
-    static ImVec4 green         = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-    static ImVec4 blue          = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
-    static ImVec4 cyan          = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
+    static ImVec4 red    = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+    static ImVec4 yellow = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+    static ImVec4 green  = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+    static ImVec4 blue   = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
+    static ImVec4 cyan   = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
 
     static ImGuiWindowFlags invisible_window_flags =
         ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;

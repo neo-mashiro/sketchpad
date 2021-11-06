@@ -52,7 +52,6 @@ namespace scene {
         auto& model_path   = utils::paths::models;
         auto& shader_path  = utils::paths::shaders;
         auto& texture_path = utils::paths::textures;
-        auto& cubemap_path = utils::paths::cubemaps;
 
         // shaders that apply to entities are managed by material components, they are considered
         // to be assets like textures, which can be shared across entities, you only need to load
@@ -81,7 +80,7 @@ namespace scene {
         asset_ref<Texture> ball_roughness = LoadAsset<Texture>(texture_path + "meshball\\roughness.jpg");
 
         // load skybox cubemap from hdr image
-        asset_ref<Texture> space_cubemap = LoadAsset<Texture>(cubemap_path + "cosmic\\", ".hdr", 2048, 1);
+        asset_ref<Texture> space_cubemap = LoadAsset<Texture>(texture_path + "cosmic\\", ".hdr", 2048, 1);
 
         // textures for external models that require manual import are sorted in a vector
         std::vector<asset_ref<Texture>> runestone_pillar {

@@ -5,7 +5,6 @@
 
 namespace utils::paths {
 
-    extern std::filesystem::path vs2019;
     extern std::filesystem::path solution;
 
     extern std::string root;
@@ -16,8 +15,7 @@ namespace utils::paths {
     extern std::string models;
     extern std::string shaders;
     extern std::string textures;
-    extern std::string cubemaps;
 
-    void LoadPathTree();
+    void SearchPaths();
 
 }

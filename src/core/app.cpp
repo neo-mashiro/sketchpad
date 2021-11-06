@@ -240,7 +240,7 @@ namespace core {
         CORE_INFO("Initializing console logger ...");
 
         CORE_INFO("Loading project path tree ...");
-        utils::paths::LoadPathTree();
+        utils::paths::SearchPaths();
         
         CORE_INFO("Initializing application window ...");
         Window::Init();

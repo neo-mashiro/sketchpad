@@ -3,18 +3,29 @@
 
 namespace utils::paths {
 
-    std::filesystem::path vs2019;
     std::filesystem::path solution;
 
     std::string root, source, resource;
-    std::string fonts, models, shaders, textures, cubemaps;
+    std::string fonts, models, shaders, textures;
 
-    void LoadPathTree() {
-        // visual studio's current working directory (.../vs2019)
-        vs2019 = std::filesystem::current_path();
-        solution = vs2019.parent_path();
+    /* current working directory could either be the vs2019 project folder, or the target
+       folders that contain the executables, thus it can vary depending on how and where
+       you are running it from: open a debug exe? a release exe? a win32 exe? a x64 exe?
+       or from within the visual studio editor? what if users move it to the root?
 
-        if (!std::filesystem::exists(solution) || !std::filesystem::is_directory(solution)) {
+       since we know the current path must be inside the root directory "sketchpad/", we
+       can iteratively search the parent path in the directory tree until we hit the root,
+       so that our application doesn't rely on the current working directory.
+    */
+
+    void SearchPaths() {
+        solution = std::filesystem::current_path();
+
+        while (!std::filesystem::exists(solution / "sketchpad.sln")) {
+            solution = solution.parent_path();
+        }
+
+        if (!std::filesystem::is_directory(solution)) {
             std::cout << "Solution directory does not exist!" << std::endl;
             std::cin.get();  // pause the console before exiting
             exit(EXIT_FAILURE);
@@ -37,7 +48,6 @@ namespace utils::paths {
         models   = (res_path / "model"  ).string() + "\\";
         shaders  = (res_path / "shader" ).string() + "\\";
         textures = (res_path / "texture").string() + "\\";
-        cubemaps = (res_path / "cubemap").string() + "\\";
     }
 
 }

@@ -82,17 +82,21 @@ namespace buffer {
         static const float border[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
         for (GLuint i = 0; i < count; i++) {
-            GLenum texture_target = multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-            color_textures.emplace_back(texture_target, width, height, GL_RGBA16F, 1, multisample);
+            GLenum target = multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+            color_textures.emplace_back(target, width, height, GL_RGBA16F, 1, multisample);
 
             auto& texture = color_textures.back();
             GLuint tid = texture.GetID();
 
-            glTextureParameteri(tid, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTextureParameteri(tid, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTextureParameteri(tid, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            glTextureParameteri(tid, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-            glTextureParameterfv(tid, GL_TEXTURE_BORDER_COLOR, border);
+            // we cannot set any of the sampler states for multisampled textures
+            if (!multisample) {
+                glTextureParameteri(tid, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTextureParameteri(tid, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTextureParameteri(tid, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+                glTextureParameteri(tid, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+                glTextureParameterfv(tid, GL_TEXTURE_BORDER_COLOR, border);
+            }
+
             glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + n_color_buffs + i, tid, 0);
         }
 
