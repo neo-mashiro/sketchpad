@@ -1,21 +1,26 @@
-This folder contains the assets used in the application, such as fonts, textures and external assets, as well as our shaders. For copyright information, see [CREDITS.md](www.google.com).
+# Resources
 
-You can use the following script to convert a single cubemap (non-HDR) image to the six cube faces and save them to the disk.
+This folder contains the collection of assets used in the application, such as fonts, textures and external models, as well as our shaders. Some of the licensed assets are not published here, but I'll provide the sources. For sources and copyright information, see [CREDITS.md](https://github.com/neo-mashiro/sketchpad/blob/main/CREDITS.md).
 
+## Cubemap splitter
+
+You can use the following script to convert a single cubemap (non-HDR) image to the six cube faces and save them on local disks.
+
+<details>
+<summary>View Code</summary>
+  
 ```python3
 #!/usr/bin/env python
 
-# cubemap_spliter.py
-
 from PIL import Image
 import os, subprocess, sys
-
-path = os.path.abspath("") + "\\"
 
 faces = {
     'posx': (2,1), 'posy': (1,0), 'posz': (1,1),
     'negx': (0,1), 'negy': (1,2), 'negz': (3,1)
 }
+
+path = os.path.abspath("") + "\\"
 
 def process_image(filename):
     extension = filename.split(".")[-1].lower()
@@ -54,11 +59,22 @@ if __name__ == "__main__":
             print("Usage: python cubemap_spliter.py skybox1.png skybox2.jpg")
 
 ```
+</details>
 
+<details>
+<summary>View Code</summary>
+  
 ```bash
 python --version    # require python 3
 pip install Pillow  # require PIL
 
-cd lib  # directory of your image file
+cd downloads  # directory of your image file
 python cubemap_spliter.py cubemap.png
 ```
+</details>
+
+The script above only works on non-HDR format cubemaps in __standard layout__. (_source: [wikipedia](https://en.wikipedia.org/wiki/Cube_mapping)_)
+
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/e/ea/Cube_map.svg">
+</p>
