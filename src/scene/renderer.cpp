@@ -115,6 +115,10 @@ namespace scene {
         Window::Rename(title);
         Window::layer = Layer::ImGui;
 
+        // the new scene must be fully loaded and initialized before being assigned to `curr_scene`,
+        // otherwise `curr_scene` could be pointing to a scene that has dirty states and subsequent
+        // operations could possibly throw an access violation that will crash the program.
+
         Scene* new_scene = factory::LoadScene(title);
         new_scene->Init();
         curr_scene = new_scene;
@@ -252,8 +256,7 @@ namespace scene {
         bool switch_scene = false;
         std::string next_scene_title;
 
-        ui::NewFrame();
-        {
+        if (ui::NewFrame(); true) {
             ui::DrawMenuBar(curr_scene->title, next_scene_title);
             ui::DrawStatusBar();
 
@@ -270,37 +273,9 @@ namespace scene {
                     ui::DrawCrosshair();
                 }
             }
-        }
-        ui::EndFrame();
 
-        /* [side note] difficulties on using multiple threads in OpenGL.
-           
-           [1] at any given time, there should be only one active scene, no two scenes
-               can be alive at the same time in the OpenGL context, so, each time we
-               switch scenes, we must delete the previous one first to safely clean up
-               global OpenGL states, before creating the new one from our factory.
-           
-           [2] the new scene must be fully loaded and initialized before being assigned
-               to `curr_scene`, otherwise, `curr_scene` could be pointing to a scene
-               that has dirty states, so a subsequent draw call could possibly throw an
-               access violation exception that will crash the program.
-           
-           [3] cleaning and loading scenes can take quite a while, especially when there
-               are complicated meshes. Ideally, this function should be scheduled as an
-               asynchronous background task that runs in another thread, so as not to
-               block and freeze the window. To do so, we can wrap the task in std::async,
-               and then query the result from the std::future object, C++ will handle
-               concurrency for us, just make sure that the lifespan of the future extend
-               beyond the calling function.
-           
-           [4] sadly though, multi-threading in OpenGL is a pain, you can't multithread
-               OpenGL calls easily without using complex context switching, because lots
-               of buffer data cannot be shared between threads, also freeglut and your
-               graphics card driver may not be supporting it anyway. Sharing context and
-               resources between threads is not worth the effort, if at all possible.
-               What we sure can do is to load images and compute textures concurrently,
-               but for the sake of multi-threading, D3D11 would be a better option.
-        */
+            ui::EndFrame();
+        }
 
         Flush();
 

@@ -10,16 +10,19 @@
 #include "scene/factory.h"
 #include "scene/scene.h"
 #include "examples/scene_01.h"
+#include "examples/scene_02.h"
 
 namespace scene::factory {
 
     const std::vector<std::string> titles {
         "Welcome Screen",
+        "Example Scene",
         "Example Scene"
     };
 
     Scene* LoadScene(const std::string& title) {
         if (title == "Welcome Screen") return new Scene(title);
+        if (title == "Example Scene") return new Scene01(title);
         if (title == "Example Scene") return new Scene01(title);
 
         CORE_ERROR("Scene \"{0}\" is not registered in the factory ...", title);

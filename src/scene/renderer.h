@@ -55,6 +55,27 @@ namespace scene {
        shaders and textures, and uniform uploads. However, if a list of entities use the same
        shader, textures as well as meshes, you should enable batch rendering on the meshes,
        submit only one of them and handle batch rendering in the shader.
+
+       # switching scenes and multithreading
+
+       this class is also responsible for loading and unloading scenes while the application
+       is up and running, which is done by the two blocking calls `Attach()` and `Detach()`.
+       at any given time, there can only be one active scene in the OpenGL context, so every
+       time we switch scenes, `Detach()` will first delete the previous one to safely clean
+       up global OpenGL states, and `Attach()` will then load the new scene from our factory.
+
+       note that cleaning and loading scenes can take quite a while, especially when there is
+       a large number entities in the scene. Ideally, loading and unloading scenes should be
+       scheduled as asynchronous background tasks, so as not to block and freeze the window,
+       we can achieve this by wrapping the tasks in `std::async` and query from `std::future`
+       objects at a later time, sadly though, multithreading in OpenGL is a pain, you cannot
+       multithread OpenGL calls easily without using complex context switching, because most
+       buffers cannot be shared between threads, let alone the fact that your window library
+       or graphics card driver may not be supporting it.
+
+       sharing context and resources between threads is a difficult task in OpenGL, I am not
+       sure if this is at all possible, in this regard, Vulkan or D3D11 is a better option.
+       that said, we can still optimize the loading of assets using concurrency. (TODO)
     */
 
     class Renderer {

@@ -162,11 +162,10 @@ namespace scene {
         sphere.GetComponent<Transform>().Translate(world::up * 10.5f);
         sphere.GetComponent<Transform>().Scale(2.0f);
 
-        // a material is automatically attached to the entity when you add a mesh or model
+        // it's possible to bind a uniform to a variable and observe changes in the shader
+        // automatically. In this case, you only need to bind it once inside this `Init()`
+        // function, which saves you from having to set uniforms every frame.
         if (auto& mat = sphere.AddComponent<Material>(pbr_material); true) {
-            // it's possible to bind a uniform to a variable and observe changes in the shader
-            // automatically. In this case, you only need to bind it once inside this `Init()`
-            // function, which saves you from having to set uniforms every frame.
             mat.SetUniform(10, sphere_albedo, true);  // albedo (diffuse color)
             mat.SetUniform(11, sphere_metalness, true);
             mat.SetUniform(12, sphere_roughness, true);
@@ -406,14 +405,17 @@ namespace scene {
                     ImGui::Separator();
                     ImGui::PopItemWidth();
                     ImGui::Spacing();
+
                     if (ImGui::Button("  New Colors  ")) {
                         UpdatePLColors();
                     }
                     ImGui::SameLine(0.0f, 10.0f);
+
                     ImGui::Text("Reset Light Cluster Colors");
                     if (ImGui::IsItemHovered()) {
                         ImGui::SetTooltip("New colors will be generated at random.");
                     }
+
                     ImGui::Spacing();
                     ImGui::Separator();
                     ImGui::Unindent(5.0f);
