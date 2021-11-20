@@ -15,6 +15,9 @@ using namespace components;
 
 namespace buffer {
 
+    // optimize context switching by avoiding unnecessary binds and unbinds
+    static GLuint curr_bound_buffer = 0;
+
     FBO::FBO(GLuint width, GLuint height) : Buffer(), width(width), height(height), status(0) {
         // important! turn off colorspace correction globally
         glDisable(GL_FRAMEBUFFER_SRGB);
@@ -29,19 +32,19 @@ namespace buffer {
 
         glCreateFramebuffers(1, &id);
 
-        // attach a static dummy VAO and debug shader for debug drawing
-        if (debug_vao == nullptr) {
-            debug_vao = std::make_unique<VAO>();
-        }
-        if (debug_shader == nullptr) {
-            debug_shader = std::make_unique<Shader>(utils::paths::shader + "fullscreen.glsl");
-        }
+        // attach a dummy VAO and debug shader for debug drawing
+        debug_vao    = std::make_unique<VAO>();
+        debug_shader = std::make_unique<Shader>(utils::paths::shader + "fullscreen.glsl");
     }
 
     FBO::~FBO() {
         CORE_WARN("Destroying framebuffer (id = {0})...", id);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDeleteFramebuffers(1, &id);
+
+        if (curr_bound_buffer == id) {
+            curr_bound_buffer = 0;
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
     }
 
     FBO::FBO(FBO&& other) noexcept {
@@ -51,6 +54,7 @@ namespace buffer {
     FBO& FBO::operator=(FBO&& other) noexcept {
         if (this != &other) {
             color_textures.clear();
+            id = curr_bound_buffer = 0;
             stencil_view = 0;
             depst_texture = nullptr;
             depst_renderbuffer = nullptr;
@@ -206,12 +210,18 @@ namespace buffer {
     }
 
     void FBO::Bind() const {
-        CORE_ASERT(status == GL_FRAMEBUFFER_COMPLETE, "Incomplete framebuffer status: {0}", status);
-        glBindFramebuffer(GL_FRAMEBUFFER, id);
+        if (id != curr_bound_buffer) {
+            CORE_ASERT(status == GL_FRAMEBUFFER_COMPLETE, "Incomplete framebuffer status: {0}", status);
+            glBindFramebuffer(GL_FRAMEBUFFER, id);
+            curr_bound_buffer = id;
+        }
     }
 
     void FBO::Unbind() const {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        if (curr_bound_buffer != 0) {
+            curr_bound_buffer = 0;
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
     }
 
     void FBO::SetDrawBuffer(GLuint index) const {

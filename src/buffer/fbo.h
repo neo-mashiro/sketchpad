@@ -57,8 +57,8 @@ namespace buffer {
         std::unique_ptr<TexView> stencil_view;        // temporary stencil texture view
 
         // bufferless rendering of the fullscreen quad
-        std::unique_ptr<VAO>    debug_vao;
-        std::unique_ptr<Shader> debug_shader;
+        std::unique_ptr<VAO>     debug_vao;
+        std::unique_ptr<Shader>  debug_shader;
 
       public:
         FBO() = default;

@@ -5,20 +5,34 @@
 
 namespace buffer {
 
+    // optimize context switching by avoiding unnecessary binds and unbinds
+    static GLuint curr_bound_buffer = 0;
+
     VAO::VAO() {
         glCreateVertexArrays(1, &id);
     }
 
     VAO::~VAO() {
         glDeleteVertexArrays(1, &id);
+
+        if (curr_bound_buffer == id) {
+            curr_bound_buffer = 0;
+            glBindVertexArray(0);
+        }
     }
 
     void VAO::Bind() const {
-        glBindVertexArray(id);
+        if (id != curr_bound_buffer) {
+            glBindVertexArray(id);
+            curr_bound_buffer = id;
+        }
     }
 
     void VAO::Unbind() const {
-        glBindVertexArray(0);
+        if (curr_bound_buffer != 0) {
+            curr_bound_buffer = 0;
+            glBindVertexArray(0);
+        }
     }
 
     void VAO::SetVBO(GLuint vbo, GLuint attribute_id, GLint offset, GLint size, GLint stride) const {

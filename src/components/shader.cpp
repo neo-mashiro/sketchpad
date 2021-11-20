@@ -11,7 +11,7 @@ using namespace core;
 namespace components {
 
     // optimize context switching by avoiding unnecessary binds and unbinds
-    static GLuint prev_bound_shader_id = 0;  // keep track of the current rendering state
+    static GLuint curr_bound_shader = 0;  // keep track of the current rendering state
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -75,10 +75,12 @@ namespace components {
         CORE_WARN("Deleting shader program (id = {0})...", id);
         glDeleteProgram(id);
 
-        // reset the global static field of tracked shader id on each destructor call.
-        // this may introduce a few extra bindings (only if the scene destroys shaders
-        // on the fly, which is rare), but helps ensure safety when we switch scenes.
-        prev_bound_shader_id = 0;
+        // on each destructor call, globally reset the currently bound shader id to 0
+        // this may introduce a few extra bindings, but can ensure safety in all cases
+        if (curr_bound_shader == id) {
+            curr_bound_shader = 0;
+            glUseProgram(0);
+        }
     }
 
     Shader::Shader(Shader&& other) noexcept {
@@ -87,7 +89,7 @@ namespace components {
 
     Shader& Shader::operator=(Shader&& other) noexcept {
         if (this != &other) {
-            id = prev_bound_shader_id = 0;
+            id = curr_bound_shader = 0;
             std::swap(id, other.id);
             std::swap(source_path, other.source_path);
             std::swap(shaders, other.shaders);
@@ -97,16 +99,17 @@ namespace components {
     }
 
     void Shader::Bind() const {
-        // keep track of the previously bound shader id to avoid unnecessary binds
-        if (id != prev_bound_shader_id) {
+        if (id != curr_bound_shader) {
             glUseProgram(id);
-            prev_bound_shader_id = id;
+            curr_bound_shader = id;
         }
     }
 
     void Shader::Unbind() const {
-        glUseProgram(0);
-        prev_bound_shader_id = 0;
+        if (curr_bound_shader != 0) {
+            curr_bound_shader = 0;
+            glUseProgram(0);
+        }
     }
 
     void Shader::Save() const {

@@ -5,6 +5,9 @@
 
 namespace buffer {
 
+    // optimize context switching by avoiding unnecessary binds and unbinds
+    static GLuint curr_bound_buffer = 0;
+
     UBO::UBO(GLuint unit, GLsizeiptr block_size) : Buffer(), unit(unit) {
         // uniform data changes quite often so we always use dynamic as the hint
         glCreateBuffers(1, &id);
@@ -15,6 +18,11 @@ namespace buffer {
     UBO::~UBO() {
         CORE_WARN("Deleting uniform buffer (id = {0})!", id);
         glDeleteBuffers(1, &id);
+
+        if (curr_bound_buffer == id) {
+            curr_bound_buffer = 0;
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
     }
 
     UBO::UBO(UBO&& other) noexcept {
@@ -25,6 +33,7 @@ namespace buffer {
         if (this != &other) {
             offset.clear();
             size.clear();
+            id = curr_bound_buffer = 0;
 
             std::swap(id, other.id);
             std::swap(unit, other.unit);
@@ -36,11 +45,17 @@ namespace buffer {
     }
 
     void UBO::Bind() const {
-        glBindBuffer(GL_UNIFORM_BUFFER, id);
+        if (id != curr_bound_buffer) {
+            glBindBuffer(GL_UNIFORM_BUFFER, id);
+            curr_bound_buffer = id;
+        }
     }
 
     void UBO::Unbind() const {
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        if (curr_bound_buffer != 0) {
+            curr_bound_buffer = 0;
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
     }
 
     void UBO::SetOffset(const std::vector<GLuint>& offset) {

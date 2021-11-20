@@ -77,8 +77,8 @@ namespace buffer {
         auto image = utils::Image(img_path, 3);
         GLuint im_w    = image.GetWidth();
         GLuint im_h    = image.GetHeight();
-        GLuint im_fmt  = image.GetFormat();  // 6407 RGB
-        GLenum im_ifmt = image.GetInternalFormat();  // 34843 RGB16F
+        GLuint im_fmt  = image.GetFormat();
+        GLenum im_ifmt = image.GetInternalFormat();
 
         GLuint equirectangle = 0;
         glCreateTextures(GL_TEXTURE_2D, 1, &equirectangle);
@@ -228,8 +228,10 @@ namespace buffer {
     }
 
     void Texture::Unbind(GLuint unit) const {
-        glBindTextureUnit(unit, 0);
-        texture_binding_table[unit] = 0;
+        if (texture_binding_table[unit] != 0) {
+            texture_binding_table[unit] = 0;
+            glBindTextureUnit(unit, 0);
+        }
     }
 
     void Texture::GenerateMipmap() const {
@@ -266,7 +268,6 @@ namespace buffer {
     }
 
     void TexView::Bind(GLuint unit) const {
-        // keep track of the texture in each unit to avoid unnecessary binds
         if (id != texture_binding_table[unit]) {
             glBindTextureUnit(unit, id);
             texture_binding_table[unit] = id;
