@@ -161,9 +161,6 @@ namespace scene {
     }
 
     // this base class is being used to render our welcome screen
-    static asset_ref<Texture> welcome_screen;
-    static ImTextureID welcome_screen_texture_id;
-
     void Scene::Init() {
         welcome_screen = LoadAsset<Texture>(utils::paths::texture + "common\\welcome.png", 1);
         welcome_screen_texture_id = (void*)(intptr_t)(welcome_screen->GetID());

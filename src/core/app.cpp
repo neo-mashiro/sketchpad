@@ -270,5 +270,6 @@ namespace core {
         Input::Clear();
         Clock::Reset();
         Window::Clear();
+        Log::Shutdown();
     }
 }

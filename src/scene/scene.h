@@ -85,6 +85,10 @@ namespace scene {
         virtual void Init(void);
         virtual void OnSceneRender(void);
         virtual void OnImGuiRender(void);
+
+      private:
+        asset_ref<Texture> welcome_screen;
+        ImTextureID welcome_screen_texture_id;
     };
 
     namespace world {

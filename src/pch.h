@@ -6,13 +6,13 @@
    inclusion of headers that are included only in few source files.
 
    C++ standard library headers typically belong in the precompiled header file.
-   we can also include our own headers that are normally stable and barely changed.
+   we can also include our own headers that are quite stable and barely changed.
 
-   as long as you follow this rule, compilation will be significantly faster, at
-   the cost of some disk space. The overhead is that some sources will include
-   some headers that are not needed (but are inside #include "pch.h" anyway), so
-   the compiled binaries of these translation units will be slightly larger in
-   size, but this overhead is trivial in most cases (unless our project is large).
+   as long as you follow this rule, compilation will be significantly faster at the
+   cost of some disk space. The overhead is that some sources will include headers
+   that are not needed but are inside this file anyway, so the compiled binaries of
+   these translation units may be slightly larger in size. That said, such overhead
+   is considered trivial in most cases, unless our project is huge.
 */
 
 #include <algorithm>

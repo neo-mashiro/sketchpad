@@ -42,6 +42,10 @@ namespace core {
         logger->flush_on(spdlog::level::trace);   // the minimum log level that will trigger automatic flush
     }
 
+    void Log::Shutdown() {
+        spdlog::shutdown();
+    }
+
     void Log::CheckGLError(int checkpoint) {
         // to ignore an error and suppress the message, pass a checkpoint of -1
         GLenum err_code;

@@ -7,6 +7,12 @@
 #include "components/material.h"
 #include "utils/filesystem.h"
 
+// #ifdef _DEBUG
+// #define DEBUG_NEW new (_NORMAL_BLOCK, __FILE__, __LINE__)
+// #else
+// #define DEBUG_NEW new
+// #endif
+
 namespace components {
 
     // list of currently supported sampler types
@@ -164,7 +170,8 @@ namespace components {
             GLint location = unif_info[2];
 
             if (std::find(samplers.begin(), samplers.end(), gl_type) != samplers.end()) {
-                continue;  // skip sampler uniforms (will be handled by `SetTexture`)
+                delete[] name;  // don't forget to free memory if we were to break early
+                continue;       // skip sampler uniforms (will be handled by `SetTexture`)
             }
 
             // we can't wrap this into a function because in_place_index must be compile-time constants

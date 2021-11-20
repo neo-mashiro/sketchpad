@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cmath>
+#include <glm/glm.hpp>
+
 namespace utils::math {
 
 	template<typename T>

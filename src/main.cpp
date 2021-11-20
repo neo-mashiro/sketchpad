@@ -4,18 +4,18 @@
 #define _CRTDBG_MAP_ALLOC
 #endif
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <crtdbg.h>
 #include <windows.h>
 #include "core/app.h"
 
 #pragma execution_character_set("utf-8")
 
-extern "C" {
-    // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
-    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
-}
+//extern "C" {
+//    // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
+//    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+//    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
+//}
 
 int main(int argc, char** argv) {
     // set console code page to unicode (UTF-8)
@@ -91,11 +91,11 @@ int main(int argc, char** argv) {
        first to make sure all stacks are unwound and all destructors are called, and then safely exit,
        so there won't be any memory leaks, and in fact we will never reach here.
 
-       upon exit, the CRT library may still detect and report a few memory leaks in the debug window,
-       which are actually just some global static data that lives in the static memory segment, apart
-       from the heap and the stack. Static variables are intended to be persistent for the lifetime of
-       the application, they are only destructed before the shutdown of the process. Since the program
-       is going to terminate anyway, these are not real memory leaks but false positives of the report
+       upon exit, the CRT library may still detect and report a few memory leaks in the debug window
+       if we have static variables that allocated memory before. Static variables are managed by C++
+       runtime, they are only destructed before the shutdown of the process (after `main()` returns).
+       since the program is going to terminate anyway, we don't really care, but generally we should
+       avoid or limit the use of static global variables whenever possible.
     */
 
     app.Clear();
