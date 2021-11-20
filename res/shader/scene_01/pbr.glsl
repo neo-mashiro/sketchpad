@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 #pragma optimize(off)
 
 layout(std140, binding = 0) uniform Camera {
@@ -199,12 +199,19 @@ vec3 SpotlightRadience(vec3 fpos) {
     return linear_attenuation * angular_attenuation * SL.intensity * SL.color;
 }
 
-// Trowbridge-Reitz GGX normal distribution function
+// Trowbridge-Reitz GGX normal distribution function (long tail distribution)
+// Trowbridge-Reitz GGX NDF is generally favored over Beckmann NDF because it's much smoother
 float TRGGX(vec3 N, vec3 H, float _roughness) {
     float alpha = _roughness * _roughness;
     float alpha2 = alpha * alpha;
     float NoH2 = pow(max(dot(N, H), 0.0), 2.0);
     return alpha2 / (pi * pow(NoH2 * (alpha2 - 1.0) + 1.0, 2.0));
+}
+
+// Generalized Trowbridge-Reitz (GTR) NDF (tail length can be tuned by parameter `gamma`)
+// this is an extended GGX NDF proposed by Brent Burley from Walt Disney Animation Studios
+float GTR(vec3 N, vec3 H, float _roughness, float gamma) {
+    return 0.0;  // TODO
 }
 
 // Schlick-GGX geometry function
@@ -215,8 +222,8 @@ float SchlickGGX(float NoV, float _roughness) {
     return NoV / (NoV * (1.0 - k) + k);
 }
 
-// Smith's geometry function
-float Smith(vec3 N, vec3 V, vec3 L, float _roughness) {
+// Smith's geometry function (the shadowing-masking visibility term)
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float _roughness) {
     float NoV = max(dot(N, V), 0.0);
     float NoL = max(dot(N, L), 0.0);
     return SchlickGGX(NoV, _roughness) * SchlickGGX(NoL, _roughness);
@@ -224,6 +231,7 @@ float Smith(vec3 N, vec3 V, vec3 L, float _roughness) {
 
 // Fresnel-Schlick approximation
 vec3 FresnelSchlick(vec3 H, vec3 V, vec3 F0) {
+    // H should always be the halfway vector, but V can be either the view direction or light direction
     float HoV = clamp(dot(H, V), 0.0, 1.0);
     return F0 + (1.0 - F0) * pow(1.0 - HoV, 5.0);
 }
@@ -235,7 +243,7 @@ vec3 CookTorranceBRDF(vec3 F0, vec3 N, vec3 V, vec3 L, vec3 _albedo, float _meta
     float NoL = max(dot(N, L), 0.0);
 
     vec3 F = FresnelSchlick(H, V, F0);
-    float G = Smith(N, V, L, _roughness);
+    float G = GeometrySmith(N, V, L, _roughness);
     float D = TRGGX(N, H, _roughness);
 
     vec3 diffuse = _albedo / pi;
@@ -267,6 +275,12 @@ void main() {
 
     vec3 V = normalize(camera.position - _position);
     vec3 N = sample_normal * GetNormal(uv) + (1 - sample_normal) * normalize(_normal);
+
+    // this term represents the Fresnel specular reflectance at normal incidence.
+    // a heuristic of 0.04 works for most air-dielectric/conductor interface.
+    // for light incoming from other media such as water or glass, `F0` must be computed differently.
+    // https://google.github.io/filament/Filament.html#table_commonmatreflectance
+
     vec3 F0 = mix(vec3(0.04), _albedo, _metalness);  // 0.04: heuristic for dielectrics
 
     // contribution of directional light x 1 (plus ambient occlussion)

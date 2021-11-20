@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <crtdbg.h>
+#include <windows.h>
 #include "core/app.h"
 
 #pragma execution_character_set("utf-8")
@@ -16,76 +17,73 @@ extern "C" {
     __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
 
-using namespace core;
-
 int main(int argc, char** argv) {
-    // set the console code page to utf-8
+    // set console code page to unicode (UTF-8)
     SetConsoleOutputCP(65001);
+
+    // set unicode console title
+    SetConsoleTitle((LPCWSTR)(L"Sketchpad Console"));
+
+    // set console window position and size
+    HWND window = GetConsoleWindow();
+    SetWindowPos(window, 0, 0, 0, 1024, 768, SWP_NOZORDER);
 
     // enable memory-leak report (MSVC intrinsic)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-    glutInit(&argc, argv);
+    // initialize application
+    auto& app = core::Application::GetInstance();
+    app.Init(argc, argv);
 
-    auto& app = Application::GetInstance();
-    app.Init();
-
+    // print context information
     HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(console, 3);  // water blue text, transparent background
-
-    std::cout << "=====================================================================\n";
-    std::cout << "  v(>.<)v Welcome to sketchpad! OpenGL context is now active! (~.^)  \n";
-    std::cout << "=====================================================================\n";
-
-    SetConsoleTextAttribute(console, 8);  // light gray text, transparent background
+    SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_BLUE);
 
     std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* System Information" << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- GPU Vendor Name:   " << app.gl_vendor    << std::endl;
-    std::cout << "- OpenGL Renderer:   " << app.gl_renderer  << std::endl;
-    std::cout << "- OpenGL Version:    " << app.gl_version   << std::endl;
-    std::cout << "- GLSL Core Version: " << app.glsl_version << '\n' << std::endl;
+    std::cout << "$ (#^_^#) Welcome to sketchpad! OpenGL context is now active! (~.^) $\n";
+    std::cout << "---------------------------------------------------------------------\n" << std::endl;
 
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* Maximum supported texture size: " << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- 1D / 2D texture (width and height): " << app.gl_texsize << std::endl;
-    std::cout << "- 3D texture (width, height & depth): " << app.gl_texsize_3d << std::endl;
-    std::cout << "- Cubemap texture (width and height): " << app.gl_texsize_cubemap << std::endl;
-    std::cout << "- Max number of texture image units: "  << app.gl_max_texture_units << '\n' << std::endl;
+    SetConsoleTextAttribute(console, FOREGROUND_INTENSITY);
 
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* Maximum allowed number of uniform buffers: " << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- Vertex shader:   " << app.gl_maxv_ubos << std::endl;
-    std::cout << "- Geometry shader: " << app.gl_maxg_ubos << std::endl;
-    std::cout << "- Fragment shader: " << app.gl_maxf_ubos << std::endl;
-    std::cout << "- Compute shader:  " << app.gl_maxc_ubos << '\n' << std::endl;
+    std::cout << "$ System Information" << '\n' << std::endl;
+    std::cout << "  GPU Vendor Name:   " << app.gl_vendor    << std::endl;
+    std::cout << "  OpenGL Renderer:   " << app.gl_renderer  << std::endl;
+    std::cout << "  OpenGL Version:    " << app.gl_version   << std::endl;
+    std::cout << "  GLSL Core Version: " << app.glsl_version << '\n' << std::endl;
 
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* Maximum allowed number of shader storage buffers: " << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- Fragment shader: " << app.gl_maxf_ssbos << std::endl;
-    std::cout << "- Compute shader:  " << app.gl_maxc_ssbos << '\n' << std::endl;
+    std::cout << "$ Maximum supported texture size: " << '\n' << std::endl;
+    std::cout << "  1D / 2D texture (width and height): " << app.gl_texsize           << std::endl;
+    std::cout << "  3D texture (width, height & depth): " << app.gl_texsize_3d        << std::endl;
+    std::cout << "  Cubemap texture (width and height): " << app.gl_texsize_cubemap   << std::endl;
+    std::cout << "  Max number of image units: "          << app.gl_max_image_units   << std::endl;
+    std::cout << "  Max number of texture units: "        << app.gl_max_texture_units << '\n' << std::endl;
 
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "* GPGPU limitation of compute shaders: " << std::endl;
-    std::cout << "---------------------------------------------------------------------\n";
-    std::cout << "- Max number of invocations (threads): " << app.cs_max_invocations << std::endl;
-    std::cout << "- Max work group count (x, y, z): " << app.cs_nx << ", " << app.cs_ny << ", " << app.cs_nz << std::endl;
-    std::cout << "- Max work group size  (x, y, z): " << app.cs_sx << ", " << app.cs_sy << ", " << app.cs_sz << '\n' << std::endl;
+    std::cout << "$ Maximum allowed number of uniform buffers: " << '\n' << std::endl;
+    std::cout << "  Vertex shader:   " << app.gl_maxv_ubos << std::endl;
+    std::cout << "  Geometry shader: " << app.gl_maxg_ubos << std::endl;
+    std::cout << "  Fragment shader: " << app.gl_maxf_ubos << std::endl;
+    std::cout << "  Compute shader:  " << app.gl_maxc_ubos << '\n' << std::endl;
 
-    SetConsoleTextAttribute(console, 15);  // full white text, transparent background
+    std::cout << "$ Maximum allowed number of shader storage buffers: " << '\n' << std::endl;
+    std::cout << "  Fragment shader: " << app.gl_maxf_ssbos << std::endl;
+    std::cout << "  Compute shader:  " << app.gl_maxc_ssbos << '\n' << std::endl;
+
+    std::cout << "$ GPGPU limitation of compute shaders: " << '\n' << std::endl;
+    std::cout << "  Max number of invocations (threads): " << app.cs_max_invocations << std::endl;
+    std::cout << "  Max work group count (x, y, z): " << app.cs_nx << ", " << app.cs_ny << ", " << app.cs_nz << std::endl;
+    std::cout << "  Max work group size  (x, y, z): " << app.cs_sx << ", " << app.cs_sy << ", " << app.cs_sz << std::endl;
+    std::cout << '\n' << std::endl;
+
+    SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 
     // from now on, font/color/style of the console text printed by `printf, fprintf, cout, cerr`
-    // will be solid white, but those printed by the application core are controlled by spdlog.
+    // will be solid white, but those printed by the application core are controlled by "spdlog".
 
-    app.Start();  // start the default scene
+    app.Start();  // start the welcome screen
 
     // main event loop
     while (true) {
-        glutMainLoopEvent();    // resolve all pending freeglut events (scene level), then return to us
+        app.MainEventUpdate();  // resolve all pending draw events (scene level) and then return to us
         app.PostEventUpdate();  // now we have a chance to do our own update stuff (application level)
     }
 

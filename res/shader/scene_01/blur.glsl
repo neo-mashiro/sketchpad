@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +29,7 @@ layout(binding = 0) uniform sampler2D source_texture;
 layout(binding = 1) uniform sampler2D ping_texture;  // 1/4 size mipmap
 layout(binding = 2) uniform sampler2D pong_texture;  // 1/4 size mipmap
 
-#define kernel11x11
+#define KERNEL11x11
 #include gaussian_kernel.glsl
 
 void main() {

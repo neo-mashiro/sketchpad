@@ -17,13 +17,13 @@ namespace scene::factory {
     const std::vector<std::string> titles {
         "Welcome Screen",
         "Example Scene",
-        "Example Scene"
+        "IBL"
     };
 
     Scene* LoadScene(const std::string& title) {
         if (title == "Welcome Screen") return new Scene(title);
         if (title == "Example Scene") return new Scene01(title);
-        if (title == "Example Scene") return new Scene01(title);
+        if (title == "IBL") return new Scene02(title);
 
         CORE_ERROR("Scene \"{0}\" is not registered in the factory ...", title);
         std::cin.get();

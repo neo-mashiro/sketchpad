@@ -31,6 +31,7 @@ namespace scene {
        > bloom effect on selected emissive objects using two-pass Gaussian blur filter
        > simple gizmos drawing with ImGui
        > off-screen multisample anti-aliasing (MSAA)
+       > point light inverse-square-law attenuation and spotlight angular attenuation
     */
 
     class Scene01 : public Scene {

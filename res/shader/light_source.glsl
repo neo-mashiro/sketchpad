@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 layout(std140, binding = 0) uniform Camera {
     vec3 position;

@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 layout(std140, binding = 0) uniform Camera {
     vec3 position;
@@ -61,12 +61,7 @@ void main() {
     // if the skybox appears too dark after getting toned down, you can manually adjust
     // its brightness uniform before tone mapping is applied, or do some other fun stuff.
 
-    hdr_color *= brightness;
-
-    hdr_color = hdr_color / (hdr_color + vec3(1.0));
-    hdr_color = pow(hdr_color, vec3(1.0/2.2));
-
-    color = vec4(hdr_color, 1.0);
+    color = vec4(hdr_color * brightness, 1.0);
     bloom = vec4(0.0, 0.0, 0.0, 1.0);  // make sure our skybox doesn't get blurred
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include "buffer/buffer.h"
 
 namespace buffer {
@@ -12,13 +12,10 @@ namespace buffer {
        still modifiable. The purpose of using immutable storage is to avoid runtime consistency
        checks and ensure type safety, so that rendering operations are able to run faster.
 
-       the first ctor creates a texture by loading an image file from the given path, the pixels
-       data of the image is immediately copied into the texture. The other ctor is used to create
-       an empty texture of the specified target, width, height and internal format, so that users
-       can write to it at a later time, this is often used to hold pre-computed data before the
-       rendering loop, such as pre-filtered environment maps, irradiance maps and the BRDF lookup
-       textures. Such user-defined textures are better-suited for this task than the ILS buffer
-       because they can be directly attached to user-defined framebuffers.
+       this class provides a number of ctors for building textures in different scenarios, users
+       can create textures by loading from an image file, or from multiple files in a directory.
+       there's also a variant that allows you to build a custom empty texture, which can be used
+       as a render target in a shader or framebuffer, see examples below.
 
        the `levels` parameter in the ctor refers to the level-of-detail (LOD) number, which is
        the number of mipmap levels of the texture. A value of 0 indicates no mipmaps, so that the
@@ -46,10 +43,16 @@ namespace buffer {
        unit to avoid unnecessary binding operations, trying to bind a texture that is already in
        the given texture unit has 0 overhead, there's no context switching in this case. However,
        this feature only applies to textures and texture views, excluding image load/store (ILS).
+
+       # bindless textures
+
+       this feature hasn't yet been included into the core profile, it still has several concerns
+       and is not supported on many Intel cards, so I will leave this to further releases.
     */
 
     class Texture : public Buffer {
       private:
+        friend class ILS;
         friend class Sampler;
         friend class TexView;
 
@@ -78,6 +81,7 @@ namespace buffer {
         void Bind(GLuint unit) const;
         void Unbind(GLuint unit) const;
 
+        void GenerateMipmap() const;
         void Clear() const;
     };
 

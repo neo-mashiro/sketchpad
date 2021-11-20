@@ -1,8 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <GL/glew.h>
-#include <glm/glm.hpp>
+#include <glad/glad.h>
 
 namespace buffer {
 
@@ -26,6 +25,8 @@ namespace buffer {
        - SSBO (Shader Storage Buffer Object)
        - PBO (Pixel Buffer Object)
        - ILS (Image Load Store)
+       - TBO (Texture Buffer Object)
+       - Textures, texture views and samplers
 
        since OpenGL 4.5, DSA (direct state access) has been introduced into the core profile, with
        DSA at out disposal, we can now easily modify, read/write or setup data for buffers without

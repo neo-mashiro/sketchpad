@@ -9,7 +9,7 @@
 
 namespace components {
 
-    Model::Model(const std::string& filepath, Quality quality) : quality(quality) {
+    Model::Model(const std::string& filepath, Quality quality, bool manual) : quality(quality), manual(manual) {
         directory = filepath.substr(0, filepath.rfind("\\")) + "\\";
         vtx_format.reset();
 
@@ -90,6 +90,12 @@ namespace components {
 
         CORE_TRACE("Model internal materials: {0}", all_mtls);
 
+        // skip material details report if manual mode is enabled
+        if (manual) {
+            CORE_TRACE("Auto mode is disabled, materials are manually imported...");
+            return;
+        }
+
         // report material details
         for (auto& mtl : materials_cache) {
             std::string mtl_name = mtl.first;
@@ -138,6 +144,7 @@ namespace components {
             return;
         }
 
+        CORE_TRACE("Importing textures for material: {0}", material_name);
         GLuint material_id = materials_cache[material_name];
 
         textures[material_id].clear();
@@ -166,7 +173,7 @@ namespace components {
             vtx_format.set(0, ai_mesh->HasPositions());
             vtx_format.set(1, ai_mesh->HasNormals());
             vtx_format.set(2, ai_mesh->HasTextureCoords(0));
-            vtx_format.set(3, ai_mesh->HasTextureCoords(1) && ai_mesh->GetNumUVChannels() > 1);
+            // vtx_format.set(3, ai_mesh->HasTextureCoords(1) && ai_mesh->GetNumUVChannels() > 1);
             vtx_format.set(4, ai_mesh->HasTangentsAndBitangents());
             vtx_format.set(5, ai_mesh->HasTangentsAndBitangents());
         }
@@ -176,7 +183,7 @@ namespace components {
             vtx_format.test(0) == ai_mesh->HasPositions() &&
             vtx_format.test(1) == ai_mesh->HasNormals() &&
             vtx_format.test(2) == ai_mesh->HasTextureCoords(0) &&
-            vtx_format.test(3) == (ai_mesh->HasTextureCoords(1) && ai_mesh->GetNumUVChannels() > 1) &&
+            // vtx_format.test(3) == (ai_mesh->HasTextureCoords(1) && ai_mesh->GetNumUVChannels() > 1) &&
             vtx_format.test(4) == ai_mesh->HasTangentsAndBitangents() &&
             vtx_format.test(5) == ai_mesh->HasTangentsAndBitangents();
 
@@ -209,11 +216,11 @@ namespace components {
                 vertex.uv = { ai_uv.x, ai_uv.y };
             }
 
-            if (vtx_format.test(3)) {
-                // the second UV set is primarily used for lightmaps in this demo
-                aiVector3D& ai_uv2 = ai_mesh->mTextureCoords[1][i];
-                vertex.uv2 = { ai_uv2.x, ai_uv2.y };
-            }
+            // if (vtx_format.test(3)) {
+            //     // the second UV set is primarily used for lightmaps
+            //     aiVector3D& ai_uv2 = ai_mesh->mTextureCoords[1][i];
+            //     vertex.uv2 = { ai_uv2.x, ai_uv2.y };
+            // }
 
             if (vtx_format.test(4)) {
                 // tangents and bitangents always come in pairs, if one exists, so does the other
@@ -297,6 +304,9 @@ namespace components {
         // new material, load for the first time
         GLuint material_id = mesh.material_id;
         materials_cache[material] = material_id;
+        n_materials++;
+
+        if (manual) return;
 
         CORE_TRACE("Loading material: {0} (id = {1})", material, material_id);
 
@@ -349,10 +359,6 @@ namespace components {
                 prop_names.push_back(prop_name);
                 prop_values.emplace_back(std::in_place_index<2>, f_buff);
             }
-        }
-
-        if (!txtr_names.empty() || !prop_names.empty()) {
-            n_materials++;
         }
 
         // if we are here, this material is completely empty (no properties, no textures, perhaps

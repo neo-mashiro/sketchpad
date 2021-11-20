@@ -1,19 +1,19 @@
 #pragma once
 
-// only header files that are external to your project (rarely changed) AND needed
-// by most of your source files (often used) should be included in the precompiled
-// header, do not blindly include every single external library header file, avoid
-// inclusion of headers that are included only in few source files.
+/* only header files that are external to your project (rarely changed) AND needed
+   by most of your source files (often used) should be included in the precompiled
+   header, do not blindly include every single external library header file, avoid
+   inclusion of headers that are included only in few source files.
 
-// you can also include your own headers if you know they are hardly ever changed.
+   C++ standard library headers typically belong in the precompiled header file.
+   we can also include our own headers that are normally stable and barely changed.
 
-// as long as you follow this rule, compilation will be significantly faster, at
-// the cost of some disk space. The overhead is that some sources will include
-// some headers that are not needed (but are inside #include "pch.h" anyway), so
-// the compiled binaries of these translation units will be slightly larger in
-// size, but this overhead is trivial in most cases (unless your project is huge).
-
-// STL and Boost headers typically belong in the precompiled header file
+   as long as you follow this rule, compilation will be significantly faster, at
+   the cost of some disk space. The overhead is that some sources will include
+   some headers that are not needed (but are inside #include "pch.h" anyway), so
+   the compiled binaries of these translation units will be slightly larger in
+   size, but this overhead is trivial in most cases (unless our project is large).
+*/
 
 #include <algorithm>
 #include <array>
@@ -46,11 +46,30 @@
 #include <variant>
 #include <vector>
 
-#pragma warning(push)
-#pragma warning(disable : 4505)
-#include <GL/glew.h>
-#include <GL/freeglut.h>
-#pragma warning(pop)
+/* since our precompiled header must be included in every cpp file, here we can do a nice
+   little trick to replace any `#ifdef` block with a global variable. By translating them
+   into C++17 `inline constexpr` variables (external linkage), we can effectively avoid a
+   bunch of `#ifdef`s from splattering throughout our code base. These variables will be
+   globally visible to all translation units without violating the ODR rule.
+*/
+
+#if defined(_DEBUG) || defined(DEBUG)
+    inline constexpr bool debug_mode = true;
+#else
+    inline constexpr bool debug_mode = false;
+#endif
+
+#ifdef __FREEGLUT__
+    inline constexpr bool _freeglut = true;
+#else
+    inline constexpr bool _freeglut = false;
+#endif
+
+#define GLFW_INCLUDE_NONE
+#include <glad/glad.h>
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
 
 #define GLM_ENABLE_EXPERIMENTAL
 
@@ -72,6 +91,7 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glut.h>
+#include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 #include <imgui/imstb_rectpack.h>
 #include <imgui/imstb_textedit.h>

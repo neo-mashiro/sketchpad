@@ -77,6 +77,9 @@ namespace components {
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
 
+        // some people like to use 36 vertices, but in fact we only need 24
+        // in order to triangulate the 6 faces of the cube (12 triangles).
+
         // define a cube of size 1, which has 24 vertices (with redefinition)
         const static int n_vertices = 24;
         const static int stride = 8;  // 3 + 3 + 2

@@ -16,7 +16,7 @@ namespace components {
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     Shader::Shader(const std::string& source_path) : id(0), source_path(source_path) {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(Application::GLContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Compiling shader source: {0}", source_path);
 
         LoadShader(GL_VERTEX_SHADER);
@@ -35,7 +35,7 @@ namespace components {
     }
 
     Shader::Shader(const std::string& binary_path, GLenum format) : id(0), source_path("") {
-        CORE_ASERT(Application::IsContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
+        CORE_ASERT(Application::GLContextActive(), "OpenGL context not found: {0}", __FUNCSIG__);
         CORE_INFO("Loading pre-compiled shader program from {0} ...", binary_path);
 
         // construct the shader program by loading from a pre-compiled shader binary

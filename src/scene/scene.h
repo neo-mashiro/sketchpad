@@ -17,9 +17,9 @@ namespace scene {
        functions listed below in your derived scene class. Here in the base class they
        are only used to display the welcome screen.
 
-       -- virtual void Init(void);
-       -- virtual void OnSceneRender(void);
-       -- virtual void OnImGuiRender(void);
+       > virtual void Init(void);
+       > virtual void OnSceneRender(void);
+       > virtual void OnImGuiRender(void);
 
        the renderer class is in charge of this class as well as all the derived scenes,
        the three event functions above will be called in sequence every frame.
@@ -33,14 +33,25 @@ namespace scene {
 
        # tips on debugging
 
-       OpenGL debug message callback is not always triggered when error occurs, how it
-       behaves is up to the driver (may vary across drivers) so it's not 100% reliable
-       when debugging the scene code. As your scene becomes more and more complex, it
-       can be helpful to be able to manually catch errors, thereof this `CheckGLError()`
-       function alias. You don't have to call it after every line of code, just place
-       the calls uniformly across your scene code, giving each of them a unique check-
-       point number, then by looking at the console log, you can quicky find out which
-       checkpoint number is closest to the error code.
+       modern OpenGL applications use the debug message callback for catching errors,
+       this callback is a convenient way for debugging, very much like the GLFW error
+       callback. In order to register this callback successfully, a valid OpenGL debug
+       context must be present first. However, such context may not be available when
+       using freeglut on some drivers, so the callback is not always triggered (GLFW
+       seems to be working on all drivers all the time). In case it's not 100 percent
+       reliable, we also provide a `CheckGLError()` function alias that allows users
+       to manually catch errors when debugging the scene code.
+
+       the `CheckGLError()` function can be used in conjunction with the debug message
+       callback to ensure 100% bug-free. You don't need to call it after every line of
+       code, it's intended to be placed uniformly across the scene code, each call may
+       have a unique "checkpoint" number that will be printed to the console when error
+       occurs. This way, we can quicky find out which call is closest to the error.
+
+       if we want to create an error on purpose, or know about a persistent error that
+       is irrelevant to our application (e.g. caused by a third-party library), we can
+       catch it manually using `CheckGLError(-1)`. By passing a checkpoint of -1, the
+       function will silently ignore the error and suppress the console message.
     */
 
     template<typename... Args>

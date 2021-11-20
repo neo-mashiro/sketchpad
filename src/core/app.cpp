@@ -1,7 +1,11 @@
 #include "pch.h"
 
+#include <GL/freeglut.h>
+#include <GLFW/glfw3.h>
+
 #include "core/app.h"
 #include "core/clock.h"
+#include "core/event.h"
 #include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
@@ -13,23 +17,21 @@ using namespace scene;
 
 namespace core {
 
-    static bool app_exit = false;
-
     // singleton instance accessor
     Application& Application::GetInstance() {
-        // since c++11, this will be thread-safe, there's no need for manual locking
+        // since C++11, this will be thread-safe, there's no need for manual locking
         static Application instance;
         return instance;
     }
 
     // check if the OpenGL context is active
-    bool Application::IsContextActive() { return GetInstance().opengl_context_active; }
+    bool Application::GLContextActive() { return GetInstance().gl_context_active; }
 
     #pragma warning(push)
     #pragma warning(disable : 4100)
 
     // OpenGL debug message callback
-    static void GLAPIENTRY OnErrorMessage(GLenum source, GLenum type, GLuint id,
+    static void GLAPIENTRY OnErrorDetect(GLenum source, GLenum type, GLuint id,
         GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
 
         if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
@@ -95,231 +97,93 @@ namespace core {
         // please also read the detailede error code and message in the console, FAQ:
         // https://www.khronos.org/opengl/wiki/OpenGL_Error
 
-        #ifdef _DEBUG
-            if (err_level == "High") {
+        if constexpr (debug_mode) {
+            if (err_level == "high") {
                 __debugbreak();  // this is the MSVC intrinsic
             }
-        #endif
+        }
     }
 
     #pragma warning(pop)
 
-    // -------------------------------------------------------------------------
-    // freeglut event callbacks
-    // -------------------------------------------------------------------------
-    #pragma warning(push)
-    #pragma warning(disable : 4100)
-
-    void Application::Idle() {}
-
-    void Application::Display() {
-        Renderer::DrawScene();
-    }
-
-    void Application::Entry(int state) {
-        if (state == GLUT_ENTERED) {
-            CORE_INFO("Cursor enters window");
-        }
-        else if (state == GLUT_LEFT) {
-            CORE_INFO("Cursor leaves window");
-        }
-    }
-
-    void Application::Keyboard(unsigned char key, int x, int y) {
-        // when the windows api is on top, yield input control to the operating system
-        if (Window::layer == Layer::Win32) {
-            return;
-        }
-
-        Input::SetKeyState(key, true);
-
-        // functional keys have the highest priority (application/window level)
-        if (Input::IsKeyPressed(VK_ESCAPE)) {
-            app_exit = Window::ConfirmExit();      // the user has requested to exit?
-            Input::SetKeyState(VK_ESCAPE, false);  // exit is cancelled, release esc key
-            return;
-        }
-
-        if (Input::IsKeyPressed(VK_RETURN)) {
-            Window::ToggleImGui();
-            return;
-        }
-
-        // gameplay control keys have lower priority (scene/layer level)
-        if (Window::layer == Layer::ImGui) {
-            // current layer is ImGui, dispatch input control to ImGui
-            ImGui_ImplGLUT_KeyboardFunc(key, x, y);
-
-            // disable our own scene input control, we don't want objects to
-            // move around the scene when the ImGui menu is on the top layer
-            Input::SetKeyState(key, false);
-        }
-    }
-
-    void Application::KeyboardUp(unsigned char key, int x, int y) {
-        // when the windows api is on top, yield input control to the operating system
-        if (Window::layer == Layer::Win32) {
-            return;
-        }
-
-        Input::SetKeyState(key, false);
-
-        if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_KeyboardUpFunc(key, x, y);
-        }
-    }
-
-    void Application::Reshape(int width, int height) {
-        // in this demo, we simply lock window position, size and aspect ratio
-        Window::Reshape();
-
-        // ImGui will decide how to respond to reshape by itself
-        ImGui_ImplGLUT_ReshapeFunc(Window::width, Window::height);
-    }
-
-    void Application::Motion(int x, int y) {
-        // this callback responds to mouse drag-and-move events, which is only used
-        // when the current layer is ImGui (for moving, resizing & docking widgets)
-        if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_MotionFunc(x, y);
-        }
-    }
-
-    void Application::PassiveMotion(int x, int y) {
-        if (Window::layer == Layer::Scene) {
-            Input::SetMouseMove(x, y);
-        }
-        else if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_MotionFunc(x, y);
-        }
-    }
-
-    void Application::Mouse(int button, int state, int x, int y) {
-        if (Window::layer == Layer::ImGui) {
-            ImGui_ImplGLUT_MouseFunc(button, state, x, y);
-        }
-        else if (Window::layer == Layer::Scene) {
-            if (Input::IsScrollWheelDown(button, state)) {
-                Input::SetMouseZoom(+1);
-            }
-            else if (Input::IsScrollWheelUp(button, state)) {
-                Input::SetMouseZoom(-1);
-            }
-        }
-    }
-
-    void Application::Special(int key, int x, int y) {
-        // this callback responds to special keys pressing events (f1, f2, numpads, direction keys)
-        // note that this is only invoked every few frames, not each frame, so the update here
-        // won't be smooth, you should place your continuous updates in the idle and display
-        // callback to avoid jerkiness, this callback should only be reserved for setting flags.
-        
-        // also be aware that the keyboard callback in freeglut uses `unsigned char` for key types,
-        // while the special callback uses `int` instead, so there are potential conflicts if you
-        // use both callbacks for registering input key states due to unsafe type conversion.
-        // for example, key "d", NumPad 4 and the left arrow key all have a value of 100 when
-        // converted to `uint8_t`, if you press "d" to move right, the left arrow key will be
-        // activated at the same time so the movements would cancel each other.
-    }
-
-    void Application::SpecialUp(int key, int x, int y) {
-        // this callback responds to special keys releasing events (f1, f2, numpads, direction keys)
-        // take notice of discrete updates and potential conflicts as in the special callback above
-    }
-
-    #pragma warning(pop)
-
-    // -------------------------------------------------------------------------
     // core event functions
-    // -------------------------------------------------------------------------
-    void Application::Init() {
-        opengl_context_active = false;
-        std::cout << ".........\n" << std::endl;
-
+    void Application::Init(int argc, char** argv) {
+        this->gl_context_active = false;
+        std::cout << "Initializing console logger ...\n" << std::endl;
         Log::Init();
-        CORE_INFO("Initializing console logger ...");
 
-        CORE_INFO("Loading project path tree ...");
+        CORE_INFO("Searching sources and assets path tree ...");
         utils::paths::SearchPaths();
+
+        CORE_INFO("Initializing window utility library ...");
+        if constexpr (_freeglut) {
+            glutInit(&argc, argv);
+        }
+        else {
+            CORE_ASERT(glfwInit() == GLFW_TRUE, "Fatal: Unable to initialize GLFW ...");
+        }
         
-        CORE_INFO("Initializing application window ...");
+        CORE_INFO("Creating application main window ...");
         Window::Init();
 
-        // create the main freeglut window
-        glutInitDisplayMode(Window::display_mode);
-        glutInitWindowSize(Window::width, Window::height);
-        glutInitWindowPosition(Window::pos_x, Window::pos_y);
+        // note that when using freeglut, glad can only load the compatibility profile
+        // if we only want to work with the core profile, GLFW is the option to choose
 
-        Window::id = glutCreateWindow((Window::title).c_str());
-        if (Window::id <= 0) {
-            CORE_ERROR("Failed to create a window...");
-            exit(EXIT_FAILURE);
+        CORE_INFO("Loading OpenGL core profile specs ...");
+        if constexpr (_freeglut) {
+            CORE_ASERT(gladLoadGL(), "Failed to initialize GLAD with the internal loader...");
+        }
+        else {
+            CORE_ASERT(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize GLAD...");
         }
 
-        // convert the window name from char* to wchar_t* in order to call the Win32 API
-        // this step is necessary because we are compiling with Unicode rather than ANSI
-        const char* win_char = (Window::title).c_str();
-        const size_t n_char = strlen(win_char) + 1;
-        std::wstring win_wchar = std::wstring(n_char, L'#');
-        mbstowcs(&win_wchar[0], win_char, n_char);
-        LPCWSTR win_ptr = (LPCWSTR)(wchar_t*)win_wchar.c_str();
-
-        // set custom style for the freeglut window
-        // https://docs.microsoft.com/en-us/windows/win32/winmsg/window-styles
-        HWND win_handle = WIN32::FindWindow(NULL, win_ptr);  // find the handle to the glut window
-        LONG style = GetWindowLong(win_handle, GWL_STYLE);   // find the current window style
-        style = style ^ WS_SYSMENU;                          // disable maximize/minimize/close button on title bar
-        SetWindowLong(win_handle, GWL_STYLE, style);         // apply the new window style
-
-        // loading OpenGL function pointers
-        if (glewInit() != GLEW_OK) {
-            CORE_ERROR("Failed to initialize GLEW...");
-            exit(EXIT_FAILURE);
-        }
-
-        CORE_INFO("Initializing input control system ...");
-        Input::Init();
-        Input::HideCursor();
-
-        CORE_INFO("Initializing ImGui backends ...");
+        CORE_INFO("Initializing Dear ImGui backends ...");
         ui::Init();
 
+        // note that freeglut may not be able to create a debug context on some drivers, so
+        // we could lose the ability to register the debug message callback. This is not an
+        // error, but the limitation of freeglut. On both my Intel and ATI card, setting the
+        // context flag `glutInitContextFlags(GLUT_DEBUG)` has no effect.
+        // using GLFW on the other hand, is guaranteed to provide us a valid debug context.
+
         CORE_INFO("Starting application debug session ...");
+        int context_flag;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &context_flag);
 
-        // register the debug message callback
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(OnErrorMessage, nullptr);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+        if constexpr (debug_mode) {
+            if (context_flag & GL_CONTEXT_FLAG_DEBUG_BIT) {
+                glEnable(GL_DEBUG_OUTPUT);
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+                glDebugMessageCallback(OnErrorDetect, nullptr);
+                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+            }
+            else {
+                if constexpr (_freeglut) {
+                    CORE_WARN("Unable to register the debug message callback ...");
+                    CORE_WARN("Debug context may not be available in freeglut ...");
+                }
+                else {
+                    CORE_ERROR("Unable to register the debug message callback ...");
+                    CORE_ERROR("Have you hinted GLFW to create a debug context ?");
+                }
+            }
+        }
 
-        // register freeglut event callbacks
-        glutIdleFunc(Idle);
-        glutDisplayFunc(Display);
-        glutEntryFunc(Entry);
-        glutKeyboardFunc(Keyboard);
-        glutKeyboardUpFunc(KeyboardUp);
-        glutMouseFunc(Mouse);
-        glutReshapeFunc(Reshape);
-        glutMotionFunc(Motion);
-        glutPassiveMotionFunc(PassiveMotion);
-        glutSpecialFunc(Special);
-        glutSpecialUpFunc(SpecialUp);
+        CORE_INFO("Registering window event callbacks ...");
+        Event::RegisterCallbacks();
 
-        // opengl context is now active
-        opengl_context_active = true;
-        std::cout << std::endl;
-
-        // load hardware information
+        CORE_INFO("Retrieving hardware specifications ...");
         gl_vendor    = std::string(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
         gl_renderer  = std::string(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
         gl_version   = std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
         glsl_version = std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
-        // limit on texture size and max number of texture units (including image units)
+        // texture size limit, max number of texture units and image units
         glGetIntegerv(GL_MAX_TEXTURE_SIZE,          &gl_texsize);
         glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE,       &gl_texsize_3d);
         glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &gl_texsize_cubemap);
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS,   &gl_max_texture_units);
+        glGetIntegerv(GL_MAX_IMAGE_UNITS,           &gl_max_image_units);
 
         // max number of uniform blocks in each shader stage
         glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS,   &gl_maxv_ubos);
@@ -344,21 +208,49 @@ namespace core {
         // max number of threads in the compute shader
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &cs_max_invocations);
 
-        // max number of drawable color buffers in a custom framebuffer
+        // max number of drawable color buffers in a user-defined framebuffer
         GLint max_color_attachments, max_draw_buffers;
         glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_color_attachments);
         glGetIntegerv(GL_MAX_DRAW_BUFFERS, &max_draw_buffers);
-
         gl_max_color_buffs = std::min(max_color_attachments, max_draw_buffers);
+
+        // opengl context is now active, ready to startup
+        this->gl_context_active = true;
+        this->app_pause = false;
+        this->app_shutdown = false;
+
+        std::cout << std::endl;
     }
 
     void Application::Start() {
         Clock::Reset();
+        Input::Clear();
+        Input::HideCursor();
         Renderer::Attach("Welcome Screen");
     }
 
+    void Application::MainEventUpdate() {
+        if constexpr (_freeglut) {
+            glutMainLoopEvent();
+        }
+        else {
+            Renderer::DrawScene();
+        }
+    }
+
     void Application::PostEventUpdate() {
-        if (app_exit) {
+        // check if the user has requested to exit
+        if (Input::GetKeyDown(VK_ESCAPE)) {
+            app_shutdown = Window::OnExitRequest();
+            Input::SetKeyDown(VK_ESCAPE, false);  // release the esc key
+        }
+        // check if the imgui layer has been toggled
+        else if (Input::GetKeyDown(VK_RETURN)) {
+            Window::OnLayerSwitch();
+            Input::SetKeyDown(VK_RETURN, false);  // release the enter key
+        }
+
+        if (app_shutdown) {
             GetInstance().Clear();
             exit(EXIT_SUCCESS);
         }
@@ -374,6 +266,8 @@ namespace core {
         ui::Clear();
 
         Renderer::Detach();
+
+        Input::Clear();
         Clock::Reset();
         Window::Clear();
     }

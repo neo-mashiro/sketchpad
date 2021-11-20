@@ -17,7 +17,7 @@ namespace utils {
 
         // supported file extensions (will support ".psd", ".tga" and ".gif" in the future)
         static const std::vector<std::string> extensions {
-            ".jpg", ".png", ".jpeg", ".bmp", ".hdr"
+            ".jpg", ".png", ".jpeg", ".bmp", ".hdr", ".exr"
         };
 
         // check valid file extension

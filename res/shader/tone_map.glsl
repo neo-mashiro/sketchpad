@@ -1,4 +1,5 @@
-// this file can be included by your shader to use a list of simple tone mapping operators.
+#ifndef _TONEMAP_H
+#define _TONEMAP_H
 
 // tone mapping maps an input color in high dynamic range to an output color in low dynamic
 // range, this is necessary because most monitors are only able to display LDR colors and
@@ -60,3 +61,5 @@ vec3 ApproxACES(vec3 irradiance) {
     float e = 0.14;
     return clamp((v * (a * v + b)) / (v * (c * v + d) + e), 0.0, 1.0);
 }
+
+#endif

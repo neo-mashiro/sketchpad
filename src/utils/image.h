@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <string>
-#include <GL/glew.h>
+#include <glad/glad.h>
 
 namespace utils {
 
@@ -19,7 +19,7 @@ namespace utils {
        the file, by default it is 0, in which case all channels available will be read. The
        user can also specify it to be 1~4, but if the image does not have that many channels,
        the extra ones will always be 0. Note that this parameter only applies to LDR images,
-       for HDR images, we always read 3 channels GL_RGB so it has no effect.
+       for HDR images, we will force read 3 channels GL_RGB so it has no effect.
 
        the `GetPixels()` method returns a raw pointer to the pixels data, this pointer is of
        type `const T*` that provides read-only access, users are not allowed to mutate the
@@ -39,11 +39,11 @@ namespace utils {
          -- color values are stored in sRGB space, may require gamma correction
 
        ## standard HDR
-         -- 32 bits per channel, 3 channels per pixel (RGB, no alpha) 
-         -- end with the extension ".hdr", typically used as cubemaps and irradiance maps
+         -- ends with the extension ".hdr" or ".exr", typically used as environment cubemaps
          -- used to represent colors over a much wider dynamic range (very bright or dark)
-         -- color values are stored as floating-point linear values
-         -- color values are stored in linear color space (i.e. gamma compressed)
+         -- pixels are stored in 4-channel RGBE, 8 bits per channel (E: shared exponent)
+         -- pixels are read in as floating-point values, 32 bits per channel RGB, no alpha
+         -- pixels are read in as linear values in linear color space (i.e. gamma compressed)
        
        # color space
 
@@ -69,12 +69,12 @@ namespace utils {
        data format that directly translates to texture format in OpenGL. For 1, 2, 3 and 4
        channels, data format will always be GL_RED, GL_RG, GL_RGB and GL_RGBA, accordingly,
        the internal format will be GL_R8, GL_RG8, GL_RGB8 and GL_RGBA8. For the special case
-       of HDR, we use a fixed format of GL_RGB, in pair with an internal format of GL_RGB16F.
-       using 16-bit floats is often good enough, a 32-bit precision would be overkill, in
-       most cases, there won't be visible distinction on a 1080p or smaller window screen.
+       of HDR, we will stick with GL_RGB and GL_RGB16F. Using 16-bit floats is usually good
+       enough, a 32-bit precision would be overkill, in most cases, there won't be visible
+       distinction on a 1080p or smaller window screen.
 
        to summarize, our definition of standard is 8 bits per channel, up to 4 channels, no
-       color space convertion. Even if some PNG files offer 16 or 32 bits per channel, we'll
+       color space convertion. Even if some PNG files offer 16 ~ 48 bits per channel, we'll
        only read them in as 8 bits to align with the standard.
     */
 

@@ -6,7 +6,7 @@ namespace utils::paths {
     std::filesystem::path solution;
 
     std::string root, source, resource;
-    std::string fonts, models, shaders, textures;
+    std::string font, model, shader, texture;
 
     /* current working directory could either be the vs2019 project folder, or the target
        folders that contain the executables, thus it can vary depending on how and where
@@ -44,10 +44,10 @@ namespace utils::paths {
         source   = src_path.string() + "\\";
         resource = res_path.string() + "\\";
 
-        fonts    = (res_path / "font"   ).string() + "\\";
-        models   = (res_path / "model"  ).string() + "\\";
-        shaders  = (res_path / "shader" ).string() + "\\";
-        textures = (res_path / "texture").string() + "\\";
+        font    = (res_path / "font"   ).string() + "\\";
+        model   = (res_path / "model"  ).string() + "\\";
+        shader  = (res_path / "shader" ).string() + "\\";
+        texture = (res_path / "texture").string() + "\\";
     }
 
 }

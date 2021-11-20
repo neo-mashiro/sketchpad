@@ -1,43 +1,57 @@
 #pragma once
 
 #include <unordered_map>
-#include <GL/glew.h>
-#include <GL/freeglut.h>
 
 namespace core {
 
-    enum class Axis : uint8_t {
+    enum class MouseAxis : uint8_t {
         Horizontal,
         Vertical
     };
 
+    enum class MouseButton : uint8_t {
+        Left,
+        Middle,
+        Right,
+    };
+
     class Input {
       private:
+        // keyboard keys states: pressed or released
         static std::unordered_map<uint8_t, bool> keybook;
 
-        static inline int mouse_pos_x = 0;
-        static inline int mouse_pos_y = 0;
-        static inline int mouse_delta_x = 0;
-        static inline int mouse_delta_y = 0;
-        static inline float mouse_zoom = 0.0f;
+        // cursor position and offsets along each axis
+        static inline float cursor_pos_x = 0;
+        static inline float cursor_pos_y = 0;
+        static inline float cursor_delta_x = 0;
+        static inline float cursor_delta_y = 0;
+
+        // mouse button states: pressed or released
+        static inline bool mouse_button_l = false;
+        static inline bool mouse_button_r = false;
+        static inline bool mouse_button_m = false;
+
+        // scrollwheel's vertical offset: > 0, < 0 or = 0
+        static inline float scroll_offset = 0.0f;
 
       public:
-        static void Init();
         static void Clear();
 
-        static bool IsKeyPressed(unsigned char key);
-        static bool IsScrollWheelDown(int button, int state);
-        static bool IsScrollWheelUp(int button, int state);
-        
-        static int GetMouseAxis(Axis axis);
-        static float GetMouseZoom(void);
+        static void ShowCursor();
+        static void HideCursor();
 
-        static void SetKeyState(unsigned char key, bool pressed);
-        static void SetMouseMove(int new_x, int new_y);
-        static void SetMouseZoom(float delta_zoom);
+        static void SetKeyDown(unsigned char key, bool pressed);
+        static bool GetKeyDown(unsigned char key);
 
-        static void ShowCursor(void);
-        static void HideCursor(void);
-        static void ResetCursor(void);
+        static void SetMouseDown(MouseButton button, bool pressed);
+        static bool GetMouseDown(MouseButton button);
+
+        static void SetCursor(float new_x, float new_y);
+        static float GetCursorPosition(MouseAxis axis);
+        static float GetCursorOffset(MouseAxis axis);
+
+        static void SetScroll(float offset);
+        static float GetScrollOffset(void);
     };
+
 }

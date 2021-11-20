@@ -8,6 +8,7 @@ root = true
 cpp_generate_documentation_comments = xml
 
 # visual studio c++ code style
+
 cpp_indent_braces = false
 cpp_indent_multi_line_relative_to = innermost_parenthesis
 cpp_indent_within_parentheses = indent
@@ -17,7 +18,7 @@ cpp_indent_case_labels = true
 cpp_indent_case_contents_when_block = false
 cpp_indent_lambda_braces_when_parameter = true
 cpp_indent_goto_labels = one_left
-cpp_indent_preprocessor = none
+cpp_indent_preprocessor = one_left
 cpp_indent_access_specifiers = false
 cpp_indent_namespace_contents = true
 cpp_indent_preserve_comments = false

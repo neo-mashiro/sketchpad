@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 // this compute shader is used by the light culling pass in forward+ rendering
 // references:

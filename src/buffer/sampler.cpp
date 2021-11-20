@@ -61,7 +61,7 @@ namespace buffer {
 
         // anisotropic filtering requires OpenGL 4.6, where maximum anisotropy is implementation-defined
         GLfloat max_anisotropy = 1.0f;
-        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropy);
+        glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &max_anisotropy);
         GLfloat anisotropy = std::clamp(max_anisotropy, 1.0f, 8.0f);  // limit anisotropy to 8
 
         if (target == GL_TEXTURE_2D) {
@@ -69,7 +69,7 @@ namespace buffer {
             glTextureParameteri(tid, GL_TEXTURE_WRAP_T, GL_REPEAT);
             glTextureParameteri(tid, GL_TEXTURE_MIN_FILTER, min_filter);
             glTextureParameteri(tid, GL_TEXTURE_MAG_FILTER, mag_filter);
-            glTextureParameterf(tid, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
+            glTextureParameterf(tid, GL_TEXTURE_MAX_ANISOTROPY, anisotropy);
         }
         else if (target == GL_TEXTURE_2D_MULTISAMPLE) {
             // multisampled textures are not filtered at all, there's nothing we need to do here because

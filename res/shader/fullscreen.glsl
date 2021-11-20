@@ -1,4 +1,4 @@
-#version 460
+#version 460 core
 
 #ifdef vertex_shader
 

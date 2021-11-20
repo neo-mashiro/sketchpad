@@ -1,10 +1,12 @@
-// this file can be included by your shader to apply a two-pass Gaussian blur effect.
+#ifndef _GAUSSIAN_H
+#define _GAUSSIAN_H
 
+// precomputed two-pass Gaussian blur kernels
 // here we have some precomputed Gaussian blur filters of various kernel size, if you
 // would ever need to use kernels of other sizes or would like to control the size at
 // runtime, you can use the `utils::math::Gaussian()` function to compute dynamically
 
-#ifdef kernel9x9
+#ifdef KERNEL9x9
 
 // precomputed 9x9 Gaussian blur filter (sigma ~= 1.75)
 const float weight[5] = float[] (
@@ -17,7 +19,7 @@ const float weight[5] = float[] (
 
 #endif
 
-#ifdef kernel11x11
+#ifdef KERNEL11x11
 
 // precomputed 11x11 Gaussian blur filter (sigma = 4)
 const float weight[6] = float[] (
@@ -31,7 +33,7 @@ const float weight[6] = float[] (
 
 #endif
 
-#ifdef kernel13x13
+#ifdef KERNEL13x13
 
 // precomputed 13x13 Gaussian blur filter (sigma = 4)
 const float weight[7] = float[] (
@@ -46,7 +48,7 @@ const float weight[7] = float[] (
 
 #endif
 
-#ifdef kernel15x15
+#ifdef KERNEL15x15
 
 // precomputed 15x15 Gaussian blur filter (sigma = 4)
 const float weight[8] = float[] (
@@ -62,7 +64,7 @@ const float weight[8] = float[] (
 
 #endif
 
-#ifdef kernel19x19
+#ifdef KERNEL19x19
 
 // precomputed 19x19 Gaussian blur filter (sigma = 5)
 const float weight[10] = float[] (
@@ -77,5 +79,7 @@ const float weight[10] = float[] (
     0.0235255,  // offset +8 -8
     0.0167448   // offset +9 -9
 );
+
+#endif
 
 #endif

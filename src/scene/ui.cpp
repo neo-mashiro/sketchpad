@@ -1,12 +1,5 @@
 #include "pch.h"
 
-#include <imgui/imgui_internal.h>
-#include <imgui/imgui_impl_glut.h>
-#include <imgui/imgui_impl_opengl3.h>
-#include <imgui/imstb_rectpack.h>
-#include <imgui/imstb_textedit.h>
-#include <imgui/imstb_truetype.h>
-
 #include "core/clock.h"
 #include "core/input.h"
 #include "core/log.h"
@@ -50,8 +43,8 @@ namespace scene::ui {
         config.OversampleV = 1;
         config.GlyphExtraSpacing.x = 0.0f;
         
-        truetype_font = io.Fonts->AddFontFromFileTTF((utils::paths::fonts + "Lato.ttf").c_str(), 18.0f);
-        opentype_font = io.Fonts->AddFontFromFileTTF((utils::paths::fonts + "palatino.ttf").c_str(), 17.0f, &config);
+        truetype_font = io.Fonts->AddFontFromFileTTF((utils::paths::font + "Lato.ttf").c_str(), 18.0f);
+        opentype_font = io.Fonts->AddFontFromFileTTF((utils::paths::font + "palatino.ttf").c_str(), 17.0f, &config);
 
         // build font textures
         unsigned char* pixels;
@@ -134,19 +127,39 @@ namespace scene::ui {
         c[ImGuiCol_TabUnfocused] = ImVec4(0.2f, 0.2f, 0.2f, 0.9f);
         c[ImGuiCol_TabUnfocusedActive] = ImVec4(0.2f, 0.2f, 0.2f, 0.9f);
 
-        ImGui_ImplGLUT_Init();
-        ImGui_ImplOpenGL3_Init();
+        if constexpr (_freeglut) {
+            ImGui_ImplGLUT_Init();
+            ImGui_ImplOpenGL3_Init();
+        }
+        else {
+            ImGui_ImplGlfw_InitForOpenGL(Window::window_ptr, false);
+            ImGui_ImplOpenGL3_Init();
+        }
     }
 
     void Clear() {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGLUT_Shutdown();
+        if constexpr (_freeglut) {
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGLUT_Shutdown();
+        }
+        else {
+            ImGui_ImplOpenGL3_Shutdown();
+            ImGui_ImplGlfw_Shutdown();
+        }
+
         ImGui::DestroyContext();
     }
 
     void NewFrame() {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGLUT_NewFrame();
+        if constexpr (_freeglut) {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGLUT_NewFrame();
+        }
+        else {
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();  // for GLFW backend we need to call this manually
+        }
     }
 
     void EndFrame() {

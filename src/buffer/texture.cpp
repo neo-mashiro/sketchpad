@@ -51,15 +51,10 @@ namespace buffer {
     }
 
     Texture::Texture(const std::string& img_path, GLuint resolution, GLuint levels)
-        : Buffer(), target(GL_TEXTURE_CUBE_MAP), width(resolution), height(resolution),
-          format(GL_RGB), internal_format(GL_RGB16F), n_levels(levels) {
-
-        using namespace glm;
-        using namespace components;
-        using namespace utils;
+        : Buffer(), target(GL_TEXTURE_CUBE_MAP), width(resolution), height(resolution), n_levels(levels) {
 
         // resolution must be a power of 2 in order to achieve high-fidelity visual effects
-        if (!math::IsPowerOfTwo(resolution)) {
+        if (!utils::math::IsPowerOfTwo(resolution)) {
             CORE_ERROR("Attempting to build a cubemap whose resolution is not a power of 2...");
             return;
         }
@@ -70,16 +65,22 @@ namespace buffer {
             CORE_WARN("Visual quality might drop seriously after tone mapping...");
         }
 
+        // image load store does not allow 3-channel formats, we have to use GL_RGBA
+        this->format = GL_RGBA;
+        this->internal_format = GL_RGBA16F;
+
         if (levels == 0) {
             n_levels = 1 + static_cast<GLuint>(floor(std::log2(std::max(width, height))));
         }
 
         // load the equirectangular image into a temporary 2D texture (base level, no mipmaps)
-        GLuint equirectangle = 0;
-        auto image = utils::Image(img_path, 3, true);
-        GLuint im_w = image.GetWidth();
-        GLuint im_h = image.GetHeight();
+        auto image = utils::Image(img_path, 3);
+        GLuint im_w    = image.GetWidth();
+        GLuint im_h    = image.GetHeight();
+        GLuint im_fmt  = image.GetFormat();  // 6407 RGB
+        GLenum im_ifmt = image.GetInternalFormat();  // 34843 RGB16F
 
+        GLuint equirectangle = 0;
         glCreateTextures(GL_TEXTURE_2D, 1, &equirectangle);
         glTextureParameteri(equirectangle, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTextureParameteri(equirectangle, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -87,73 +88,44 @@ namespace buffer {
         glTextureParameteri(equirectangle, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         if (image.IsHDR()) {
-            internal_format = GL_RGB16F;
-            glTextureStorage2D(equirectangle, 1, internal_format, im_w, im_h);
-            glTextureSubImage2D(equirectangle, 0, 0, 0, im_w, im_h, GL_RGB, GL_FLOAT, image.GetPixels<float>());
+            glTextureStorage2D(equirectangle, 1, im_ifmt, im_w, im_h);
+            glTextureSubImage2D(equirectangle, 0, 0, 0, im_w, im_h, im_fmt, GL_FLOAT, image.GetPixels<float>());
         }
         else {
-            internal_format = GL_RGB8;
-            glTextureStorage2D(equirectangle, 1, internal_format, im_w, im_h);
-            glTextureSubImage2D(equirectangle, 0, 0, 0, im_w, im_h, GL_RGB, GL_UNSIGNED_BYTE, image.GetPixels<uint8_t>());
+            glTextureStorage2D(equirectangle, 1, im_ifmt, im_w, im_h);
+            glTextureSubImage2D(equirectangle, 0, 0, 0, im_w, im_h, im_fmt, GL_UNSIGNED_BYTE, image.GetPixels<uint8_t>());
         }
 
         // create this texture as an empty cubemap to hold the equirectangle
         glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &id);
         glTextureStorage2D(id, n_levels, internal_format, width, height);
 
-        // render the 2D equirectangle into the six faces of the cubemap
-        auto virtual_mesh = Mesh(Primitive::Cube);
-        auto virtual_shader = Shader(paths::shaders + "equirectangle.glsl");
-        auto virtual_framebuffer = FBO(width, height);
-        virtual_framebuffer.SetColorTexture(0, id, 0);
+        // project the 2D equirectangle onto the six faces of our cubemap using compute shader
+        CORE_INFO("Creating cubemap from {0}", img_path);
+        auto convert_shader = components::Shader(utils::paths::shader + "equirect2cube.glsl");
 
-        static const mat4 projection = glm::perspective(radians(90.0f), 1.0f, 0.1f, 10.0f);
-
-        static const mat4 views[6] = {
-            glm::lookAt(vec3(0.0f), vec3(+1.0f,  0.0f,  0.0f), vec3(0.0f, -1.0f,  0.0f)),  // posx
-            glm::lookAt(vec3(0.0f), vec3(-1.0f,  0.0f,  0.0f), vec3(0.0f, -1.0f,  0.0f)),  // negx
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  1.0f,  0.0f), vec3(0.0f,  0.0f,  1.0f)),  // posy
-            glm::lookAt(vec3(0.0f), vec3(+0.0f, -1.0f,  0.0f), vec3(0.0f,  0.0f, -1.0f)),  // negy
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  0.0f,  1.0f), vec3(0.0f, -1.0f,  0.0f)),  // posz
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  0.0f, -1.0f), vec3(0.0f, -1.0f,  0.0f))   // negz
-        };
-
-        glViewport(0, 0, width, height);
-        virtual_framebuffer.Bind();
-        virtual_shader.Bind();
-        glBindTextureUnit(0, equirectangle);
-
-        for (GLuint face = 0; face < 6; face++) {
-            virtual_framebuffer.SetColorTexture(0, id, face);
-            virtual_framebuffer.Clear(0);
-            virtual_framebuffer.Clear(-1);
-
-            glProgramUniformMatrix4fv(virtual_shader.GetID(), 0, 1, GL_FALSE, &views[face][0][0]);
-            glProgramUniformMatrix4fv(virtual_shader.GetID(), 1, 1, GL_FALSE, &projection[0][0]);
-
-            virtual_mesh.Draw();
+        if (convert_shader.Bind(); true) {
+            glBindTextureUnit(0, equirectangle);
+            glBindImageTexture(0, id, 0, GL_TRUE, 0, GL_WRITE_ONLY, internal_format);
+            glDispatchCompute(resolution / 32, resolution / 32, 6);  // six faces
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);  // sync wait
+            glBindTextureUnit(0, 0);
+            glBindImageTexture(0, 0, 0, GL_TRUE, 0, GL_WRITE_ONLY, internal_format);
+            convert_shader.Unbind();
         }
 
-        glBindTextureUnit(0, 0);
-        virtual_shader.Unbind();
-        virtual_framebuffer.Unbind();
-        glViewport(0, 0, core::Window::width, core::Window::height);
+        glDeleteTextures(1, &equirectangle);  // delete the temporary 2D equirectangle texture
 
         if (n_levels > 1) {
             glGenerateTextureMipmap(id);
         }
 
         Sampler::SetDefaultState(*this);
-
-        // manually delete the temporary 2D equirectangle texture
-        glDeleteTextures(1, &equirectangle);
     }
 
     Texture::Texture(const std::string& directory, const std::string& extension, GLuint resolution, GLuint levels)
         : Buffer(), target(GL_TEXTURE_CUBE_MAP), width(resolution), height(resolution),
           format(GL_RGB), internal_format(GL_RGB16F), n_levels(levels) {
-
-        static const std::vector<std::string> faces { "px", "nx", "py", "ny", "pz", "nz" };
 
         // resolution must be a power of 2 in order to achieve high-fidelity visual effects
         if (!utils::math::IsPowerOfTwo(resolution)) {
@@ -161,7 +133,12 @@ namespace buffer {
             return;
         }
 
-        // this ctor only accepts HDR format faces of the cubemap
+        // this ctor expects 6 HDR images for the 6 cubemap faces, named as follows
+        static const std::vector<std::string> faces { "px", "nx", "py", "ny", "pz", "nz" };
+
+        // the stb image library currently does not support ".exr" format ...
+        CORE_ASERT(extension == ".hdr", "Invalid file extension, expected HDR-format faces...");
+
         std::string test_face = directory + faces[0] + extension;
         if (!std::filesystem::exists(std::filesystem::path(test_face))) {
             CORE_ERROR("Cannot find cubemap face {0} in the directory...", test_face);
@@ -177,7 +154,6 @@ namespace buffer {
 
         for (GLuint face = 0; face < 6; face++) {
             auto image = utils::Image(directory + faces[face] + extension, 3, true);
-            CORE_ASERT(image.IsHDR(), "Invalid face image file extension, expected HDR-format images...");
             glTextureSubImage3D(id, 0, 0, 0, face, width, height, 1, format, GL_FLOAT, image.GetPixels<float>());
         }
 
@@ -254,6 +230,11 @@ namespace buffer {
     void Texture::Unbind(GLuint unit) const {
         glBindTextureUnit(unit, 0);
         texture_binding_table[unit] = 0;
+    }
+
+    void Texture::GenerateMipmap() const {
+        CORE_ASERT(n_levels > 1, "Failed to generate mipmaps, levels must be greater than 1...");
+        glGenerateTextureMipmap(id);
     }
 
     void Texture::Clear() const {

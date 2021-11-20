@@ -12,7 +12,7 @@ namespace utils::math {
     static std::mt19937_64 engine_64(device());
 
     static std::uniform_int_distribution<uint64_t> uint64_t_distributor;
-    static std::uniform_real_distribution<> float01_distributor(0, 1);
+    static std::uniform_real_distribution<double> float01_distributor(0, 1);
 
     uint64_t RandomUInt64() {
         return uint64_t_distributor(engine_64);

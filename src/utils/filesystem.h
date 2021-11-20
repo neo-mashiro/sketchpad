@@ -11,10 +11,10 @@ namespace utils::paths {
     extern std::string source;
     extern std::string resource;
 
-    extern std::string fonts;
-    extern std::string models;
-    extern std::string shaders;
-    extern std::string textures;
+    extern std::string font;
+    extern std::string model;
+    extern std::string shader;
+    extern std::string texture;
 
     void SearchPaths();
 

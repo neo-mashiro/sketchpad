@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#include <GL/freeglut.h>
+#include <GLFW/glfw3.h>
 #include "core/clock.h"
 
 namespace core {
@@ -15,7 +18,13 @@ namespace core {
     }
 
     void Clock::Update() {
-        this_frame = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        if constexpr (_freeglut) {
+            this_frame = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        }
+        else {
+            this_frame = static_cast<float>(glfwGetTime());
+        }
+        
         delta_time = this_frame - last_frame;
         last_frame = this_frame;
         time += delta_time;

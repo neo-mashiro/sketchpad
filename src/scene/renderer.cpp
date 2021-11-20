@@ -1,9 +1,7 @@
 #include "pch.h"
 
-#include <GL/glew.h>
 #include <GL/freeglut.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <GLFW/glfw3.h>
 
 #include "core/input.h"
 #include "core/log.h"
@@ -110,7 +108,7 @@ namespace scene {
     void Renderer::Attach(const std::string& title) {
         CORE_TRACE("Attaching scene \"{0}\" ......", title);
 
-        Input::ResetCursor();
+        Input::Clear();
         Input::ShowCursor();
         Window::Rename(title);
         Window::layer = Layer::ImGui;
@@ -150,8 +148,14 @@ namespace scene {
     }
 
     void Renderer::Flush() {
-        glutSwapBuffers();
-        glutPostRedisplay();
+        if constexpr (_freeglut) {
+            glutSwapBuffers();
+            glutPostRedisplay();
+        }
+        else {
+            glfwSwapBuffers(Window::window_ptr);
+            glfwPollEvents();
+        }
     }
 
     void Renderer::Render() {

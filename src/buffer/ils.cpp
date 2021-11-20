@@ -2,55 +2,50 @@
 
 #include "core/log.h"
 #include "buffer/ils.h"
+#include "buffer/texture.h"
 
 namespace buffer {
 
-    ILS::ILS(GLuint width, GLuint height, GLenum internal_format)
-        : Buffer(), width(width), height(height), internal_format(internal_format) {
+    ILS::ILS(const Texture& texture, GLuint level) : Buffer(), level(level) {
+        this->id = texture.id;
+        this->target = texture.target;
+        this->internal_format = texture.internal_format;
 
-        glCreateTextures(GL_TEXTURE_2D, 1, &id);
-        glTextureStorage2D(id, 1, internal_format, width, height);
-    }
+        CORE_ASERT(level < texture.n_levels, "Input texture does not have level {0}...", level);
+        GLuint scale = static_cast<GLuint>(std::pow(2, level));
 
-    ILS::~ILS() {
-        CORE_WARN("Deleting image load store {0}...", id);
-        glDeleteTextures(1, &id);        
-    }
-
-    ILS::ILS(ILS&& other) noexcept {
-        *this = std::move(other);
-    }
-
-    ILS& ILS::operator=(ILS&& other) noexcept {
-        if (this != &other) {
-            this->id = 0;
-            std::swap(id, other.id);
-            std::swap(width, other.width);
-            std::swap(height, other.height);
-            std::swap(internal_format, other.internal_format);
-        }
-
-        return *this;
+        this->width = texture.width / scale;
+        this->height = texture.height / scale;
     }
 
     void ILS::Bind(GLuint unit) const {
-        glBindImageTexture(unit, id, 0, GL_FALSE, 0, GL_READ_WRITE, internal_format);
+        glBindImageTexture(unit, id, level, GL_TRUE, 0, GL_READ_WRITE, internal_format);
     }
 
     void ILS::Unbind(GLuint unit) const {
-        glBindImageTexture(unit, 0, 0, GL_FALSE, 0, GL_READ_WRITE, internal_format);
+        glBindImageTexture(unit, 0, level, GL_TRUE, 0, GL_READ_WRITE, internal_format);
     }
 
     void ILS::Transfer(const ILS& fr, const ILS& to) {
         GLuint fw = fr.width;
         GLuint fh = fr.height;
+        GLenum target = fr.target;
 
         if (fw != to.width || fh != to.height) {
             CORE_ERROR("Unable to transfer ILS data store, width or height mismatch!");
             return;
         }
 
-        glCopyImageSubData(fr.id, GL_TEXTURE_2D, 0, 0, 0, 0, to.id, GL_TEXTURE_2D, 0, 0, 0, 0, fw, fh, 1);
+        if (target != to.target) {
+            CORE_ERROR("Unable to transfer ILS data store, incompatible target!");
+            return;
+        }
+
+        if (target != GL_TEXTURE_2D) {
+            throw core::NotImplementedError("ILS target not yet supported....");
+        }
+
+        glCopyImageSubData(fr.id, target, 0, 0, 0, 0, to.id, target, 0, 0, 0, 0, fw, fh, 1);
     }
 
 }

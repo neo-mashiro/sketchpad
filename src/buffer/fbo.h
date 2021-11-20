@@ -72,6 +72,7 @@ namespace buffer {
         FBO& operator=(FBO&& other) noexcept;
 
         void AddColorTexture(GLuint count, bool multisample = false);
+        void SetColorTexture(GLenum index, GLuint texture);
         void SetColorTexture(GLenum index, GLuint cubemap_texture, GLuint face);
         void AddDepStTexture(bool multisample = false);
         void AddDepStRenderBuffer(bool multisample = false);
@@ -82,8 +83,10 @@ namespace buffer {
 
         void Bind() const override;
         void Unbind() const override;
+
         void SetDrawBuffer(GLuint index) const;
         void SetDrawBuffers(std::vector<GLuint> indices) const;
+        void SetDrawBuffers() const;
 
         void Draw(GLint index) const;
         void Clear(GLint index) const;

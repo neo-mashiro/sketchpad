@@ -36,7 +36,7 @@ namespace scene {
 
     static float plane_roughness = 0.1f;
     static float light_cluster_intensity = 10.0f;
-    static float skybox_brightness = 0.5f;
+    static float skybox_brightness = 3.5f;
 
     static int tone_mapping_mode = 3;
     static int bloom_effect = 3;
@@ -49,9 +49,9 @@ namespace scene {
         this->title = "Example Scene";
 
         // load the string paths to various assets
-        auto& model_path   = utils::paths::models;
-        auto& shader_path  = utils::paths::shaders;
-        auto& texture_path = utils::paths::textures;
+        auto& model_path   = utils::paths::model;
+        auto& shader_path  = utils::paths::shader;
+        auto& texture_path = utils::paths::texture;
 
         // shaders that apply to entities are managed by material components, they are considered
         // to be assets like textures, which can be shared across entities, you only need to load
@@ -210,7 +210,6 @@ namespace scene {
         auto& model = runestone.AddComponent<Model>(model_path + "runestone\\runestone.fbx", Quality::Auto);
         model.Import("pillars", runestone_pillar);
         model.Import("platform", runestone_platform);
-        model.Report();  // a report that helps you learn how to load the model asset
 
         CheckGLError(3);
 
@@ -317,6 +316,8 @@ namespace scene {
 
     // this is called every frame, update your scene here and submit the entities to the renderer
     void Scene01::OnSceneRender() {
+        CheckGLError(-1);
+
         UpdateEntities();
         UpdateUBOs();
 
@@ -401,7 +402,7 @@ namespace scene {
                     ImGui::PushItemWidth(130.0f);
                     ImGui::SliderFloat("Light Cluster Intensity", &light_cluster_intensity, 3.0f, 20.0f);
                     ImGui::Separator();
-                    ImGui::SliderFloat("Skybox Brightness", &skybox_brightness, 0.2f, 8.0f);
+                    ImGui::SliderFloat("Skybox Brightness", &skybox_brightness, 1.2f, 8.0f);
                     ImGui::Separator();
                     ImGui::PopItemWidth();
                     ImGui::Spacing();

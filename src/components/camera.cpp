@@ -29,40 +29,40 @@ namespace components {
 
     void Camera::Update() {
         // rotation (based on our euler angles convention we need to invert the axis)
-        float euler_y = T->rotation.y - Input::GetMouseAxis(Axis::Horizontal) * rotate_speed;
-        float euler_x = T->rotation.x - Input::GetMouseAxis(Axis::Vertical) * rotate_speed;
+        float euler_y = T->rotation.y - Input::GetCursorOffset(MouseAxis::Horizontal) * rotate_speed;
+        float euler_x = T->rotation.x - Input::GetCursorOffset(MouseAxis::Vertical) * rotate_speed;
         euler_x = glm::clamp(euler_x, -88.0f, 88.0f);  // clamp vertical rotation
 
         T->Rotate(glm::vec3(euler_x, euler_y, 0.0f));
 
         // camera zoom
-        fov += Input::GetMouseZoom();
+        fov += Input::GetScrollOffset();
         fov = glm::clamp(fov, 1.0f, 90.0f);
 
         // translation
         float deltatime = Clock::delta_time;
 
-        if (Input::IsKeyPressed('w')) {
+        if (Input::GetKeyDown('w')) {
             T->Translate(T->forward * (move_speed * deltatime));
         }
 
-        if (Input::IsKeyPressed('s')) {
+        if (Input::GetKeyDown('s')) {
             T->Translate(-T->forward * (move_speed * deltatime));
         }
 
-        if (Input::IsKeyPressed('a')) {
+        if (Input::GetKeyDown('a')) {
             T->Translate(-T->right * (move_speed * deltatime));
         }
 
-        if (Input::IsKeyPressed('d')) {
+        if (Input::GetKeyDown('d')) {
             T->Translate(T->right * (move_speed * deltatime));
         }
 
-        if (Input::IsKeyPressed('z')) {
+        if (Input::GetKeyDown('z')) {
             T->Translate(-T->up * (move_speed * deltatime));
         }
 
-        if (Input::IsKeyPressed(VK_SPACE)) {
+        if (Input::GetKeyDown(0x20)) {  // VK_SPACE
             T->Translate(T->up * (move_speed * deltatime));
         }
     }

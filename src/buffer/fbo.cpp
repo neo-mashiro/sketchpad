@@ -34,7 +34,7 @@ namespace buffer {
             debug_vao = std::make_unique<VAO>();
         }
         if (debug_shader == nullptr) {
-            debug_shader = std::make_unique<Shader>(utils::paths::shaders + "fullscreen.glsl");
+            debug_shader = std::make_unique<Shader>(utils::paths::shader + "fullscreen.glsl");
         }
     }
 
@@ -100,18 +100,22 @@ namespace buffer {
             glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + n_color_buffs + i, tid, 0);
         }
 
-        // enable multiple render targets
-        if (size_t n = color_textures.size(); n > 0) {
-            GLenum* attachments = new GLenum[n];
+        // by default, all render targets are enabled for writing
+        SetDrawBuffers();
 
-            for (GLenum i = 0; i < n; i++) {
-                *(attachments + i) = GL_COLOR_ATTACHMENT0 + i;
-            }
+        status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
+    }
 
-            glNamedFramebufferDrawBuffers(id, n, attachments);
-            delete[] attachments;
-        }
+    void FBO::SetColorTexture(GLenum index, GLuint texture) {
+        size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
+        size_t n_color_buffs = color_textures.size();
 
+        CORE_ASERT(index < max_color_buffs, "Color attachment index {0} is out of range!", index);
+        CORE_ASERT(index >= n_color_buffs, "Color attachment {0} is already occupied!", index);
+
+        glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + index, texture, 0);
+
+        SetDrawBuffers();
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
 
@@ -124,6 +128,8 @@ namespace buffer {
         CORE_ASERT(face < 6, "Invalid cubemap face id, must be a number between 0 and 5!");
 
         glNamedFramebufferTextureLayer(id, GL_COLOR_ATTACHMENT0 + index, cubemap_texture, 0, face);
+
+        SetDrawBuffers();
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
 
@@ -209,12 +215,14 @@ namespace buffer {
     }
 
     void FBO::SetDrawBuffer(GLuint index) const {
+        // this function only enables a single color attachment for writing
         CORE_ASERT(index < color_textures.size(), "Color buffer index out of bound!");
         const GLenum buffers[] = { GL_COLOR_ATTACHMENT0 + index };
         glNamedFramebufferDrawBuffers(id, 1, buffers);
     }
 
     void FBO::SetDrawBuffers(std::vector<GLuint> indices) const {
+        // this function sets the specified list of color attachments enabled for writing
         size_t n_buffs = color_textures.size();
         size_t n_index = indices.size();
         GLenum* buffers = new GLenum[n_index];
@@ -228,6 +236,20 @@ namespace buffer {
 
         glNamedFramebufferDrawBuffers(id, n_index, buffers);
         delete[] buffers;
+    }
+
+    void FBO::SetDrawBuffers() const {
+        // set all color attachments enabled for writing
+        if (size_t n = color_textures.size(); n > 0) {
+            GLenum* attachments = new GLenum[n];
+
+            for (GLenum i = 0; i < n; i++) {
+                *(attachments + i) = GL_COLOR_ATTACHMENT0 + i;
+            }
+
+            glNamedFramebufferDrawBuffers(id, n, attachments);
+            delete[] attachments;
+        }
     }
 
     void FBO::Draw(GLint index) const {

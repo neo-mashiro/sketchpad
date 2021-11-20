@@ -26,6 +26,8 @@ CONFIG.files = {}    -- store the file names of all scene scripts
 CONFIG.title = {}    -- store the titles of all scenes
 CONFIG.class = {}    -- store the class names of all scene classes
 
+USE_LEGACY_BACKEND = false;
+
 --------------------------------------------------------------------------------
 -- register premake override for adding solution scope items.
 -- [source] https://github.com/premake/premake-core/issues/1061
@@ -121,7 +123,7 @@ local function setup_solution()
         ------------------------------------------------------------------------
         filter { "system:windows", "action:vs*"}  -- vs2017 ~ vs2019 build on Windows
 
-            systemversion "latest" -- use the latest version of the SDK available
+            systemversion "latest"  -- use the latest version of the SDK available
             flags "MultiProcessorCompile"
 
             buildoptions {
@@ -141,8 +143,18 @@ local function setup_solution()
 
             linkoptions {
                 "/ignore:4099",  -- ignore library pdb warnings when running in debug
-                "/ignore:4217",  -- symbol '___glewxxx' defined in 'glew32s.lib' is imported by 'ImGui.lib'
-                "/NODEFAULTLIB:libcmt.lib"  -- fix LNK4098 warnings
+                "/ignore:4217",  -- symbol '___glxxx' defined in 'glxx.lib' is imported by 'ImGui.lib'
+                "/verbose:lib",  -- list all the libraries being searched
+
+                -- in debug builds we will always get a 4098 linker warning, because we are using precompiled
+                -- binaries for some dependencies like GLFW, which are built in release mode so there will be
+                -- a conflict in Visual C++. We can safely ignore this since a release build will be fine.
+                -- if we choose to manually build GLFW from sources (the preferred way for a game engine) we
+                -- should then prepare two builds for it (and for every other library as well), one for debug
+                -- mode and one for release mode, but for this project we won't bother doing so.
+
+                "/NODEFAULTLIB:libcmt.lib",  -- fix LNK4098 warnings
+                "/NODEFAULTLIB:msvcrt.lib"   -- fix LNK4098 warnings
             }
 
         filter {}  -- clear filter
@@ -165,7 +177,6 @@ end
 local function setup_vendor_library()
     -- group all external libraries into a virtual folder called "Dependencies"
     group "Dependencies"
-        -- a graphical user interface library for c++
         project "ImGui"
             kind "StaticLib"
             language "C++"
@@ -188,22 +199,50 @@ local function setup_vendor_library()
 
             -- dependencies for compiling ImGui backends
             includedirs {
-                VENDOR_DIR .. "GLEW/include",
-                VENDOR_DIR .. "GLUT/include"
+                VENDOR_DIR .. "GLAD/include",
+                VENDOR_DIR .. "GLUT/include",
+                VENDOR_DIR .. "GLFW/include"
+            }
+
+            -- currently we don't support Vulkan and DX11 backends
+            removefiles {
+                VENDOR_DIR .. "imgui/include/imgui/imgui_impl_vulkan.h",
+                VENDOR_DIR .. "imgui/include/imgui/imgui_impl_vulkan.cpp",
+                VENDOR_DIR .. "imgui/include/imgui/imgui_impl_dx11.h",
+                VENDOR_DIR .. "imgui/include/imgui/imgui_impl_dx11.cpp"
             }
 
             -- build into the same folder as our application so that it can be linked
             objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
             targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
 
-        -- include more vendor libraries that you want to compile from source code
-        --[[
-        project "tinyxml2"
+        project "Glad"
             kind "StaticLib"
             language "C++"
             cppdialect "C++17"
-            ...
-        --]]
+
+            location(ROOT_DIR .. WIN_IDE .. "/")
+
+            files {
+                VENDOR_DIR .. "GLAD/include/glad/glad.h",
+                VENDOR_DIR .. "GLAD/include/KHR/khrplatform.h",
+                VENDOR_DIR .. "GLAD/src/glad.c"
+            }
+
+            vpaths {
+                ["Sources/*"] = {
+                    VENDOR_DIR .. "GLAD/include/" .. "**.h",
+                    VENDOR_DIR .. "GLAD/src/" .. "**.c"
+                }
+            }
+
+            includedirs {
+                VENDOR_DIR .. "GLAD/include"
+            }
+
+            -- build into the same folder as our application so that it can be linked
+            objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
+            targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
 
     group ""  -- clear group
 end
@@ -230,9 +269,6 @@ local function setup_project()
 
         -- define macros (preprocessor definitions)
         defines {
-            -- "FREEGLUT_STATIC",  -- required only when freeglut is linked as a static lib
-            "GLEW_STATIC",
-
             -- suppress C runtime secure warnings to use unsafe lib functions like scanf()
             "_CRT_SECURE_NO_WARNINGS",
             "_CRT_SECURE_NO_DEPRECATE",
@@ -241,12 +277,21 @@ local function setup_project()
             -- memory-leak report
             "_CRTDBG_MAP_ALLOC",
 
+            -- "FREEGLUT_STATIC",  -- required if freeglut is linked as a static lib
+            -- "GLEW_STATIC",      -- required if GLEW is linked as a static lib
+
             -- automatically handled by visual studio between debug/release builds
             -- "DEBUG", "_DEBUG", "NDEBUG",
 
             -- custom macros for custom uses, you name it ......
-            "OPENGL", "VULKAN", "DIRECTX", "METAL"
+            "OPENGL", "VULKAN", "MY_AWESOME_MACRO"
         }
+
+        -- by default we use GLAD as our OpenGL loader, and GLFW for window/context/input
+        -- management, but we also support the legacy backend freeglut for study purpose...
+        if USE_LEGACY_BACKEND == true then
+            defines "__FREEGLUT__"
+        end
 
         -- precompiled headers
         pchheader "pch.h"
@@ -301,9 +346,9 @@ local function setup_project()
         -- header files include directories
         includedirs {
             SOURCE_DIR,
-            VENDOR_DIR .. "GLEW/include",
-            VENDOR_DIR .. "GLFW/include",
             VENDOR_DIR .. "GLUT/include",
+            VENDOR_DIR .. "GLFW/include",
+            VENDOR_DIR .. "GLAD/include",
             VENDOR_DIR .. "imgui/include",
             VENDOR_DIR .. "assimp/include",
 
@@ -317,33 +362,30 @@ local function setup_project()
         ------------------------------------------------------------------------
         -- [ PROJECT DEPENDENCY CONFIG ]
         ------------------------------------------------------------------------
-        -- paths for libraries (libs/dlls/etc) that are required when compiling
+        -- if you want to link a dependency as a static library (executable file size will be
+        -- larger), specify the path to the static ".lib" file under `libdirs`, then add the
+        -- library file name under `links`.
+
+        -- if you want to link a dependency as a dynamic library whose functions are loaded
+        -- on the fly, simply provide the path to the import library (a ".lib" file of much
+        -- smaller size), you don't need to add its file name under `links`, but make sure to
+        -- copy the ".dll" file to the target build folder using post-build commands.
+
+        -- the import library will be used to automate the process of loading routines and
+        -- functionality from the ".dll" file at runtime, it's typically small in size.
+
+        -- specify the paths to the library files
         libdirs {
-            VENDOR_DIR .. "GLEW/lib/%{cfg.platform}",         -- GLEW: use the static library
-            VENDOR_DIR .. "GLFW/lib-vc2019/%{cfg.platform}",  -- GLFW: use the static library
-
-            -- GLUT v3.0.0 MSVC Package: only the dynamic library is available.
-            -- --------------------------------------------------------------------------------
-            -- to load a dynamic library, first link to the static import library (a `.lib`
-            -- file of the same name as the dynamic library `.dll`), then copy the `.dll` file
-            -- to the target build folder using post-build commands.
-            -- --------------------------------------------------------------------------------
-            -- the import library is used to automate the process of loading routines and
-            -- functionality from the `.dll` file at runtime, it's typically small in size.
-            -- --------------------------------------------------------------------------------
-            VENDOR_DIR .. "GLUT/lib/%{cfg.platform}",
-
-            -- assimp 5.0.1 (dynamic library): built from sources using Microsoft vcpkg
-            VENDOR_DIR .. "assimp/lib/%{cfg.platform}"
+            VENDOR_DIR .. "GLUT/lib/%{cfg.platform}",         -- import library
+            VENDOR_DIR .. "GLFW/lib-vc2019/%{cfg.platform}",  -- static library
+            VENDOR_DIR .. "assimp/lib/%{cfg.platform}"        -- import library (assimp 5.0.1)
         }
 
-        -- specific library files (.lib .dll) to include
+        -- specify the library file names (needed by the linker at link time)
         links {
-            "glew32s.lib",  -- glew32s is the static version, glew32 is the import library for .dll
-            "glfw3.lib",  -- you can easily tell the static version from file size (the larger one)
             "glu32", "opengl32", "gdi32", "winmm", "user32",  -- Windows 10
-
-            "ImGui"  -- link to our own static library build
+            "glfw3.lib",     -- static library
+            "ImGui", "Glad"  -- link to our own static libs (project name)
         }
 
         ------------------------------------------------------------------------

@@ -4,9 +4,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
 #include "buffer/texture.h"
 #include "components/component.h"
 
@@ -76,9 +78,9 @@ namespace components {
        this problem comes up quite often for FBX models with separate (mostly PBR) textures, one
        can easily observe it by reading the loading report in the console. Since there is no silver
        bullet for all models, we decide to provide a `Import()` function to give users the option
-       to import textures manually into the model. Calling this function effectively overwrites the
-       textures of the given material name, use it only if you know where the textures are and how
-       they should be applied to the model (you may find the model loading report helpful).
+       to import textures manually into the model. By default, auto loading textures is disabled
+       unless the `manual` flag in ctor is set to false. But either way, `Import()` will overwrite
+       the textures of the specified material name.
     */
 
     // forward declaration
@@ -111,6 +113,7 @@ namespace components {
       private:
         const aiScene* ai_root = nullptr;
 
+        bool manual = false;  // manual import mode: skip the loading of textures
         unsigned int n_verts = 0;
         unsigned int n_meshes = 0;
         unsigned int n_materials = 0;
@@ -135,7 +138,7 @@ namespace components {
         std::unordered_map<GLuint, std::vector<buffer_ref<Texture>>> textures;
 
       public:
-        Model(const std::string& filepath, Quality quality = Quality::Auto);
+        Model(const std::string& filepath, Quality quality = Quality::Auto, bool manual = true);
         ~Model() {}
 
         Model(const Model&) = delete;

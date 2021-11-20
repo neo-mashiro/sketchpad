@@ -98,6 +98,8 @@ To make a new scene, just create a new `.h` and `.cpp` file in the [examples]() 
 
 ## Useful References
 
+https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
+
 - [Physically Based Rendering: From Theory To Implementation](https://www.pbr-book.org/)
 - [Learn OpenGL](https://learnopengl.com)
 - [Hazel Game Engine Series, The Cherno](....)

@@ -43,9 +43,12 @@ namespace core {
     }
 
     void Log::CheckGLError(int checkpoint) {
+        // to ignore an error and suppress the message, pass a checkpoint of -1
         GLenum err_code;
         while ((err_code = glGetError()) != GL_NO_ERROR) {
-            CORE_ERROR("OpenGL error detected at checkpoint {0}: {1}", checkpoint, err_code);
+            if (err_code != -1) {
+                CORE_ERROR("OpenGL error detected at checkpoint {0}: {1}", checkpoint, err_code);
+            }
         }
     }
 }
