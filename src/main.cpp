@@ -11,11 +11,11 @@
 
 #pragma execution_character_set("utf-8")
 
-//extern "C" {
-//    // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
-//    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-//    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
-//}
+extern "C" {
+    // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
+    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
+}
 
 int main(int argc, char** argv) {
     // set console code page to unicode (UTF-8)

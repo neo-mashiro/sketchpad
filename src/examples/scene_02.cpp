@@ -65,8 +65,6 @@ namespace scene {
         //prefilter_env_map = std::make_unique<Texture>(GL_TEXTURE_CUBE_MAP, 512, 512, GL_RGB16F, 0);  // empty environment map, with mipmaps
         //brdf_lut = std::make_unique<Texture>(GL_TEXTURE_2D, 256, 256, GL_RG16F, 1);  // empty BRDF lookup texture, no mipmaps
 
-
-
         CheckGLError(0);
 
         //AddUBO(pbr_shader->GetID());
@@ -295,30 +293,30 @@ namespace scene {
         FBO& precompute_framebuffer = FBOs[0];
 
         auto virtual_cube = Mesh(Primitive::Cube);
+        Renderer::SetViewport(32, 32);
 
         for (unsigned int i = 0; i < 2; i++) {
             environments[i] = LoadAsset<Texture>(texture_path + "test\\" + hdri[i], 2048, 1);
-            //irradiance_maps[i] = LoadAsset<Texture>(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGB16F, 1);  // no mipmaps
+            irradiance_maps[i] = CreateAsset<Texture>(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGBA16F, 1);  // no mipmaps
 
-            //Renderer::SetViewport(32, 32);
-            //precompute_framebuffer.Bind();
-            //irradiance_shader->Bind();
+            precompute_framebuffer.Bind();
+            irradiance_shader->Bind();
 
-            //environments[i]->Bind(0);
-            //irradiance_shader->SetUniform(1, projection);
+            environments[i]->Bind(0);
+            irradiance_shader->SetUniform(1, projection);
 
-            //for (GLuint face = 0; face < 6; face++) {
-            //    precompute_framebuffer.SetColorTexture(0, irradiance_maps[i]->GetID(), face);
-            //    precompute_framebuffer.Clear(0);
-            //    precompute_framebuffer.Clear(-1);
-            //    irradiance_shader->SetUniform(0, views[face]);
-            //    virtual_cube.Draw();
-            //}
+            for (GLuint face = 0; face < 6; face++) {
+                precompute_framebuffer.SetColorTexture(0, irradiance_maps[i]->GetID(), face);
+                precompute_framebuffer.Clear(0);
+                precompute_framebuffer.Clear(-1);
+                irradiance_shader->SetUniform(0, views[face]);
+                virtual_cube.Draw();
+            }
 
-            //irradiance_shader->Unbind();
-            //precompute_framebuffer.Unbind();
-            //Renderer::SetViewport(Window::width, Window::height);
+            irradiance_shader->Unbind();
+            precompute_framebuffer.Unbind();
         }
+        Renderer::SetViewport(Window::width, Window::height);
     }
 
     void Scene02::ChangeEnvironment() {

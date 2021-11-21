@@ -22,14 +22,6 @@ namespace buffer {
         // important! turn off colorspace correction globally
         glDisable(GL_FRAMEBUFFER_SRGB);
 
-        // framebuffer size (texture size) doesn't have to be less than the window size
-        // there are cases that we would want to render to a texture of arbitrary shape
-
-        // if (width > Window::width || height > Window::height) {
-        //     CORE_ERROR("Framebuffer size cannot exceed the window size!");
-        //     return;
-        // }
-
         glCreateFramebuffers(1, &id);
 
         // attach a dummy VAO and debug shader for debug drawing

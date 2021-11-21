@@ -26,7 +26,7 @@ layout(location = 3) in vec2 uv2;
 layout(location = 4) in vec3 tangent;
 layout(location = 5) in vec3 bitangent;
 
-layout(location = 0) out __ {
+layout(location = 0) out _vtx {
     out vec3 _position;
     out vec3 _normal;
     out vec2 _uv;
@@ -52,7 +52,7 @@ void main() {
 
 #ifdef fragment_shader
 
-layout(location = 0) in __ {
+layout(location = 0) in _vtx {
     in vec3 _position;
     in vec3 _normal;
     in vec2 _uv;

@@ -121,7 +121,7 @@ local function setup_solution()
         ------------------------------------------------------------------------
         -- [ BUILD CONFIG ]
         ------------------------------------------------------------------------
-        filter { "system:windows", "action:vs*"}  -- vs2017 ~ vs2019 build on Windows
+        filter { "system:windows", "action:vs*" }  -- vs2017 ~ vs2019 build on Windows
 
             systemversion "latest"  -- use the latest version of the SDK available
             flags "MultiProcessorCompile"
@@ -141,20 +141,28 @@ local function setup_solution()
                 "26495"  -- always initialize a member variable
             }
 
+        filter { "configurations:Debug" }
+
+            -- in debug builds we will always get a 4098 linker warning, because we are using precompiled
+            -- binaries for some dependencies like GLFW, which are built in release mode so there will be
+            -- a conflict in Visual C++. We can safely ignore this warning in a debug build.
+
+            -- if we choose to manually build GLFW from sources (the preferred way for a game engine) we
+            -- should then prepare two builds for it (and for every other library as well), one for debug
+            -- mode and one for release mode, but we won't bother doing so.
+
             linkoptions {
                 "/ignore:4099",  -- ignore library pdb warnings when running in debug
                 "/ignore:4217",  -- symbol '___glxxx' defined in 'glxx.lib' is imported by 'ImGui.lib'
                 "/verbose:lib",  -- list all the libraries being searched
+                "/NODEFAULTLIB:msvcrt.lib"   -- resolve precompiled binaries link conflict
+            }
 
-                -- in debug builds we will always get a 4098 linker warning, because we are using precompiled
-                -- binaries for some dependencies like GLFW, which are built in release mode so there will be
-                -- a conflict in Visual C++. We can safely ignore this since a release build will be fine.
-                -- if we choose to manually build GLFW from sources (the preferred way for a game engine) we
-                -- should then prepare two builds for it (and for every other library as well), one for debug
-                -- mode and one for release mode, but for this project we won't bother doing so.
+        filter { "configurations:Release" }
 
-                "/NODEFAULTLIB:libcmt.lib",  -- fix LNK4098 warnings
-                "/NODEFAULTLIB:msvcrt.lib"   -- fix LNK4098 warnings
+            linkoptions {
+                "/ignore:4099",  -- ignore library pdb warnings when running in debug
+                "/ignore:4217"   -- symbol '___glxxx' defined in 'glxx.lib' is imported by 'ImGui.lib'
             }
 
         filter {}  -- clear filter

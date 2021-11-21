@@ -316,8 +316,6 @@ namespace scene {
 
     // this is called every frame, update your scene here and submit the entities to the renderer
     void Scene01::OnSceneRender() {
-        CheckGLError(-1);
-
         UpdateEntities();
         UpdateUBOs();
 
