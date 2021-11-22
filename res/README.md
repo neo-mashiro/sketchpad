@@ -2,13 +2,19 @@
 
 This folder contains the collection of assets used in the application, such as fonts, textures and external models, as well as our shaders. Some of the licensed assets are not published here, but I'll provide the sources. For sources and copyright information, see [CREDITS.md](https://github.com/neo-mashiro/sketchpad/blob/main/CREDITS.md).
 
+## Icons font in ImGui
+
+Currently we are using [Fork Awesome](https://forkaweso.me/Fork-Awesome/) 1.2 for rendering icons in ImGui, it is fully free and open source with a total of 796 icons available. You can find all icons at [this link](https://forkaweso.me/Fork-Awesome/icons/). Another nice option is the [Font Awesome](https://fontawesome.com/) library, which has become a paid product since Pro 5, the list of free icons are mostly solid so are not suitable for our GUI drawing at a font size of 18pt.
+
+[Google material design](https://fonts.google.com/icons) icon font is the state-of-the-art alternative, but it is recently changing the codepoints for the icons, which still have some conflicts and are not yet stable. Keep an eye on the [updates](https://github.com/google/material-design-icons)...
+
 ## Cubemap splitter
 
 You can use the following script to convert a single cubemap (non-HDR) image to the six cube faces and save them on local disks.
 
 <details>
 <summary>View Code</summary>
-  
+
 ```python3
 #!/usr/bin/env python
 
@@ -63,7 +69,7 @@ if __name__ == "__main__":
 
 <details>
 <summary>View Code</summary>
-  
+
 ```bash
 python --version    # require python 3
 pip install Pillow  # require PIL

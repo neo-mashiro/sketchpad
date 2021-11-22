@@ -6,14 +6,16 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
+#include <IconsForkAwesome.h>
 
 #include "components/all.h"
 #include "scene/entity.h"
 
 namespace scene::ui {
 
-    extern ImFont* truetype_font;
-    extern ImFont* opentype_font;
+    extern ImFont* truetype_font;  // TrueType, Lato-Regular, 18pt (main font)
+    extern ImFont* opentype_font;  // OpenType, Palatino Linotype, 17pt (sub font)
+    extern ImFont* web_icon_font;  // Fork Awesome web icon font, 18pt
 
     void Init(void);
     void Clear(void);

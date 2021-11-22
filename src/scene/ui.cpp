@@ -16,8 +16,9 @@ using namespace components;
 
 namespace scene::ui {
 
-    ImFont* truetype_font;  // default font: TrueType, Lato-Regular, 18pt
-    ImFont* opentype_font;  // reserved font: OpenType, Palatino Linotype, 17pt
+    ImFont* truetype_font;  // TrueType, Lato-Regular, 18pt (main font)
+    ImFont* opentype_font;  // OpenType, Palatino Linotype, 17pt (sub font)
+    ImFont* web_icon_font;  // Fork Awesome web icon font, 18pt
 
     // private global variables
     static ImVec2 window_center;
@@ -37,14 +38,32 @@ namespace scene::ui {
 
         window_center = ImVec2((float)Window::width, (float)Window::height) * 0.5f;
 
-        // load fonts from disk
-        ImFontConfig config;
-        config.OversampleH = 2;
-        config.OversampleV = 1;
-        config.GlyphExtraSpacing.x = 0.0f;
+        // load fonts from the resource folder
+        float fontsize_main = 18.0f;
+        float fontsize_icon = 18.0f;  // bake icon font into the main font
+        float fontsize_sub  = 17.0f;
+
+        std::string ttf_main = utils::paths::font + "Lato.ttf";
+        std::string ttf_sub  = utils::paths::font + "palatino.ttf";
+        std::string ttf_icon = utils::paths::font + FONT_ICON_FILE_NAME_FK;
+
+        ImFontConfig config_sub;
+        config_sub.OversampleH = 2;
+        config_sub.OversampleV = 1;
+        config_sub.GlyphExtraSpacing.x = 0.0f;
+
+        ImFontConfig config_icon;
+        config_icon.MergeMode = true;
+        config_icon.PixelSnapH = true;
+        config_icon.GlyphOffset.y = 2.0f;  // tweak this to vertically align with the main font
+        config_icon.GlyphMinAdvanceX = fontsize_main;  // enforce monospaced icon font
+        config_icon.GlyphMaxAdvanceX = fontsize_main;  // enforce monospaced icon font
+
+        static const ImWchar icon_ranges[] = { ICON_MIN_FK, ICON_MAX_FK, 0 };  // zero-terminated
         
-        truetype_font = io.Fonts->AddFontFromFileTTF((utils::paths::font + "Lato.ttf").c_str(), 18.0f);
-        opentype_font = io.Fonts->AddFontFromFileTTF((utils::paths::font + "palatino.ttf").c_str(), 17.0f, &config);
+        truetype_font = io.Fonts->AddFontFromFileTTF(ttf_main.c_str(), fontsize_main);
+        web_icon_font = io.Fonts->AddFontFromFileTTF(ttf_icon.c_str(), fontsize_icon, &config_icon, icon_ranges);
+        opentype_font = io.Fonts->AddFontFromFileTTF(ttf_sub.c_str(), fontsize_sub, &config_sub);
 
         // build font textures
         unsigned char* pixels;
@@ -420,12 +439,13 @@ namespace scene::ui {
     }
 
     void DrawMenuBar(const std::string& active_title, std::string& new_title) {
-        static bool show_about_window;
-        static bool show_instructions;
-        float win_w = (float)Window::width;
+        static bool show_about_window = false;
+        static bool show_instructions = false;
+        static bool exit_menu_focused = false;
+        static bool exit_request = false;
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-        ImGui::SetNextWindowSize(ImVec2(win_w, 0.01f));
+        ImGui::SetNextWindowSize(ImVec2((float)Window::width, 0.01f));
         ImGui::SetNextWindowBgAlpha(0.0f);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
@@ -461,18 +481,19 @@ namespace scene::ui {
             }
 
             if (ImGui::BeginMenu("Options")) {
+                // currently we only support a fixed resolution at 1600 x 900, this menu is simply
+                // a dummy functionality, other resolutions are not yet supported so clicking on
+                // them would have no effect. On desktop monitors, it would be more comfortable to
+                // adopt a full HD or QHD resolution instead, but we need to recalculate the pixel
+                // offsets of some UI panels to adapt the change. The real challenge of supporting
+                // multiple resolutions is that we also need to adjust the size of our framebuffer
+                // textures on the fly, which is expensive and takes quite a bit of work. If you'd
+                // like to do so, you should consider applying this function to the welcome screen
+                // exclusively, as we don't want to break the data state in the middle of a scene.
+
                 if (ImGui::BeginMenu(" Window Resolution")) {
-                    // currently we only support a fixed resolution at 1600 x 900, this menu is simply
-                    // a dummy functionality, other resolutions are not yet supported so clicking on
-                    // them would have no effect. On desktop monitors, it would be more comfortable to
-                    // adopt a full HD or QHD resolution instead, but we need to recalculate the pixel
-                    // offsets of some UI panels to adapt the change. The real challenge of supporting
-                    // multiple resolutions is that we also need to adjust the size of framebuffer
-                    // textures on the fly, which is expensive and takes quite a bit of work. If you'd
-                    // like to do so, you should consider applying this function to the welcome screen
-                    // exclusively, as we don't want to break the data state in the middle of a scene.
-                    ImGui::MenuItem(" 1280 x 720", NULL, false);
-                    ImGui::MenuItem(" 1600 x 900", NULL, true);    // active resolution
+                    ImGui::MenuItem(" 1280 x 720",  NULL, false);
+                    ImGui::MenuItem(" 1600 x 900",  NULL, true);   // active resolution
                     ImGui::MenuItem(" 1920 x 1080", NULL, false);  // Full HD
                     ImGui::MenuItem(" 2560 x 1440", NULL, false);  // QHD
                     ImGui::EndMenu();
@@ -487,6 +508,19 @@ namespace scene::ui {
                 ImGui::EndMenu();
             }
 
+            ImGui::SameLine(ImGui::GetWindowWidth() - 255);
+
+            if (ImGui::BeginMenu("gq" ICON_FK_DOWNLOAD "GBKW")) {
+                if (!exit_menu_focused) {
+                    exit_request = true;
+                }
+                exit_menu_focused = true;
+                ImGui::EndMenu();
+            }
+            else {
+                exit_menu_focused = false;
+            }
+
             ImGui::PopStyleColor(2);
             ImGui::EndMenuBar();
         }
@@ -499,8 +533,14 @@ namespace scene::ui {
         if (show_instructions) {
             DrawUsageWindow(&show_instructions);
         }
+
         if (show_about_window) {
             DrawAboutWindow("v1.0", &show_about_window);
+        }
+
+        if (exit_request) {
+            exit_request = false;
+            Input::SetKeyDown(VK_ESCAPE, true);
         }
     }
 

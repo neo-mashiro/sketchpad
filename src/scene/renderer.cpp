@@ -128,7 +128,7 @@ namespace scene {
         last_scene = curr_scene;
         curr_scene = nullptr;
 
-        delete last_scene;  // each object in the scene will be destructed
+        delete last_scene;  // every object in the scene will be destructed
         last_scene = nullptr;
     }
 
