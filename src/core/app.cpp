@@ -10,6 +10,7 @@
 #include "core/log.h"
 #include "core/window.h"
 #include "scene/renderer.h"
+#include "scene/scene.h"
 #include "scene/ui.h"
 #include "utils/filesystem.h"
 
@@ -244,9 +245,12 @@ namespace core {
             app_shutdown = Window::OnExitRequest();
             Input::SetKeyDown(VK_ESCAPE, false);  // release the esc key
         }
+
         // check if the imgui layer has been toggled
         else if (Input::GetKeyDown(VK_RETURN)) {
-            Window::OnLayerSwitch();
+            if (Renderer::GetScene()->title != "Welcome Screen") {
+                Window::OnLayerSwitch();
+            }
             Input::SetKeyDown(VK_RETURN, false);  // release the enter key
         }
 

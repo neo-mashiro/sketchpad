@@ -30,6 +30,10 @@ namespace scene {
     static std::unique_ptr<buffer::VAO> dummy_vao;
     static bool depth_prepass = false;
 
+    const Scene* Renderer::GetScene() {
+        return curr_scene;
+    }
+
     void Renderer::MSAA(bool on) {
         // the built-in MSAA only works on the default framebuffer (without multi-pass)
         static GLint buffers = 0, samples = 0, max_samples = 0;
@@ -261,7 +265,7 @@ namespace scene {
         std::string next_scene_title;
 
         if (ui::NewFrame(); true) {
-            ui::DrawMenuBar(curr_scene->title, next_scene_title);
+            ui::DrawMenuBar(next_scene_title);
             ui::DrawStatusBar();
 
             if (!next_scene_title.empty()) {

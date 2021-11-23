@@ -29,9 +29,10 @@ namespace scene::ui {
     void DrawTooltip(const char* desc, float spacing = 5.0f);
     void DrawRainbowBar(const ImVec2& offset, float height);
     void DrawGizmo(scene::Entity camera, scene::Entity target);
+    int DrawPopupModal(const char* title, const char* message, const ImVec2& size);
 
     // application-level drawing functions, used by the core module, don't touch
-    void DrawMenuBar(const std::string& active_title, std::string& new_title);
+    void DrawMenuBar(std::string& new_title);
     void DrawStatusBar(void);
     void DrawWelcomeScreen(ImTextureID id);
     void DrawLoadingScreen(void);

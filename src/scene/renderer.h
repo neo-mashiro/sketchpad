@@ -85,6 +85,8 @@ namespace scene {
         static std::queue<entt::entity> render_queue;
 
       public:
+        static const Scene* GetScene();
+
         // configuration functions
         static void MSAA(bool on);
         static void DepthPrepass(bool on);

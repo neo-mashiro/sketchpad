@@ -31,6 +31,10 @@ namespace scene::ui {
     static ImGuiWindowFlags invisible_window_flags =
         ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 
+    constexpr int button_id_ok     =  0;
+    constexpr int button_id_cancel =  1;
+    constexpr int button_id_none   = -1;
+
     void Init() {
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
@@ -55,7 +59,7 @@ namespace scene::ui {
         ImFontConfig config_icon;
         config_icon.MergeMode = true;
         config_icon.PixelSnapH = true;
-        config_icon.GlyphOffset.y = 2.0f;  // tweak this to vertically align with the main font
+        config_icon.GlyphOffset.y = 0.0f;  // tweak this to vertically align with the main font
         config_icon.GlyphMinAdvanceX = fontsize_main;  // enforce monospaced icon font
         config_icon.GlyphMaxAdvanceX = fontsize_main;  // enforce monospaced icon font
 
@@ -186,9 +190,6 @@ namespace scene::ui {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
-    // --------------------------------------------------------------------------------------------
-    // window-level helper functions, use them to facilitate drawing in your own scene
-    // --------------------------------------------------------------------------------------------
     void LoadInspectorConfig() {
         GLuint win_w = Window::width;
         GLuint win_h = Window::height;
@@ -324,9 +325,56 @@ namespace scene::ui {
         ImGui::End();
     }
 
-    // --------------------------------------------------------------------------------------------
-    // application-level drawing functions, used by the core module, don't touch
-    // --------------------------------------------------------------------------------------------
+    int DrawPopupModal(const char* title, const char* message, const ImVec2& size) {
+        int button_id = button_id_none;  // none of the buttons is pressed
+        ImGui::OpenPopup(title);
+
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(size);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, ImVec2(0.5f, 0.5f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 8.0f));
+
+        float button_indentation = size.x * 0.1f;
+        float text_width = ImGui::CalcTextSize(message).x;
+        float text_indentation = (size.x - text_width) * 0.5f;  // center the text locally to the window
+
+        // text too long to be drawn on one line, enforce a minimum indentation
+        if (text_indentation <= 20.0f) {
+            text_indentation = 20.0f;
+        }
+
+        if (ImGui::BeginPopupModal(title, NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::SameLine(text_indentation);
+            ImGui::PushTextWrapPos(size.x - text_indentation);
+            ImGui::TextWrapped(message);
+            ImGui::PopTextWrapPos();
+            ImGui::Separator();
+
+            if (ImGui::Indent(button_indentation); true) {
+                if (ImGui::Button("OK", ImVec2(100.0f, 0.0f))) {
+                    ImGui::CloseCurrentPopup();
+                    button_id = button_id_ok;
+                }
+
+                ImGui::SetItemDefaultFocus();
+                ImGui::SameLine(0.0f, size.x - 2.0f * (100.0f + button_indentation));
+
+                if (ImGui::Button("Cancel", ImVec2(100.0f, 0.0f))) {
+                    ImGui::CloseCurrentPopup();
+                    button_id = button_id_cancel;
+                }
+            }
+
+            ImGui::Unindent(button_indentation);
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopStyleVar(2);
+        return button_id;
+    }
+
     static void DrawAboutWindow(const char* version, bool* show) {
         if (Window::layer == Layer::Scene) {
             return;
@@ -438,11 +486,13 @@ namespace scene::ui {
         ImGui::End();
     }
 
-    void DrawMenuBar(const std::string& active_title, std::string& new_title) {
+    void DrawMenuBar(std::string& new_title) {
         static bool show_about_window = false;
         static bool show_instructions = false;
-        static bool exit_menu_focused = false;
-        static bool exit_request = false;
+        static bool show_home_popup = false;
+        static bool music_on = true;
+
+        auto& curr_scene_title = Renderer::GetScene()->title;
 
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImVec2((float)Window::width, 0.01f));
@@ -469,7 +519,7 @@ namespace scene::ui {
                     std::string title = scene::factory::titles[i];
                     std::ostringstream id;
                     id << " " << std::setfill('0') << std::setw(2) << i;
-                    bool selected = (active_title == title);
+                    bool selected = (curr_scene_title == title);
 
                     if (ImGui::MenuItem((" " + title).c_str(), id.str().c_str(), selected)) {
                         if (!selected) {
@@ -508,17 +558,87 @@ namespace scene::ui {
                 ImGui::EndMenu();
             }
 
-            ImGui::SameLine(ImGui::GetWindowWidth() - 255);
+            // menu icon items
+            ImGui::SameLine(ImGui::GetWindowWidth() - 303.0f);
+            static const ImVec4 tooltip_bg_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-            if (ImGui::BeginMenu("gq" ICON_FK_DOWNLOAD "GBKW")) {
-                if (!exit_menu_focused) {
-                    exit_request = true;
+            if (ImGui::MenuItem(ICON_FK_HOME)) {
+                if (curr_scene_title != "Welcome Screen") {
+                    show_home_popup = true;
                 }
-                exit_menu_focused = true;
-                ImGui::EndMenu();
             }
-            else {
-                exit_menu_focused = false;
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Back to main menu");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(Window::layer == Layer::ImGui ? ICON_FK_PICTURE_O : ICON_FK_COFFEE)) {
+                Input::SetKeyDown(VK_RETURN, true);
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Back to scene mode (Enter)");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(music_on ? ICON_FK_VOLUME_UP : ICON_FK_VOLUME_MUTE)) {
+                music_on = !music_on;
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Music On/Off");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(ICON_FK_CAMERA)) {
+                Window::OnScreenshots();
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Take a screenshot");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(ICON_FK_EXTERNAL_LINK)) {
+                Window::OnOpenBrowser();
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Go to website");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(ICON_FK_COG)) {
+                // TODO: open profiler window
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Profiler window");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
+            }
+
+            if (ImGui::MenuItem(ICON_FK_POWER_OFF)) {
+                Input::SetKeyDown(VK_ESCAPE, true);
+            }
+            else if (ImGui::IsItemHovered()) {
+                ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg_color);
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("Close (Esc)");
+                ImGui::EndTooltip();
+                ImGui::PopStyleColor();
             }
 
             ImGui::PopStyleColor(2);
@@ -538,10 +658,20 @@ namespace scene::ui {
             DrawAboutWindow("v1.0", &show_about_window);
         }
 
-        if (exit_request) {
-            exit_request = false;
-            Input::SetKeyDown(VK_ESCAPE, true);
+        if (show_home_popup) {
+            static const char* message = "Do you want to return to the main menu?";
+            static const ImVec2 popup_size = ImVec2(360.0f, 130.0f);
+            int button_id = DrawPopupModal(curr_scene_title.c_str(), message, popup_size);
+            if (button_id == button_id_ok) {
+                show_home_popup = false;
+                new_title = "Welcome Screen";
+            }
+            else if (button_id == button_id_cancel) {
+                show_home_popup = false;
+            }
         }
+
+        ImGui::ShowDemoWindow();
     }
 
     void DrawStatusBar() {
