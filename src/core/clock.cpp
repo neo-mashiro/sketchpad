@@ -27,7 +27,23 @@ namespace core {
         
         delta_time = this_frame - last_frame;
         last_frame = this_frame;
-        time += delta_time;
+
+        // for devices that tick at a fixed interval (e.g. timers and stopwatches), it's easier
+        // to work with delta time, but this approach suffers from floating point imprecision.
+        // when the elapsed time becomes a very large float (99:59:59 requires 359,999 seconds),
+        // and you add or subtract very small numbers (delta time) from it over and over again,
+        // rounding errors can accumulate over time and lead to unexpected result.
+
+        // it is possible to partially alleviate this issue by using double instead of float, so
+        // that we have more precision, more resolution and less rounding errors, but still to a
+        // limited extent. For robustness, we must compare real time to a fixed start timestamp.
+
+        if constexpr (true) {
+            time = this_frame;
+        }
+        else {
+            time += delta_time;  // never do this !!! watch out for rounding errors...
+        }
 
         // compute frames per second
         frame_count++;
