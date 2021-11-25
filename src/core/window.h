@@ -32,8 +32,10 @@ namespace core {
         static void Rename(const std::string& new_title);
         static void Resize();
 
-        static bool OnExitRequest();
         static void OnLayerSwitch();
+        static void OnScreenshots();
+        static void OnOpenBrowser();
+        static bool OnExitRequest();
     };
 
 }

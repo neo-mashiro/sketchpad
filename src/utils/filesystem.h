@@ -13,6 +13,7 @@ namespace utils::paths {
 
     extern std::string font;
     extern std::string model;
+    extern std::string screenshot;
     extern std::string shader;
     extern std::string texture;
 

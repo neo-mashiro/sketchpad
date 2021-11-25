@@ -363,6 +363,7 @@ local function setup_project()
             -- header only libraries
             VENDOR_DIR,
             VENDOR_DIR .. "stb",
+            VENDOR_DIR .. "date/include",
             VENDOR_DIR .. "spdlog/include",
             VENDOR_DIR .. "GLM/include",
             VENDOR_DIR .. "EnTT/include",
@@ -394,6 +395,7 @@ local function setup_project()
         -- specify the library file names (needed by the linker at link time)
         links {
             "glu32", "opengl32", "gdi32", "winmm", "user32",  -- Windows 10
+            "gdiplus.lib",   -- needed for taking screenshots
             "glfw3.lib",     -- static library
             "ImGui", "Glad"  -- link to our own static libs (project name)
         }
