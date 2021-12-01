@@ -37,7 +37,7 @@ namespace scene {
         asset_ref<Texture> prefiltered_env_maps[2];
         asset_ref<Texture> brdf_luts[2];
 
-        std::unique_ptr<Shader> irradiance_shader;
+        //std::unique_ptr<Shader> irradiance_shader;
 
         // utility shaders that are directly controlled by the user
         //std::unique_ptr<Shader> blur_shader;

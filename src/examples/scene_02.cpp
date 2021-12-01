@@ -1,11 +1,14 @@
 #include "pch.h"
 
 #include "core/clock.h"
+#include "core/debug.h"
 #include "core/input.h"
 #include "core/window.h"
+#include "core/sync.h"
 #include "buffer/all.h"
 #include "components/all.h"
 #include "components/component.h"
+#include "scene/preset.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
 #include "utils/math.h"
@@ -65,20 +68,11 @@ namespace scene {
         //prefilter_env_map = std::make_unique<Texture>(GL_TEXTURE_CUBE_MAP, 512, 512, GL_RGB16F, 0);  // empty environment map, with mipmaps
         //brdf_lut = std::make_unique<Texture>(GL_TEXTURE_2D, 256, 256, GL_RG16F, 1);  // empty BRDF lookup texture, no mipmaps
 
-        CheckGLError(0);
+        Debug::CheckGLError(0);
 
         //AddUBO(pbr_shader->GetID());
         //AddUBO(light_shader->GetID());
         AddUBO(skybox_shader->GetID());
-
-        FBO& precompute_framebuffer = AddFBO(32, 32);  // precompute irradiance map framebuffer
-        precompute_framebuffer.AddDepStRenderBuffer();
-
-        CheckGLError(1);
-
-        PrecomputeIrradianceMap();
-
-        CheckGLError(2);
 
         //FBO& bloom_filter_pass = AddFBO(Window::width, Window::height);
         //bloom_filter_pass.AddColorTexture(2, true);    // multisampled textures for MSAA
@@ -86,6 +80,10 @@ namespace scene {
 
         //FBO& msaa_resolve_pass = AddFBO(Window::width, Window::height);
         //msaa_resolve_pass.AddColorTexture(2);
+
+        PrecomputeIrradianceMap();
+
+        Debug::CheckGLError(1);
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
@@ -170,11 +168,9 @@ namespace scene {
         ////model.Import("platform", runestone_platform);
         //model.Report();  // a report that helps you learn how to load the model asset
 
-        CheckGLError(33);
+        Debug::CheckGLError(2);
 
         Renderer::FaceCulling(true);
-        
-        
     }
 
     void Scene02::OnSceneRender() {
@@ -194,6 +190,7 @@ namespace scene {
 
         Renderer::DepthTest(true);
         Renderer::Clear();
+
         Renderer::Submit(ball[0].id, ball[1].id, ball[2].id);
         Renderer::Submit(sphere[0].id, sphere[1].id, sphere[2].id, sphere[3].id, sphere[4].id, sphere[5].id, sphere[6].id);
         Renderer::Submit(skybox.id);
@@ -269,54 +266,59 @@ namespace scene {
     }
 
     void Scene02::PrecomputeIrradianceMap() {
-        Renderer::SeamlessCubemap(true);
+        //Renderer::SeamlessCubemap(true);
+        //
+        //std::string& shader_path = utils::paths::shader;
+        //std::string& texture_path = utils::paths::texture;
 
-        using namespace glm;
-        static const mat4 projection = glm::perspective(radians(90.0f), 1.0f, 0.1f, 10.0f);
-        static const mat4 views[6] = {
-            glm::lookAt(vec3(0.0f), vec3(+1.0f,  0.0f,  0.0f), vec3(0.0f, -1.0f,  0.0f)),  // posx
-            glm::lookAt(vec3(0.0f), vec3(-1.0f,  0.0f,  0.0f), vec3(0.0f, -1.0f,  0.0f)),  // negx
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  1.0f,  0.0f), vec3(0.0f,  0.0f,  1.0f)),  // posy
-            glm::lookAt(vec3(0.0f), vec3(+0.0f, -1.0f,  0.0f), vec3(0.0f,  0.0f, -1.0f)),  // negy
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  0.0f,  1.0f), vec3(0.0f, -1.0f,  0.0f)),  // posz
-            glm::lookAt(vec3(0.0f), vec3(+0.0f,  0.0f, -1.0f), vec3(0.0f, -1.0f,  0.0f))   // negz
-        };
+        //std::unique_ptr<Shader> irradiance_shader = std::make_unique<Shader>(shader_path + "scene_02\\irradiance.glsl");
 
-        std::string& shader_path = utils::paths::shader;
-        std::string& texture_path = utils::paths::texture;
+        ////std::string hdri[2] = { "CasualDay4K.hdr", "DayInTheClouds4k.hdr" };
+        //std::string hdri[2] = { "CasualDay4K.hdr", "CasualDay4K.hdr" };
 
-        irradiance_shader = std::make_unique<Shader>(shader_path + "scene_02\\irradiance.glsl");
+        ////FBO& precompute_framebuffer = FBOs[0];
+        //FBO& precompute_framebuffer = AddFBO(32, 32);  // precompute irradiance map framebuffer
+        //precompute_framebuffer.AddDepStRenderBuffer();
 
-        //std::string hdri[2] = { "CasualDay4K.hdr", "DayInTheClouds4k.hdr" };
-        std::string hdri[2] = { "CasualDay4K.hdr", "CasualDay4K.hdr" };
+        //auto virtual_cube = Mesh(Primitive::Cube);
+        //Renderer::SetViewport(32, 32);
+        //Renderer::DepthTest(false);
 
-        FBO& precompute_framebuffer = FBOs[0];
+        //for (unsigned int i = 0; i < 1; i++) {
+        //    environments[i] = LoadAsset<Texture>(texture_path + "test\\" + hdri[i], 2048, 1);
+        //    irradiance_maps[i] = CreateAsset<Texture>(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGB16F, 1);  // no mipmaps
 
-        auto virtual_cube = Mesh(Primitive::Cube);
-        Renderer::SetViewport(32, 32);
+        //    precompute_framebuffer.Bind();
+        //    irradiance_shader->Bind();
 
-        for (unsigned int i = 0; i < 2; i++) {
-            environments[i] = LoadAsset<Texture>(texture_path + "test\\" + hdri[i], 2048, 1);
-            irradiance_maps[i] = CreateAsset<Texture>(GL_TEXTURE_CUBE_MAP, 32, 32, GL_RGBA16F, 1);  // no mipmaps
+        //    //environments[i]->Bind(0);
+        //    irradiance_shader->SetUniform(1, projection);
 
-            precompute_framebuffer.Bind();
-            irradiance_shader->Bind();
+        //    for (GLuint face = 0; face < 6; face++) {
+        //        precompute_framebuffer.SetColorTexture(0, irradiance_maps[i]->GetID(), face);
+        //        //precompute_framebuffer.Clear(0);
+        //        //precompute_framebuffer.Clear(-1);
+        //        irradiance_shader->SetUniform(0, views[face]);
+        //        virtual_cube.Draw();
+        //        Shader::Sync(GL_ALL_BARRIER_BITS);
+        //        CORE_TRACE("Processing face {0}...", face);
+        //        glFinish();
+        //        CORE_TRACE("Finishing face {0}...", face);
+        //    }
 
-            environments[i]->Bind(0);
-            irradiance_shader->SetUniform(1, projection);
+        //    //environments[i]->Unbind(0);
 
-            for (GLuint face = 0; face < 6; face++) {
-                precompute_framebuffer.SetColorTexture(0, irradiance_maps[i]->GetID(), face);
-                precompute_framebuffer.Clear(0);
-                precompute_framebuffer.Clear(-1);
-                irradiance_shader->SetUniform(0, views[face]);
-                virtual_cube.Draw();
-            }
+        //    irradiance_shader->Unbind();
+        //    precompute_framebuffer.Unbind();
+        //}
+        //Renderer::SetViewport(Window::width, Window::height);
 
-            irradiance_shader->Unbind();
-            precompute_framebuffer.Unbind();
-        }
-        Renderer::SetViewport(Window::width, Window::height);
+        //Renderer::SetFrontFace(1);  // reset the winding order
+
+        //CORE_TRACE("precompute still working");
+        //glFlush();
+        //glFinish();
+        //CORE_TRACE("precompute finish");
     }
 
     void Scene02::ChangeEnvironment() {

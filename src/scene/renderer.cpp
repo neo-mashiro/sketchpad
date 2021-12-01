@@ -5,6 +5,7 @@
 
 #include "core/input.h"
 #include "core/log.h"
+#include "core/sync.h"
 #include "core/window.h"
 #include "buffer/fbo.h"
 #include "buffer/ubo.h"
@@ -27,8 +28,9 @@ namespace scene {
 
     std::queue<entt::entity> Renderer::render_queue {};
 
-    static std::unique_ptr<buffer::VAO> dummy_vao;
     static bool depth_prepass = false;
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
 
     const Scene* Renderer::GetScene() {
         return curr_scene;
@@ -117,13 +119,21 @@ namespace scene {
         Window::Rename(title);
         Window::layer = Layer::ImGui;
 
-        // the new scene must be fully loaded and initialized before being assigned to `curr_scene`,
-        // otherwise `curr_scene` could be pointing to a scene that has dirty states and subsequent
-        // operations could possibly throw an access violation that will crash the program.
+        // the new scene must be fully loaded and initialized before this function returns, o/w
+        // `curr_scene` could be pointing to a scene that has dirty states and subsequent calls
+        // could possibly throw an access violation that will crash the application. if `Init()`
+        // involves precomputation that requires heavy rendering commands, we need to block the
+        // main thread until all tasks in the GPU's command queue are fully executed.
 
         Scene* new_scene = factory::LoadScene(title);
-        new_scene->Init();
+        new_scene->Init();  // asynchronous call
         curr_scene = new_scene;
+
+        // this function must be a blocking call to fully load the new scene, before the first
+        // frame, CPU and GPU must be in sync, the previous renderer state must be cleaned up
+
+        Sync::WaitFinish();
+        Renderer::Reset();
     }
 
     void Renderer::Detach() {
@@ -134,6 +144,21 @@ namespace scene {
 
         delete last_scene;  // every object in the scene will be destructed
         last_scene = nullptr;
+
+        Sync::WaitFinish();
+        Renderer::Reset();
+    }
+
+    void Renderer::Reset() {
+        // reset the rasterizer or raytracer to the default factory state
+        MSAA(0);
+        DepthPrepass(0);
+        DepthTest(0);
+        StencilTest(0);
+        FaceCulling(0);
+        SeamlessCubemap(0);
+        SetFrontFace(1);
+        SetViewport(Window::width, Window::height);
     }
 
     void Renderer::Clear() {
@@ -289,20 +314,8 @@ namespace scene {
 
         if (switch_scene) {
             Detach();                  // blocking call
-            Attach(next_scene_title);  // blocking call (could take 30 minutes if scene is huge)
+            Attach(next_scene_title);  // blocking call
         }
-    }
-
-    void Renderer::DrawQuad() {
-        if (dummy_vao == nullptr) {
-            dummy_vao = std::make_unique<VAO>();
-        }
-
-        // bufferless rendering in OpenGL:
-        // https://trass3r.github.io/coding/2019/09/11/bufferless-rendering.html
-        // https://stackoverflow.com/a/59739538/10677643
-        dummy_vao->Bind();
-        glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
 }

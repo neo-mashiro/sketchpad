@@ -101,13 +101,13 @@ namespace scene {
         static void Attach(const std::string& title);
         static void Detach();
 
+        static void Reset();
         static void Clear();
         static void Flush();
         static void Render();
 
         static void DrawScene();
         static void DrawImGui();
-        static void DrawQuad();  // used by FBOs and utility shaders
 
         // submit a variable number of entities to the render queue (to be processed next frame)
         template<typename... Args>

@@ -52,14 +52,19 @@ namespace scene::ui {
         std::string ttf_icon = utils::paths::font + FONT_ICON_FILE_NAME_FK;
 
         ImFontConfig config_sub;
-        config_sub.OversampleH = 2;
-        config_sub.OversampleV = 1;
+        config_sub.PixelSnapH = true;
+        config_sub.OversampleH = 4;
+        config_sub.OversampleV = 4;
+        config_sub.RasterizerMultiply = 1.25f;  // brighten up the font to make them more readable
         config_sub.GlyphExtraSpacing.x = 0.0f;
 
         ImFontConfig config_icon;
         config_icon.MergeMode = true;
         config_icon.PixelSnapH = true;
-        config_icon.GlyphOffset.y = 0.0f;  // tweak this to vertically align with the main font
+        config_icon.OversampleH = 4;
+        config_icon.OversampleV = 4;
+        config_icon.RasterizerMultiply = 1.5f;  // brighten up the font to make them more readable
+        config_icon.GlyphOffset.y = 0.0f;       // tweak this to vertically align with the main font
         config_icon.GlyphMinAdvanceX = fontsize_main;  // enforce monospaced icon font
         config_icon.GlyphMaxAdvanceX = fontsize_main;  // enforce monospaced icon font
 
