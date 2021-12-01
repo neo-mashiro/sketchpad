@@ -123,8 +123,15 @@ namespace buffer {
         CORE_ASERT(index >= n_color_buffs, "Color attachment {0} is already occupied!", index);
         CORE_ASERT(face < 6, "Invalid cubemap face id, must be a number between 0 and 5!");
 
-        glNamedFramebufferTextureLayer(id, GL_COLOR_ATTACHMENT0 + index, cubemap_texture, 0, face);
-
+        if constexpr (true) {
+            // Intel drivers do not support this function and will always return an error
+            glNamedFramebufferTextureLayer(id, GL_COLOR_ATTACHMENT0 + index, cubemap_texture, 0, face);
+        }
+        else {
+            // for Intel drivers, use this non-DSA version instead
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + index, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, cubemap_texture, 0);
+        }
+        
         SetDrawBuffers();
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
