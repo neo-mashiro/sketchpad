@@ -164,9 +164,6 @@ namespace components {
     }
 
     void Shader::LoadShader(GLenum type) {
-        // this line may cause access violation if OpenGL context has not been setup
-        GLuint shader_id = glCreateShader(type);
-
         std::string shader_def;
 
         switch (type) {
@@ -178,7 +175,7 @@ namespace components {
             case GL_TESS_EVALUATION_SHADER: shader_def = "tess_evaluation_shader"; break;
             default:
                 CORE_ERROR("Unable to load shader, invalid shader type {0} ... ", type);
-                break;
+                return;
         }
 
         std::ifstream file_stream(source_path, std::ios::in);
@@ -237,8 +234,9 @@ namespace components {
         }
 
         std::string shader_code = buffer.str();
-        const char* shader = shader_code.c_str();
-        glShaderSource(shader_id, 1, &shader, nullptr);
+        const char* shader_char = shader_code.c_str();
+        GLuint shader_id = glCreateShader(type);
+        glShaderSource(shader_id, 1, &shader_char, nullptr);
         glCompileShader(shader_id);
 
         GLint status;
