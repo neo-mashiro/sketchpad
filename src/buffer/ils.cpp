@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "core/debug.h"
 #include "core/log.h"
 #include "buffer/ils.h"
 #include "buffer/texture.h"

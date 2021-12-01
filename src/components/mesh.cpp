@@ -22,6 +22,8 @@ namespace components {
 
     const std::vector<GLint> Mesh::vertex_attribute_size = { 3, 3, 2, 2, 3, 3 };
 
+    static std::unique_ptr<buffer::VAO> dummy_vao;
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     void Mesh::CreateSphere(float radius) {
@@ -338,13 +340,28 @@ namespace components {
             // todo: implement outline.glsl (use textureProjOffset), use that shader to draw again
         }
         else if (render_mode == RenderMode::Wireframe) {
-            // use internal geometry shader
+            // todo: use internal geometry shader
         }
         else if (render_mode == RenderMode::Instance) {
-            // draw with GPU instancing
+            // todo: draw with GPU instancing (the new programmable vertex pulling method)
         }
-        
-        vao->Unbind();
+
+        if constexpr (false) {
+            vao->Unbind();  // with smart bindings, we don't need to unbind after the draw call
+        }
+    }
+
+    void Mesh::DrawQuad() {
+        // bufferless rendering allows us to draw a quad without using any mesh data
+        // see also: https://trass3r.github.io/coding/2019/09/11/bufferless-rendering.html
+        // see also: https://stackoverflow.com/a/59739538/10677643
+
+        if (dummy_vao == nullptr) {
+            dummy_vao = std::make_unique<VAO>();
+        }
+
+        dummy_vao->Bind();
+        glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 
     void Mesh::SetMaterialID(GLuint mid) const {

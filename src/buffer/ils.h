@@ -24,11 +24,18 @@ namespace buffer {
        always use the `restrict` memory qualifier so that reads/writes can be optimized.
        see also: https://www.khronos.org/opengl/wiki/Image_Load_Store#Image_operations
 
+       # texture in shader vs ILS in shader
+
        the advantage of using image load/store over regular textures (whether storage is mutable
        or not) lies in its flexibility in terms of both read and write operations from within
        the shader. These operations are cheap, mostly atomic, but you need to manage incoherent
        memory access with proper barrier calls. Equipped with the powerful features of ILS, the
        user is able to manipulate the data store in a number of new ways.
+
+       aside from textures, it bares emphasizing that ILS is not the same as FBO or PBO. In some
+       cases, using ILS can save us from creating an extra FBO, but it cannot handle blending or
+       depth stencil testing. Also, ILS is only concerned with read/write operations on textures,
+       it has nothing to do with transfer operations, do not confuse it with PBO or TFB.
 
        # example use cases
 

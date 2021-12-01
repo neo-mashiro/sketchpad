@@ -1,11 +1,13 @@
 #include "pch.h"
 
 #include "core/clock.h"
+#include "core/debug.h"
 #include "core/input.h"
 #include "core/window.h"
 #include "buffer/all.h"
 #include "components/all.h"
 #include "components/component.h"
+#include "scene/preset.h"
 #include "scene/renderer.h"
 #include "scene/ui.h"
 #include "utils/math.h"
@@ -100,7 +102,7 @@ namespace scene {
         };
 
         // check errors periodically in case the built-in debug message callback fails
-        CheckGLError(0);  // checkpoint 0
+        Debug::CheckGLError(0);  // checkpoint 0
 
         // create uniform buffer objects (UBO) from shaders (duplicates will be skipped)
         AddUBO(pbr_shader->GetID());
@@ -122,7 +124,7 @@ namespace scene {
         bilinear_sampler->SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         bilinear_sampler->SetParam(GL_TEXTURE_BORDER_COLOR, border);
 
-        CheckGLError(1);
+        Debug::CheckGLError(1);
 
         // create intermediate framebuffer objects (FBO)
         FBO& depth_prepass = AddFBO(Window::width, Window::height);
@@ -138,7 +140,7 @@ namespace scene {
         FBO& blur_pass = AddFBO(Window::width / 2, Window::height / 2);  // two-pass Gaussian blur
         blur_pass.AddColorTexture(2);
 
-        CheckGLError(2);
+        Debug::CheckGLError(2);
 
         // main camera
         camera = CreateEntity("Camera", ETag::MainCamera);
@@ -211,7 +213,7 @@ namespace scene {
         model.Import("pillars", runestone_pillar);
         model.Import("platform", runestone_platform);
 
-        CheckGLError(3);
+        Debug::CheckGLError(3);
 
         // create light sources, start from the ambient light (directional light)
         direct_light = CreateEntity("Directional Light");
@@ -236,7 +238,7 @@ namespace scene {
         orbit_light.AddComponent<Mesh>(sphere_mesh.GetVAO(), sphere_mesh.n_verts);
         orbit_light.AddComponent<Material>(light_shader);
 
-        CheckGLError(4);
+        Debug::CheckGLError(4);
 
         // forward+ rendering setup (a.k.a tiled forward rendering)
         nx = (Window::width + tile_size - 1) / tile_size;
@@ -308,7 +310,7 @@ namespace scene {
         pl_range_ssbo->Write(ranges);
         pl_range_ssbo->Bind(2);
 
-        CheckGLError(5);
+        Debug::CheckGLError(5);
 
         Renderer::FaceCulling(true);
         Renderer::SeamlessCubemap(true);
@@ -750,7 +752,7 @@ namespace scene {
                 blur_framebuffer.SetDrawBuffer(static_cast<GLuint>(ping));
                 blur_shader->SetUniform(0, i == 0);
                 blur_shader->SetUniform(1, ping);                
-                Renderer::DrawQuad();
+                Mesh::DrawQuad();
             }
 
             source_texture.Unbind(0);
@@ -777,7 +779,7 @@ namespace scene {
         if (blend_shader->Bind(); true) {
             blend_shader->SetUniform(0, tone_mapping_mode);
             Renderer::Clear();
-            Renderer::DrawQuad();
+            Mesh::DrawQuad();
             blend_shader->Unbind();
         }
 

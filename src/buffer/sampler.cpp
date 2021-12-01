@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include <type_traits>
-#include "core/log.h"
+#include "core/debug.h"
 #include "buffer/sampler.h"
 #include "buffer/texture.h"
 

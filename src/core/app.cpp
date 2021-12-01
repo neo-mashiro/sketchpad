@@ -5,6 +5,7 @@
 
 #include "core/app.h"
 #include "core/clock.h"
+#include "core/debug.h"
 #include "core/event.h"
 #include "core/input.h"
 #include "core/log.h"
@@ -18,96 +19,14 @@ using namespace scene;
 
 namespace core {
 
-    // singleton instance accessor
     Application& Application::GetInstance() {
         // since C++11, this will be thread-safe, there's no need for manual locking
         static Application instance;
         return instance;
     }
 
-    // check if the OpenGL context is active
     bool Application::GLContextActive() { return GetInstance().gl_context_active; }
 
-    #pragma warning(push)
-    #pragma warning(disable : 4100)
-
-    // OpenGL debug message callback
-    static void GLAPIENTRY OnErrorDetect(GLenum source, GLenum type, GLuint id,
-        GLenum severity, GLsizei length, const GLchar* message, const void* userParam) {
-
-        if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
-            return;  // silently ignore notifications
-        }
-
-        std::string err_code;
-        GLenum err;
-
-        while ((err = glGetError()) != GL_NO_ERROR) {
-            switch (err) {
-                case GL_INVALID_ENUM:                  err_code = "invalid enumeration";      break;
-                case GL_INVALID_VALUE:                 err_code = "invalid parameter value";  break;
-                case GL_INVALID_OPERATION:             err_code = "invalid operation";        break;
-                case GL_INVALID_FRAMEBUFFER_OPERATION: err_code = "invalid framebuffer";      break;
-                case GL_OUT_OF_MEMORY:                 err_code = "cannot allocate memory";   break;
-                case GL_CONTEXT_LOST:                  err_code = "OpenGL context lost";      break;
-                case GL_STACK_OVERFLOW:                err_code = "stack overflow";           break;
-                case GL_STACK_UNDERFLOW:               err_code = "stack underflow";          break;
-                default:                               err_code = "unknown error";            break;
-            }
-
-            CORE_ERROR("Internal error detected! {0:x}: {1}", err, err_code);
-        }
-
-        std::string err_source, err_type, err_level;
-
-        switch (source) {
-            case GL_DEBUG_SOURCE_API:             err_source = "OpenGL API calls";  break;
-            case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   err_source = "Windows API calls"; break;
-            case GL_DEBUG_SOURCE_SHADER_COMPILER: err_source = "shader compiler";   break;
-            case GL_DEBUG_SOURCE_THIRD_PARTY:     err_source = "third party";       break;
-            case GL_DEBUG_SOURCE_APPLICATION:     err_source = "main application";  break;
-            case GL_DEBUG_SOURCE_OTHER:           err_source = "other";             break;
-            default:                              err_source = "???";               break;
-        }
-
-        switch (type) {
-            case GL_DEBUG_TYPE_ERROR:               err_type = "error";               break;
-            case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: err_type = "deprecated behavior"; break;
-            case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  err_type = "undefined behavior";  break;
-            case GL_DEBUG_TYPE_PORTABILITY:         err_type = "portability";         break;
-            case GL_DEBUG_TYPE_PERFORMANCE:         err_type = "performance";         break;
-            case GL_DEBUG_TYPE_OTHER:               err_type = "other";               break;
-            default:                                err_type = "???";                 break;
-        }
-
-        switch (severity) {
-            case GL_DEBUG_SEVERITY_HIGH:         err_level = "high";         break;
-            case GL_DEBUG_SEVERITY_MEDIUM:       err_level = "medium";       break;
-            case GL_DEBUG_SEVERITY_LOW:          err_level = "low";          break;
-            default:                             err_level = "???";          break;
-        }
-
-        CORE_ERROR("Debug message callback has been triggered!");
-        CORE_ERROR("Error source:   {0}", err_source);
-        CORE_ERROR("Error type:     {0}", err_type);
-        CORE_ERROR("Error severity: {0}", err_level);
-        CORE_TRACE("Error message:  {0}", message);
-
-        // if the breakpoint is triggered, check the "Stack Frame" dropdown list above
-        // to find out exactly which source file and line number has caused the error.
-        // please also read the detailede error code and message in the console, FAQ:
-        // https://www.khronos.org/opengl/wiki/OpenGL_Error
-
-        if constexpr (debug_mode) {
-            if (err_level == "high") {
-                __debugbreak();  // this is the MSVC intrinsic
-            }
-        }
-    }
-
-    #pragma warning(pop)
-
-    // core event functions
     void Application::Init(int argc, char** argv) {
         this->gl_context_active = false;
         std::cout << "Initializing console logger ...\n" << std::endl;
@@ -155,7 +74,7 @@ namespace core {
             if (context_flag & GL_CONTEXT_FLAG_DEBUG_BIT) {
                 glEnable(GL_DEBUG_OUTPUT);
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-                glDebugMessageCallback(OnErrorDetect, nullptr);
+                glDebugMessageCallback((GLDEBUGPROC) Debug::CatchGLError, nullptr);
                 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
             }
             else {
@@ -270,6 +189,7 @@ namespace core {
         ui::Clear();
 
         Renderer::Detach();
+        Renderer::Reset();
 
         Input::Clear();
         Clock::Reset();

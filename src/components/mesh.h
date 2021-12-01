@@ -40,18 +40,6 @@ namespace components {
        our built-in primitives, which includes a unit cube, a unit sphere, a rectangle plane,
        a cylinder and a 2D quad which is useful for drawing frame buffers.
        
-       TODO:
-
-       in the near future (when I have time), I will also add support for some commonly used
-       geometric shapes such as toruses, cones, box frames, triangular and hexagonal prisms, 
-       capsules, solid angles, ellipsoids, octahedrons, pyramids and Bezier surfaces. It is
-       often hard to build such primitives from explicit functions as they are quite complex,
-       but instead, we can make use of SDF (signed distance field) functions and raymarching
-       in the ray tracying rendering pipeline.
-
-       note that currently we do not support procedural meshes, even if we do, they should be
-       created inside compute shaders rather than being handled by this class.
-
        there are many ways to use OpenGL buffers, but here we will take the simplest approach
        that each mesh has a unique VAO, which owns a unique VBO and IBO, such that all mesh
        data is stored in a single buffer, and then we only need to bind VAO before draw calls.
@@ -144,6 +132,8 @@ namespace components {
 
         void SetRenderMode(RenderMode mode);
         void Draw() const;
+
+        static void DrawQuad();  // used by FBOs and utility shaders
 
         // this field is only used by meshes that are loaded from external models
         mutable GLuint material_id;

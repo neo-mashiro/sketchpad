@@ -16,16 +16,17 @@ namespace buffer {
 
        in this demo, we are mostly going to use these types of buffers:
 
-       - VAO (Vertex Array Object)
-       - VBO (Vertex Buffer Object)
-       - IBO (Index Buffer Object)
-       - UBO (Uniform Buffer Object)
-       - FBO (Framebuffer Object)
-       - RBO (Renderbuffer Object)
+       - VAO  (Vertex Array Object)
+       - VBO  (Vertex Buffer Object)
+       - IBO  (Index Buffer Object)
+       - UBO  (Uniform Buffer Object)
+       - FBO  (Framebuffer Object)
+       - RBO  (Renderbuffer Object)
        - SSBO (Shader Storage Buffer Object)
-       - PBO (Pixel Buffer Object)
-       - ILS (Image Load Store)
-       - TBO (Texture Buffer Object)
+       - PBO  (Pixel Buffer Object)
+       - ILS  (Image Load Store)
+       - TFB  (Transform Feedback)
+       - TBO  (Texture Buffer Object)
        - Textures, texture views and samplers
 
        since OpenGL 4.5, DSA (direct state access) has been introduced into the core profile, with
