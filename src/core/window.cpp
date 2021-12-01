@@ -66,8 +66,10 @@ namespace core {
             glfwSwapInterval(0);  // disable vsync because we want to test performance
         }
 
-        // disable max/min/close button on the title bar
+        // retrieve the global handle of our window, will be used by screenshots later
         hWND = ::FindWindow(NULL, (LPCWSTR)(L"sketchpad"));
+
+        // disable max/min/close button on the title bar
         LONG style = GetWindowLong(hWND, GWL_STYLE) ^ WS_SYSMENU;
         SetWindowLong(hWND, GWL_STYLE, style);
     }
@@ -126,21 +128,46 @@ namespace core {
     }
 
     void Window::OnScreenshots() {
-        // to take a screenshot of our window, we first capture the entire screen, and then
-        // extract our window's rectangle area from it. Since we know the position and size
-        // of our app window, and that it must be active (not necessarily on top) when this
-        // function gets called, this is the best and most robust option, as we don't need
-        // to care about the window's transparency, z-order or if it is an empty container.
-        // this approach is guaranteed to work, as we can always capture the desktop window.
-        // by not relying on the device context (DC) of our application window, we wouldn't
-        // fail or capture some background windows by accident.
+        /* the easiest way of taking screenshots in an OpenGL window is to read pixels from
+           the framebuffer, copy them into client memory, then saves it as a PNG file using
+           the `stb` library which we already have. There's no need to rely on extra tools
+           such as OpenCV, with this approach, the pseudocode may look something like this:
 
-        // in order to extract the correct rectangle, we must make sure the window stays at
-        // its initial position before taking the screenshot. If it has been moved by the
-        // user, we move it back to the center of the screen. Speaking of window position,
-        // note that the Win32 API also takes into account the size of decorated title bars
-        // and border frames, not just the content area of our window. Therefore, we should
-        // also adjust the window size to include these decorations.
+           > #define STB_IMAGE_WRITE_IMPLEMENTATION
+           > #include <stb/stb_image_write.h>
+           
+           > uint8_t* ptr = (uint8_t*)malloc(width * height * 4);
+           > glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, ptr);
+           > glFinish();
+           > stbi_write_png("D:\\sketchpad\\example.png", width, height, 4, ptr, 0);
+           > free(ptr);
+
+           however, reading pixels isn't very fast, and `stbi_write_png` can be especially
+           slow when saving image to the disk. To make sure the pixel reads are visible, we
+           might also need to call `glFenceSync()` or `glFinish()` before writing. Another
+           drawback of this method is that we can only read pixels from the framebuffer, so
+           we have to defer this acton to the end of frame to avoid capturing intermediate
+           results, and it's also not possible to capture the entire window other than the
+           content area. Due to these limitations, it would be much better to use the GDI+
+           library instead which is part of the built-in Win32 API, this will work for all
+           window applications, not just OpenGL.
+
+           to take a screenshot of our window, we first capture the entire screen, and then
+           extract our window's rectangle area from it. Since we know the position and size
+           of our app window, and that it must be active (not necessarily on top) when this
+           function gets called, this is the best and most robust option, as we don't need
+           to care about the window's transparency, z-order or if it is an empty container.
+           this approach is guaranteed to work, as we can always capture the desktop window.
+           by not relying on the device context (DC) of our application window, we wouldn't
+           fail or capture some background windows by accident.
+
+           in order to extract the correct rectangle, we must make sure the window stays at
+           its initial position before taking the screenshot. If it has been moved by the
+           user, we move it back to the center of the screen. Speaking of window position,
+           note that the Win32 API also takes into account the size of decorated title bars
+           and border frames, not just the content area of our window. Therefore, we should
+           also adjust the window size to include these decorations.
+        */
 
         // screenshot filename format: "YYYY_MM_DD_HH24_MM_SS.PNG" (UTC time)
         static std::string last_datetime;
@@ -180,14 +207,14 @@ namespace core {
             return;
         }
 
-        HDC desktopDC = GetDC(HWND_DESKTOP);
+        static HDC desktopDC = GetDC(HWND_DESKTOP);  // get the desktop handle once and caches it
         HDC hDC = CreateCompatibleDC(desktopDC);
         SetStretchBltMode(hDC, COLORONCOLOR);
 
-        int px = pos_x - border;
-        int py = pos_y - border - titlebar;
-        int sx = 2 * border + width;
-        int sy = 2 * border + titlebar + height;
+        static int px = pos_x - border;
+        static int py = pos_y - border - titlebar;
+        static int sx = 2 * border + width;
+        static int sy = 2 * border + titlebar + height;
 
         HBITMAP bitmap = CreateCompatibleBitmap(desktopDC, sx, sy);
         SelectObject(hDC, bitmap);
@@ -205,7 +232,7 @@ namespace core {
             0        // all color indices are considered important
         };
 
-        DWORD bitmap_size = sx * sy * 4;  // 32 bits is 4 bytes
+        static DWORD bitmap_size = sx * sy * 4;  // 32 bits is 4 bytes
         HANDLE hDIB = GlobalAlloc(GHND, bitmap_size);  // should use heap functions but who care
         LPVOID lpbitmap = nullptr;
 
