@@ -5,6 +5,14 @@
 
 namespace core {
 
+    // if the wait sync functions have been blocking for more than this amount of time,
+    // a warning message will be printed to the console to notify the user. This value
+    // should be measured in nanoseconds as per the OpenGL 4.6 spec, so that "1e10" is
+    // equal to 10 seconds, but my driver is really interpreting it as microseconds so
+    // we will use "1e7" instead. This seems to be a driver issue.
+
+    constexpr GLuint64 warn_threshold = static_cast<GLuint64>(1e7);  // 1e10
+
     Sync::Sync(GLuint id) : id(id) {
         sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         CORE_ASERT(sync != nullptr, "Unable to create a fence sync object");
@@ -36,14 +44,14 @@ namespace core {
         GLenum status = glClientWaitSync(sync, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
 
         bool warned = false;
-        GLuint64 wait_time = 0;
+        GLuint64 wait_time = timeout;
 
         // keep trying until either the sync object is signaled or the wait errored out
         while (status == GL_TIMEOUT_EXPIRED) {
             status = glClientWaitSync(sync, 0, timeout);  // subsequent calls don't need the flush bit
             wait_time += timeout;  // in nanoseconds
 
-            if (!warned && wait_time > 1e10) {
+            if (!warned && wait_time > warn_threshold) {
                 CORE_WARN("Sync object {0} has been hanging for over 10 secs on the client!", id);
                 warned = true;
             }
@@ -69,7 +77,7 @@ namespace core {
             glWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
             wait_time += GetServerTimeout();  // in nanoseconds
 
-            if (!warned && wait_time > 1e10) {
+            if (!warned && wait_time > warn_threshold) {
                 CORE_WARN("Sync object {0} has been hanging for over 10 secs on the server!", id);
                 warned = true;
             }
