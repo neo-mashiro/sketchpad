@@ -5,47 +5,24 @@
 
 namespace core {
 
-    void Debug::CheckGLContext() {
-        GLenum status = glGetGraphicsResetStatus();
-        if (status == GL_NO_ERROR) {
-            return;
-        }
-
-        if (status == GL_GUILTY_CONTEXT_RESET) {
-            CORE_ERROR("GL context lost due to a hang caused by the client!");
-            CORE_ERROR("Do you have an infinite loop in GLSL that locked up the machine?");
-        }
-        else if (status == GL_INNOCENT_CONTEXT_RESET) {
-            CORE_ERROR("GL context lost due to a reset caused by some other process!");
-            CORE_ERROR("Please restart the application and reinitialize the context.");
-        }
-        else if (status == GL_UNKNOWN_CONTEXT_RESET) {
-            // if the hang persists, our code has fatal errors, use "RenderDoc" to find out
-            CORE_ERROR("A graphics reset has been detected whose cause is unknown!");
-            CORE_ERROR("Please restart the application to see if the hang persists.");
-        }
-
-        CORE_ASERT(false, "Fatal error detected, aborting application ...");
-    }
-
-    void Debug::CheckGLError(int checkpoint) {
-        // to ignore an error and suppress the message, pass a checkpoint of -1
-        GLenum err_code;
-        while ((err_code = glGetError()) != GL_NO_ERROR) {
-            if (err_code != -1) {
-                CORE_ERROR("OpenGL error detected at checkpoint {0}: {1}", checkpoint, err_code);
-            }
-        }
-    }
-
     #pragma warning(push)
     #pragma warning(disable : 4100)
 
-    void Debug::CatchGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-        const GLchar* message, const void* userParam) {
+    void Debug::DebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+        GLsizei length, const GLchar* message, const void* userParam) {
+
+        CheckGLContext();  // first check if hardware state has been reset (e.g. AMD timeout)
 
         if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
             return;  // silently ignore notifications
+        }
+
+        // ignore notification and driver bugs that are misreported as "errors" by some drivers
+        switch (id) {
+            case 131185: return;  // NVIDIA: ImGui texture buffers use GL_STREAM_DRAW draw hint
+            case 131204: return;  // NVIDIA: texture image unit unbound to 0
+            default:
+                break;
         }
 
         std::string err_text;
@@ -95,7 +72,8 @@ namespace core {
             default:                             err_level = "???";          break;
         }
 
-        CORE_ERROR("Debug message callback has been triggered!");
+        CORE_ERROR("OpenGL debug message callback has been triggered!");
+        CORE_ERROR("Message id:     {0} (implementation defined)", id);
         CORE_ERROR("Error source:   {0}", err_source);
         CORE_ERROR("Error type:     {0}", err_type);
         CORE_ERROR("Error severity: {0}", err_level);
@@ -107,11 +85,74 @@ namespace core {
 
         if constexpr (debug_mode) {
             if (err_level == "high") {
-                __debugbreak();  // this is the MSVC intrinsic
+                SP_DBG_BREAK();  // this is the MSVC intrinsic
             }
         }
     }
 
     #pragma warning(pop)
+
+    void Debug::CheckGLContext() {
+        GLenum status = glGetGraphicsResetStatus();
+        if (status == GL_NO_ERROR) {
+            return;
+        }
+
+        if (status == GL_GUILTY_CONTEXT_RESET) {
+            CORE_ERROR("GL context lost due to a hang caused by the client!");
+            CORE_ERROR("Do you have an infinite loop in GLSL that locked up the machine?");
+        }
+        else if (status == GL_INNOCENT_CONTEXT_RESET) {
+            CORE_ERROR("GL context lost due to a reset caused by some other process!");
+            CORE_ERROR("Please restart the application and reinitialize the context.");
+        }
+        else if (status == GL_UNKNOWN_CONTEXT_RESET) {
+            // if the hang persists, our code has fatal errors, use "RenderDoc" to find out
+            CORE_ERROR("A graphics reset has been detected whose cause is unknown!");
+            CORE_ERROR("Please restart the application to see if the hang persists.");
+        }
+
+        CORE_ASERT(false, "Fatal error detected, aborting application ...");
+    }
+
+    void Debug::CheckGLError(int checkpoint) {
+        // to ignore an error and suppress the message, pass a checkpoint of -1
+        GLenum err_code;
+        while ((err_code = glGetError()) != GL_NO_ERROR) {
+            if (err_code != -1) {
+                CORE_ERROR("OpenGL error detected at checkpoint {0}: {1}", checkpoint, err_code);
+            }
+        }
+    }
+
+    void Debug::RegisterDebugMessageCallback() {
+        int context_flag;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &context_flag);
+
+        // note that freeglut may not be able to create a debug context on some drivers, so
+        // we could lose the ability to register the debug message callback. This is not an
+        // error, but the limitation of freeglut on certain drivers. In this case, setting
+        // the context flag `glutInitContextFlags(GLUT_DEBUG)` in window creation will have
+        // no effect. GLFW3 on the other hand, can always provide a valid debug context.
+
+        if constexpr (debug_mode) {
+            if (context_flag & GL_CONTEXT_FLAG_DEBUG_BIT) {
+                glEnable(GL_DEBUG_OUTPUT);
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+                glDebugMessageCallback((GLDEBUGPROC)DebugMessageCallback, nullptr);
+                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
+            }
+            else {
+                if constexpr (_freeglut) {
+                    CORE_WARN("Unable to register the debug message callback ...");
+                    CORE_WARN("Debug context may not be available in freeglut ...");
+                }
+                else {
+                    CORE_ERROR("Unable to register the debug message callback ...");
+                    CORE_ERROR("Have you hinted GLFW to create a debug context ?");
+                }
+            }
+        }
+    }
 
 }

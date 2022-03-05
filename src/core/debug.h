@@ -23,7 +23,7 @@ namespace core {
        error that happens all the time but is irrelevant to our own code (e.g. caused
        by a third-party library). In this case, we can discard an error manually using
        `CheckGLError(-1)`. By passing a checkpoint of -1, the function will ignore the
-       error and suppress the console message silently.
+       error caught and suppress the console message silently.
 
        # tips on debugging
 
@@ -53,11 +53,14 @@ namespace core {
     */
 
     class Debug {
+      private:
+        static void DebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
+            GLsizei length, const GLchar* message, const void* userParam);
+
       public:
         static void CheckGLContext();
         static void CheckGLError(int checkpoint);
-        static void CatchGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-            const GLchar* message, const void* userParam);
+        static void RegisterDebugMessageCallback();
     };
 
     class NotImplementedError : public std::logic_error {

@@ -5,13 +5,9 @@
 
 namespace core {
 
-    // if the wait sync functions have been blocking for more than this amount of time,
-    // a warning message will be printed to the console to notify the user. This value
-    // should be measured in nanoseconds as per the OpenGL 4.6 spec, so that "1e10" is
-    // equal to 10 seconds, but my driver is really interpreting it as microseconds so
-    // we will use "1e7" instead. This seems to be a driver issue.
-
-    constexpr GLuint64 warn_threshold = static_cast<GLuint64>(1e7);  // 1e10
+    // if the wait sync functions have been blocking for more than this amount of time
+    // a warning message will be logged to the console to notify the user of this wait.
+    constexpr GLuint64 warn_threshold = static_cast<GLuint64>(1e10);  // 10 seconds
 
     Sync::Sync(GLuint id) : id(id) {
         sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

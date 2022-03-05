@@ -12,7 +12,7 @@
 #include "core/input.h"
 #include "core/log.h"
 #include "core/window.h"
-#include "utils/filesystem.h"
+#include "utils/path.h"
 
 namespace core {
 

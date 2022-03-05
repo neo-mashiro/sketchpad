@@ -33,8 +33,9 @@ namespace core {
 
         std::vector<wincolor_sink_ptr> sinks;  // pointers to sinks that support setting custom color
         sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());  // console sink
-        sinks[0]->set_pattern("%^%T > [%L] %v%$");  // e.g. 23:55:59 > [info] sample message
+        sinks[0]->set_pattern("%^%T > [%L] %v%$");  // e.g. 23:55:59 > [I] sample message
         sinks[0]->set_color(spdlog::level::trace, sinks[0]->CYAN);
+        sinks[0]->set_color(spdlog::level::debug, sinks[0]->BOLD);
 
         logger = std::make_shared<spdlog::logger>("sketchpad", begin(sinks), end(sinks));
         spdlog::register_logger(logger);

@@ -6,4 +6,4 @@
 
 ## Scene 02
 
-[Sculpture "Bust of Róża Loewenfeld"](https://sketchfab.com/3d-models/sculpture-bust-of-roza-loewenfeld-fc6e731a0131471ba8e45511c7ea9996)
+

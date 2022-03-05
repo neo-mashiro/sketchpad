@@ -2,6 +2,7 @@
 
 #include <GL/freeglut.h>
 #include <GLFW/glfw3.h>
+#include "core/base.h"
 #include "core/input.h"
 #include "core/window.h"
 
@@ -13,8 +14,8 @@ namespace core {
     // internally, all keys are defined by standard Win32 virtual-key codes and ASCII codes
     // if an input library defines its own key codes, they must be remapped to our standard
     std::unordered_map<unsigned char, bool> Input::keybook {
-        { 'w', 0 }, { 's', 0 }, { 'a', 0 }, { 'd', 0 }, { 'z', 0 },  // WASD + Z
-        { VK_SPACE, 0 }, { VK_RETURN, 0 }, { VK_ESCAPE, 0 }          // space, enter, escape
+        { 'w', 0 }, { 's', 0 }, { 'a', 0 }, { 'd', 0 }, { 'z', 0 }, { 'r', 0 },
+        { VK_SPACE, 0 }, { VK_RETURN, 0 }, { VK_ESCAPE, 0 }
     };
 
     void Input::Clear() {
@@ -90,9 +91,8 @@ namespace core {
 
     void Input::SetCursor(float new_x, float new_y) {
         // x and y are measured in window coordinates, with the origin at the top-left corner
-        // but OpenGL uses a world coordinate system with the origin at the bottom-left corner
         cursor_delta_x = new_x - cursor_pos_x;
-        cursor_delta_y = cursor_pos_y - new_y;  // invert y coordinate
+        cursor_delta_y = new_y - cursor_pos_y;
 
         // keep cursor position fixed at the window center (required only for freeglut)
         // for GLFW, hiding the cursor will automatically lock it to the window
@@ -102,13 +102,6 @@ namespace core {
         else {
             glfwSetCursorPos(Window::window_ptr, cursor_pos_x, cursor_pos_y);
         }
-    }
-
-    float Input::GetCursorPosition(MouseAxis axis) {
-        if (axis == MouseAxis::Horizontal) {
-            return cursor_pos_x;
-        }
-        return cursor_pos_y;
     }
 
     float Input::GetCursorOffset(MouseAxis axis) {
@@ -131,6 +124,14 @@ namespace core {
         }
 
         return offset;
+    }
+
+    float Input::GetCursorPosition(MouseAxis axis) {
+        return (axis == MouseAxis::Horizontal) ? cursor_pos_x : cursor_pos_y;
+    }
+
+    glm::ivec2 Input::GetCursorPosition() {
+        return glm::ivec2(cursor_pos_x, cursor_pos_y);
     }
 
     void Input::SetScroll(float offset) {

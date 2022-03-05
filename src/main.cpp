@@ -9,7 +9,9 @@
 #include <windows.h>
 #include "core/app.h"
 
+#if defined(_MSC_VER) && _MSC_VER >= 1922
 #pragma execution_character_set("utf-8")
+#endif
 
 extern "C" {
     // tell the driver to use a dedicated graphics card (NVIDIA, AMD)
@@ -26,7 +28,7 @@ int main(int argc, char** argv) {
 
     // set console window position and size
     HWND window = GetConsoleWindow();
-    SetWindowPos(window, 0, 0, 0, 1024, 768, SWP_NOZORDER);
+    SetWindowPos(window, 0, 0, 0, 1280, 768, SWP_NOZORDER);
 
     // enable memory-leak report (MSVC intrinsic)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -57,6 +59,11 @@ int main(int argc, char** argv) {
     std::cout << "  Cubemap texture (width and height): " << app.gl_texsize_cubemap   << std::endl;
     std::cout << "  Max number of image units: "          << app.gl_max_image_units   << std::endl;
     std::cout << "  Max number of texture units: "        << app.gl_max_texture_units << '\n' << std::endl;
+
+    std::cout << "$ Maximum allowed number of atomic counters: " << '\n' << std::endl;
+    std::cout << "  Vertex shader:   " << app.gl_maxv_atcs << std::endl;
+    std::cout << "  Fragment shader: " << app.gl_maxf_atcs << std::endl;
+    std::cout << "  Compute shader:  " << app.gl_maxc_atcs << '\n' << std::endl;
 
     std::cout << "$ Maximum allowed number of uniform buffers: " << '\n' << std::endl;
     std::cout << "  Vertex shader:   " << app.gl_maxv_ubos << std::endl;
@@ -95,7 +102,7 @@ int main(int argc, char** argv) {
        if we have static variables that allocated memory before. Static variables are managed by C++
        runtime, they are only destructed before the shutdown of the process (after `main()` returns).
        since the program is going to terminate anyway, we don't really care, but generally we should
-       avoid or limit the use of static global variables whenever possible.
+       avoid or limit the use of static global variables to the minimum.
     */
 
     app.Clear();

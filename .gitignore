@@ -3,6 +3,7 @@ build/
 
 # Visual Studio
 .vs/
+.vscode/
 vs*/
 **.sln
 **.vcxproj

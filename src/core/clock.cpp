@@ -3,6 +3,7 @@
 #include <GL/freeglut.h>
 #include <GLFW/glfw3.h>
 #include <date/date.h>
+#include "core/base.h"
 #include "core/clock.h"
 
 namespace core {

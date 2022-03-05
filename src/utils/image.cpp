@@ -4,15 +4,18 @@
 #include <stb_image.h>
 
 #include "core/log.h"
+#include "utils/ext.h"
 #include "utils/image.h"
 
 namespace utils {
 
     void Image::deleter::operator()(uint8_t* buffer) {
-        stbi_image_free(buffer);
+        if (buffer != nullptr) {
+            stbi_image_free(buffer);
+        }
     }
 
-    Image::Image(const std::string& filepath, GLuint read_channels, bool flip) : width(0), height(0), n_channels(0) {
+    Image::Image(const std::string& filepath, GLuint channels, bool flip) : width(0), height(0), n_channels(0) {
         stbi_set_flip_vertically_on_load(flip);
 
         // supported file extensions (will support ".psd", ".tga" and ".gif" in the future)
@@ -22,7 +25,7 @@ namespace utils {
 
         // check valid file extension
         auto ext = filepath.substr(filepath.rfind("."));
-        if (std::find(extensions.begin(), extensions.end(), ext) == extensions.end()) {
+        if (ranges::find(extensions, ext) == extensions.end()) {
             CORE_ERROR("Image file format is not supported: {0}", filepath);
             return;
         }
@@ -39,10 +42,10 @@ namespace utils {
                 return;
             }
 
-            // report HDR image statistics before the buffer pointer is reset (useful in shading)
+            // report HDR image statistics before the buffer pointer is reset
             size_t n_pixels = width * height;
-            float min_luminance = 0.0f;
-            float max_luminance = 0.0f;
+            float min_luminance = std::numeric_limits<float>::max();
+            float max_luminance = std::numeric_limits<float>::min();
             float sum_log_luminance = 0.0f;
 
             for (size_t i = 0; i < n_pixels; i++) {
@@ -53,21 +56,22 @@ namespace utils {
 
                 min_luminance = std::min(min_luminance, luminance);
                 max_luminance = std::max(max_luminance, luminance);
-                sum_log_luminance += std::max(log(luminance + 0.00001f), 0.0f);  // avoid `log(0)` on black pixels
+                sum_log_luminance += std::max(log(luminance + 0.00001f), 0.0f);  // avoid division by zero
             }
 
             float log_average_luminance = exp(sum_log_luminance / n_pixels);
 
-            CORE_TRACE("Minimum luminance of the HDR image is: {0}", min_luminance);
-            CORE_TRACE("Maximum luminance of the HDR image is: {0}", max_luminance);
-            CORE_TRACE("Log average luminance of the HDR image is: {0}", log_average_luminance);
+            CORE_TRACE("HDR image luminance report:");
+            CORE_TRACE("------------------------------------------------------------------------");
+            CORE_DEBUG("min: {0}, max: {1}, log average: {2}", min_luminance, max_luminance, log_average_luminance);
+            CORE_TRACE("------------------------------------------------------------------------");
             
             pixels.reset(reinterpret_cast<uint8_t*>(buffer));
         }
 
         else {
-            CORE_ASERT(read_channels <= 4, "You can only force read up to 4 channels!");
-            uint8_t* buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, read_channels);
+            CORE_ASERT(channels <= 4, "You can only force read up to 4 channels!");
+            uint8_t* buffer = stbi_load(filepath.c_str(), &width, &height, &n_channels, channels);
 
             if (buffer == nullptr) {
                 CORE_ERROR("Failed to load image: {0}", filepath);
@@ -85,36 +89,19 @@ namespace utils {
         }
     }
 
-    Image::Image(Image&& other) noexcept {
-        *this = std::move(other);
-    }
-
-    Image& Image::operator=(Image&& other) noexcept {
-        if (this != &other) {
-            pixels = nullptr;
-            std::swap(pixels, other.pixels);
-            std::swap(width, other.width);
-            std::swap(height, other.height);
-            std::swap(is_hdr, other.is_hdr);
-            std::swap(n_channels, other.n_channels);
-        }
-
-        return *this;
-    }
-
     bool Image::IsHDR() const {
         return is_hdr;
     }
 
-    GLuint Image::GetWidth() const {
+    GLuint Image::Width() const {
         return static_cast<GLuint>(width);
     }
 
-    GLuint Image::GetHeight() const {
+    GLuint Image::Height() const {
         return static_cast<GLuint>(height);
     }
 
-    GLenum Image::GetFormat() const {
+    GLenum Image::Format() const {
         if (is_hdr) {
             return GL_RGB;
         }
@@ -128,7 +115,7 @@ namespace utils {
         }
     }
 
-    GLenum Image::GetInternalFormat() const {
+    GLenum Image::IFormat() const {
         if (is_hdr) {
             return GL_RGB16F;
         }
@@ -147,7 +134,8 @@ namespace utils {
         return reinterpret_cast<const T*>(pixels.get());
     }
 
-    // explicit template functon instantiation
-    template const uint8_t* Image::GetPixels() const;
-    template const float* Image::GetPixels() const;
+    // explicit template function instantiation
+    template const uint8_t* Image::GetPixels<uint8_t>() const;
+    template const float* Image::GetPixels<float>() const;
+
 }

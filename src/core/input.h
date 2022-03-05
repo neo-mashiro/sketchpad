@@ -1,23 +1,21 @@
 #pragma once
 
 #include <unordered_map>
+#include <glm/glm.hpp>
 
 namespace core {
 
-    enum class MouseAxis : uint8_t {
-        Horizontal,
-        Vertical
+    enum class MouseAxis : char {
+        Horizontal, Vertical
     };
 
-    enum class MouseButton : uint8_t {
-        Left,
-        Middle,
-        Right,
+    enum class MouseButton : char {
+        Left, Middle, Right,
     };
 
     class Input {
       private:
-        // keyboard keys states: pressed or released
+        // keystroke states: pressed or released
         static std::unordered_map<uint8_t, bool> keybook;
 
         // cursor position and offsets along each axis
@@ -47,8 +45,9 @@ namespace core {
         static bool GetMouseDown(MouseButton button);
 
         static void SetCursor(float new_x, float new_y);
-        static float GetCursorPosition(MouseAxis axis);
         static float GetCursorOffset(MouseAxis axis);
+        static float GetCursorPosition(MouseAxis axis);
+        static glm::ivec2 GetCursorPosition();
 
         static void SetScroll(float offset);
         static float GetScrollOffset(void);

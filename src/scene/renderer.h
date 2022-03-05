@@ -3,7 +3,6 @@
 #include <string>
 #include <queue>
 #include <ECS/entt.hpp>
-#include "buffer/fbo.h"
 
 namespace scene {
 
@@ -43,18 +42,17 @@ namespace scene {
        queue and will be drawn in the order of submission, this order can not only affect
        alpha blending but can also make a huge difference in performance.
 
-       it is advised to submit the skybox last to the renderer because that is the farthest
+       it is suggested to submit the skybox last to the renderer because that is the farthest
        object in the scene, this can save us quite a lot fragment invocations as the pixels
-       that already fail the depth test will be instantly discarded. Besides, users should
-       submit similar entities as close as possible to each other in the list, especially
-       when there's a large number of entities to draw. In specific, entities that share the
-       same shader or textures are suggested to be grouped together as much as possible, this
-       can help reduce the number of context switching, which is quite expensive. The shader,
-       texture and uniform class have been optimized to support smart bindings and uploads,
-       you should make the most of these features to avoid unnecessary binding operations of
-       shaders and textures, and uniform uploads. However, if a list of entities use the same
-       shader, textures as well as meshes, you should enable batch rendering on the meshes,
-       submit only one of them and handle batch rendering in the shader.
+       that already fail the depth test will be instantly discarded. Moreover, entities that
+       share the same shader or textures are suggested to be packed as much as possible, this
+       can help reduce the number of context switching, which is quite expensive. Our shader,
+       texture and most buffer classes have been optimized by using smart bindings, therefore
+       you should make the most out of this feature to avoid unnecessary binds or unbinds, if
+       you cannot use batch rendering.
+
+       recall that alpha blending is often order-dependent (except OIT) so is a special case,
+       when blending is involved, transparent entities must come last in the render queue.
 
        # switching scenes and multithreading
 
@@ -67,15 +65,14 @@ namespace scene {
        note that cleaning and loading scenes can take quite a while, especially when there is
        a large number entities in the scene. Ideally, loading and unloading scenes should be
        scheduled as asynchronous background tasks, so as not to block and freeze the window,
-       we can achieve this by wrapping the tasks in `std::async` and query from `std::future`
-       objects at a later time, sadly though, multithreading in OpenGL is a pain, you cannot
-       multithread OpenGL calls easily without using complex context switching, because most
-       buffers cannot be shared between threads, let alone the fact that your window library
-       or graphics card driver may not be supporting it.
+       sadly though, multithreading in OpenGL is a pain, there's no way to multithread OpenGL
+       calls easily without using complex context switching, and some assets cannot be shared
+       between threads, there can be only one context, so overall it's not worth the effort.
 
-       sharing context and resources between threads is a difficult task in OpenGL, I am not
-       sure if this is at all possible, in this regard, Vulkan or D3D11 is a better option.
-       that said, we can still optimize the loading of assets using concurrency. (TODO)
+       in this regard, Vulkan and D3D12 are a better option, we will leave this support for a
+       future project. That said, the resource manager can be used to optimize the loading of
+       resources in a concurrent way (TODO: integrate the "taskflow" library), this should be
+       more than enough for us to achieve reasonably good performance.
     */
 
     class Renderer {
@@ -88,12 +85,13 @@ namespace scene {
         static const Scene* GetScene();
 
         // configuration functions
-        static void MSAA(bool on);
-        static void DepthPrepass(bool on);
-        static void DepthTest(bool on);
-        static void StencilTest(bool on);
-        static void FaceCulling(bool on);
-        static void SeamlessCubemap(bool on);
+        static void MSAA(bool enable);
+        static void DepthPrepass(bool enable);
+        static void DepthTest(bool enable);
+        static void StencilTest(bool enable);
+        static void AlphaBlend(bool enable);
+        static void FaceCulling(bool enable);
+        static void SeamlessCubemap(bool enable);
         static void SetFrontFace(bool ccw);
         static void SetViewport(GLuint width, GLuint height);
 
@@ -109,7 +107,7 @@ namespace scene {
         static void DrawScene();
         static void DrawImGui();
 
-        // submit a variable number of entities to the render queue (to be processed next frame)
+        // submit a variable number of entity ids to the render queue (to be processed next frame)
         template<typename... Args>
         static void Submit(Args&&... args) {
             (render_queue.push(args), ...);

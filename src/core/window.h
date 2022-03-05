@@ -7,10 +7,8 @@ struct GLFWwindow;  // forward declaration
 
 namespace core {
 
-    enum class Layer : uint8_t {
-        Scene,
-        ImGui,
-        Win32
+    enum class Layer : char {
+        Scene, ImGui, Win32
     };
 
     class Window {

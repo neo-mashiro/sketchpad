@@ -13,7 +13,7 @@
 #include "scene/renderer.h"
 #include "scene/scene.h"
 #include "scene/ui.h"
-#include "utils/filesystem.h"
+#include "utils/path.h"
 
 using namespace scene;
 
@@ -60,34 +60,8 @@ namespace core {
         CORE_INFO("Initializing Dear ImGui backends ...");
         ui::Init();
 
-        // note that freeglut may not be able to create a debug context on some drivers, so
-        // we could lose the ability to register the debug message callback. This is not an
-        // error, but the limitation of freeglut. On both my Intel and ATI card, setting the
-        // context flag `glutInitContextFlags(GLUT_DEBUG)` has no effect.
-        // using GLFW on the other hand, is guaranteed to provide us a valid debug context.
-
         CORE_INFO("Starting application debug session ...");
-        int context_flag;
-        glGetIntegerv(GL_CONTEXT_FLAGS, &context_flag);
-
-        if constexpr (debug_mode) {
-            if (context_flag & GL_CONTEXT_FLAG_DEBUG_BIT) {
-                glEnable(GL_DEBUG_OUTPUT);
-                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-                glDebugMessageCallback((GLDEBUGPROC) Debug::CatchGLError, nullptr);
-                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE);
-            }
-            else {
-                if constexpr (_freeglut) {
-                    CORE_WARN("Unable to register the debug message callback ...");
-                    CORE_WARN("Debug context may not be available in freeglut ...");
-                }
-                else {
-                    CORE_ERROR("Unable to register the debug message callback ...");
-                    CORE_ERROR("Have you hinted GLFW to create a debug context ?");
-                }
-            }
-        }
+        Debug::RegisterDebugMessageCallback();
 
         CORE_INFO("Registering window event callbacks ...");
         Event::RegisterCallbacks();
@@ -104,6 +78,11 @@ namespace core {
         glGetIntegerv(GL_MAX_CUBE_MAP_TEXTURE_SIZE, &gl_texsize_cubemap);
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS,   &gl_max_texture_units);
         glGetIntegerv(GL_MAX_IMAGE_UNITS,           &gl_max_image_units);
+
+        // max number of atomic counters in each shader stage
+        glGetIntegerv(GL_MAX_VERTEX_ATOMIC_COUNTERS, &gl_maxv_atcs);
+        glGetIntegerv(GL_MAX_FRAGMENT_ATOMIC_COUNTERS, &gl_maxf_atcs);
+        glGetIntegerv(GL_MAX_COMPUTE_ATOMIC_COUNTERS, &gl_maxc_atcs);
 
         // max number of uniform blocks in each shader stage
         glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS,   &gl_maxv_ubos);

@@ -1,5 +1,5 @@
 # WIP
-# sketchpad (Windows 10)
+# sketchpad (Windows 10 + OpenGL 4.6)
 
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
 <!-- ![LOC](https://tokei.rs/b1/github/neo-mashiro/sketchpad?category=lines)](https://github.com/neo-mashiro/sketchpad)
@@ -8,6 +8,8 @@
 A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL rendering pipeline. This framework was built to quickly test some low-level graphics features and to learn how they work in OpenGL. Future versions may consider using the [SPIR-V](https://www.khronos.org/spir/) open source ecosystem to support Vulkan or OpenCL.
 
 从零开始手写的一个OpenGL练习框架，用于实现GAMES202中的作业内容和其他一些有趣的东西。
+
+100% code-based rendering engine to allow for maximum flexibility.
 
 I've always wanted to make an OpenGL sandbox to help me quickly prototype some sample scenes.
 Although some design of this project is very much like a game engine, it is not, there's no batch rendering system, no physics, no collision detection, native scripting support, and users are expected to make new scenes from c++ code by using some exposed APIs, rather than relying on a bunch of clicks and drags via the editor UI like in a real game engine. In this project, UI is not part of the application, but is owned by each individual scene.
@@ -22,13 +24,7 @@ I'd rather think of it as being a "scene" engine, in the sense that it helps cre
 - Real-time Ray Tracing (Monte-Carlo Integration)
 - Normal Mapping without Precomputed Tangent Space Vectors
 
-## Requirement
-
-- Windows 10 + OpenGL version #460 or higher
-- a desktop monitor with at least 1600 x 900 resolution (full HD or QHD is preferred)
-- a dedicated graphics card which supports >= 1 samples per pixel (for raytracing)
-
-## Dependencies
+## 3rd-party Libraries
 
 - [Premake5](https://github.com/premake/premake-core), [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
 - [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library) (version 2.1.0), or better [GLAD](https://glad.dav1d.de/), and [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (version 0.9.2 or above)
@@ -114,7 +110,7 @@ https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
 
 - Equirectangular [@flickr](https://www.flickr.com/groups/equirectangular/pool/)
 
-## Recommended Reading
+## Biblipgraphy
 
 // forward+ rendering
 https://www.3dgep.com/forward-plus/
@@ -122,7 +118,6 @@ https://takahiroharada.files.wordpress.com/2015/04/forward_plus.pdf
 https://github.com/bcrusco/Forward-Plus-Renderer
 
 
-## Acknowledgements
+## Included Assets
 
-I would like to express my gratitude to Yu Meng.
-My deepest gratitude goes first and foremost to Professor Zhou Yanxia, my supervisor, for his constant encouragement and guidance. He has walked me through all the stages of the writing of this thesis. Without his consistent and illuminating instruction, this thesis could not have reached its present form.
+see res

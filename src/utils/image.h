@@ -15,7 +15,7 @@ namespace utils {
        format and internal format to build up texture data from the image buffer pointer,
        and finally discard the image so that its memory will be freed on the CPU side.
 
-       the `read_channels` parameter in the ctor forces the number of channels to read from
+       the `channels` parameter in constructor forces the number of channels to be read from
        the file, by default it is 0, in which case all channels available will be read. The
        user can also specify it to be 1~4, but if the image does not have that many channels,
        the extra ones will always be 0. Note that this parameter only applies to LDR images,
@@ -31,19 +31,21 @@ namespace utils {
        once the image has been loaded, users should expect the pixels data to follow the
        standards below, note the differences between traditional images and HDR images
 
-       ## standard LDR
-         -- 8 bits per channel (a.k.a component), 1~4 channels per pixel
-         -- 1 channel = greyscale, 2 channels = greyscale + alpha
-         -- 3 channels = red + green + blue (RGB), 4 channels = RGB + alpha (RGBA)
-         -- color values are stored as fixed-point integers from 0 to 255
-         -- color values are stored in sRGB space, may require gamma correction
+       # standard LDR
 
-       ## standard HDR
-         -- ends with the extension ".hdr" or ".exr", typically used as environment cubemaps
-         -- used to represent colors over a much wider dynamic range (very bright or dark)
-         -- pixels are stored in 4-channel RGBE, 8 bits per channel (E: shared exponent)
-         -- pixels are read in as floating-point values, 32 bits per channel RGB, no alpha
-         -- pixels are read in as linear values in linear color space (i.e. gamma compressed)
+        > 8 bits per channel (a.k.a component), 1~4 channels per pixel
+        > 1 channel = greyscale, 2 channels = greyscale + alpha
+        > 3 channels = red + green + blue (RGB), 4 channels = RGB + alpha (RGBA)
+        > color values are stored as fixed-point integers from 0 to 255
+        > color values are stored in sRGB space, may require gamma correction
+
+       # standard HDR
+
+        > ends with the extension ".hdr" or ".exr", typically used as environment cubemaps
+        > used to represent colors over a much wider dynamic range (very bright or dark)
+        > pixels are stored in 4-channel RGBE, 8 bits per channel (E: shared exponent)
+        > pixels are read in as floating-point values, 32 bits per channel RGB, no alpha
+        > pixels are read in as linear values in linear color space (i.e. gamma compressed)
        
        # color space
 
@@ -83,27 +85,25 @@ namespace utils {
         GLint width, height, n_channels;
         bool is_hdr;
 
-        // manage the resource using `std::unique_ptr` with a custom deleter
         struct deleter {
             void operator()(uint8_t* buffer);
         };
 
-        std::unique_ptr<uint8_t, deleter> pixels;
+        std::unique_ptr<uint8_t, deleter> pixels;  // manage the resource with a `unique_ptr` + custom deleter
 
       public:
-        Image(const std::string& filepath, GLuint read_channels = 0, bool flip = false);
+        Image(const std::string& filepath, GLuint channels = 0, bool flip = false);
 
-        Image(const Image&) = delete;
+        Image(const Image&) = delete;  // `std::unique_ptr` is move-only
         Image& operator=(const Image&) = delete;
-
-        Image(Image&& other) noexcept;
-        Image& operator=(Image&& other) noexcept;
+        Image(Image&& other) noexcept = default;
+        Image& operator=(Image&& other) noexcept = default;
 
         bool IsHDR() const;
-        GLuint GetWidth() const;
-        GLuint GetHeight() const;
-        GLenum GetFormat() const;
-        GLenum GetInternalFormat() const;
+        GLuint Width() const;
+        GLuint Height() const;
+        GLenum Format() const;
+        GLenum IFormat() const;
 
         template<typename T>
         const T* GetPixels() const;

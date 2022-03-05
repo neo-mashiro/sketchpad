@@ -2,6 +2,8 @@
 
 #include <GL/freeglut.h>
 #include <GLFW/glfw3.h>
+#include <imgui/imgui_impl_glut.h>
+#include <imgui/imgui_impl_glfw.h>
 
 #include "core/event.h"
 #include "core/input.h"
@@ -160,7 +162,6 @@ namespace core {
         // x and y are measured in screen coordinates relative to the top-left corner of the window
         if (Window::layer == Layer::Scene) {
             Input::SetCursor(xpos, ypos);
-            //CORE_TRACE("X {0:.2f}  Y {1:.2f}", xpos, ypos);
         }
         else if (Window::layer == Layer::ImGui) {
             // when cursor is locked to the window, GLFW will take care of cursor position
@@ -206,6 +207,7 @@ namespace core {
             case GLFW_KEY_LEFT:   case GLFW_KEY_A:         _key = 'a';        break;
             case GLFW_KEY_RIGHT:  case GLFW_KEY_D:         _key = 'd';        break;
             case GLFW_KEY_Z:                               _key = 'z';        break;
+            case GLFW_KEY_R:                               _key = 'r';        break;
             case GLFW_KEY_SPACE:                           _key = VK_SPACE;   break;
             case GLFW_KEY_ENTER:  case GLFW_KEY_KP_ENTER:  _key = VK_RETURN;  break;
             case GLFW_KEY_ESCAPE:                          _key = VK_ESCAPE;  break;
@@ -214,7 +216,7 @@ namespace core {
         }
 
         if (_key == VK_ESCAPE || _key == VK_RETURN) {
-            // functional keys releasing events should be handled by the application
+            // functional keys releasing events are handled by the application
             if (action == GLFW_PRESS || action == GLFW_REPEAT) {
                 Input::SetKeyDown(_key, true);
             }

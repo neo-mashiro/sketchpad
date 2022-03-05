@@ -38,32 +38,16 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <tuple>
 #include <type_traits>
+#include <typeinfo>
+#include <typeindex>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <variant>
 #include <vector>
-
-/* since our precompiled header must be included in every cpp file, here we can do a nice
-   little trick to replace any `#ifdef` block with a global variable. By translating them
-   into C++17 `inline constexpr` variables (external linkage), we can effectively avoid a
-   bunch of `#ifdef`s from splattering throughout our code base. These variables will be
-   globally visible to all translation units without violating the ODR rule.
-*/
-
-#if defined(_DEBUG) || defined(DEBUG)
-    inline constexpr bool debug_mode = true;
-#else
-    inline constexpr bool debug_mode = false;
-#endif
-
-#ifdef __FREEGLUT__
-    inline constexpr bool _freeglut = true;
-#else
-    inline constexpr bool _freeglut = false;
-#endif
 
 #define GLFW_INCLUDE_NONE
 #include <glad/glad.h>
@@ -79,24 +63,9 @@
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/perpendicular.hpp>
 #pragma warning(pop)
-
-#define IMGUI_DISABLE_METRICS_WINDOW
-#define IMGUI_DEFINE_MATH_OPERATORS
-
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui/imgui_impl_glut.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_opengl3.h>
-#include <imgui/imstb_rectpack.h>
-#include <imgui/imstb_textedit.h>
-#include <imgui/imstb_truetype.h>
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
