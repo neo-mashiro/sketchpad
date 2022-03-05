@@ -134,8 +134,10 @@ local function setup_solution()
 
             disablewarnings {
                 "4018",  -- signed/unsigned mismatch
+                "4267",  -- conversion from 'a' to 'b', possible loss of data
                 "4456",  -- declaration of '...' hides previous local declaration
                 "4458",  -- declaration of '...' hides class member
+                "4459",  -- declaration of '...' hides global declaration (glm and spdlog)
                 "4505",  -- unreferenced local function has been removed
                 "4100",  -- unreferenced formal parameter
                 "26495"  -- always initialize a member variable
@@ -224,6 +226,37 @@ local function setup_vendor_library()
             objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
             targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
 
+        project "ImGuizmo"
+            kind "StaticLib"
+            language "C++"
+            cppdialect "C++17"
+
+            location(ROOT_DIR .. WIN_IDE .. "/")
+
+            disablewarnings {
+                "4389",  -- '==': signed/unsigned mismatch
+                "4245",  -- conversion from '.' to '.', signed/unsigned mismatch
+            }
+
+            files {
+                VENDOR_DIR .. "ImGuizmo/include/ImGuizmo/" .. "*.h",
+                VENDOR_DIR .. "ImGuizmo/include/ImGuizmo/" .. "*.cpp"
+            }
+
+            vpaths {
+                ["Sources/*"] = {
+                    VENDOR_DIR .. "ImGuizmo/include/ImGuizmo/" .. "*.h",
+                    VENDOR_DIR .. "ImGuizmo/include/ImGuizmo/" .. "*.cpp"
+                }
+            }
+
+            includedirs {
+                VENDOR_DIR .. "imgui/include/imgui"  -- ImGuizmo depends on ImGui
+            }
+
+            objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
+            targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
+
         project "Glad"
             kind "StaticLib"
             language "C++"
@@ -248,7 +281,6 @@ local function setup_vendor_library()
                 VENDOR_DIR .. "GLAD/include"
             }
 
-            -- build into the same folder as our application so that it can be linked
             objdir(OBJECT_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
             targetdir(TARGET_DIR .. "%{prj.name}/" .. OUTPUT_DIR)
 
@@ -358,6 +390,7 @@ local function setup_project()
             VENDOR_DIR .. "GLFW/include",
             VENDOR_DIR .. "GLAD/include",
             VENDOR_DIR .. "imgui/include",
+            VENDOR_DIR .. "ImGuizmo/include",
             VENDOR_DIR .. "assimp/include",
 
             -- header only libraries
@@ -397,7 +430,7 @@ local function setup_project()
             "glu32", "opengl32", "gdi32", "winmm", "user32",  -- Windows 10
             "gdiplus.lib",   -- needed for taking screenshots
             "glfw3.lib",     -- static library
-            "ImGui", "Glad"  -- link to our own static libs (project name)
+            "ImGui", "ImGuizmo", "Glad"  -- link to our own static libs (project name)
         }
 
         ------------------------------------------------------------------------
@@ -428,7 +461,7 @@ local function main()
     ----------------------------------------------------------------------------
     -- scan all scene scripts and store them into the configuration table
     ----------------------------------------------------------------------------
-    local scripts = os.matchfiles(SOURCE_DIR .. "examples/**.cpp")  -- recursive match
+    local scripts = os.matchfiles(SOURCE_DIR .. "example/**.cpp")  -- recursive match
     table.sort(scripts)  -- sort the array so that scene ids are numbered in order
 
     for index, script in ipairs(scripts) do
