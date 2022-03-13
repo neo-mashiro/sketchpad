@@ -1,4 +1,5 @@
-/* a material component glues together a shader and its associated textures and uniforms,
+/* 
+   a material component glues together a shader and its associated textures and uniforms,
    it's designed to ease the preparation setup for rendering, which internally automates
    the tasks of uniform uploads, smart shader binding and smart texture bindings.
 

@@ -39,9 +39,9 @@ namespace scene {
         using Scene::Scene;
 
         // override these functions in the cpp file to render your scene
-        void Init(void) override;
-        void OnSceneRender(void) override;
-        void OnImGuiRender(void) override;
+        void Init() override;
+        void OnSceneRender() override;
+        void OnImGuiRender() override;
 
         // the class header is a free space where you can declare any variables you need
         // such as entities, universal shaders, asset refs, buffers and so on, you don't

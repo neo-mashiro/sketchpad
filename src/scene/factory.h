@@ -15,6 +15,8 @@
 #include "example/scene_01.h"
 #include "example/scene_02.h"
 #include "example/scene_03.h"
+#include "example/scene_04.h"
+#include "example/scene_05.h"
 
 namespace scene::factory {
 
@@ -22,7 +24,9 @@ namespace scene::factory {
         "Welcome Screen",
         "Demo Scene",
         "Environment Lighting (IBL)",
-        "Disney BSDF"
+        "Disney BSDF",
+        "Cloth Simulation",
+        "PCSS VSSM Shadows"
     };
 
     inline Scene* LoadScene(const std::string& title) {
@@ -30,6 +34,8 @@ namespace scene::factory {
         if (title == "Demo Scene") return new Scene01(title);
         if (title == "Environment Lighting (IBL)") return new Scene02(title);
         if (title == "Disney BSDF") return new Scene03(title);
+        if (title == "Cloth Simulation") return new Scene04(title);
+        if (title == "PCSS VSSM Shadows") return new Scene05(title);
 
         CORE_ERROR("Scene \"{0}\" is not registered in the factory ...", title);
         std::cin.get();

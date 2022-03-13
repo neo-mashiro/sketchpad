@@ -39,4 +39,13 @@ namespace asset {
         glVertexArrayElementBuffer(id, ibo);
     }
 
+    void VAO::Draw(GLenum mode, GLsizei count) {
+        Bind();
+        glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
+
+        if constexpr (false) {
+           Unbind();  // with smart bindings, we never need to unbind after the draw call
+        }
+    }
+
 }

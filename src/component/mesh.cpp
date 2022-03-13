@@ -46,8 +46,8 @@ namespace component {
                 float u = static_cast<float>(col) / n_cols;
                 float v = static_cast<float>(row) / n_rows;
 
-                float theta = v * PI;      // ~ [0, PI], latitude from south pole to north pole
-                float phi   = u * PI * 2;  // ~ [0, 2PI], longitude around the equator circle
+                float theta = PI * v - PI_2;  // ~ [-PI/2, PI/2], latitude from south to north pole
+                float phi = PI * 2 * u;       // ~ [0, 2PI], longitude around the equator circle
 
                 float x = cos(phi) * cos(theta);
                 float y = sin(theta);
@@ -494,12 +494,7 @@ namespace component {
     }
 
     void Mesh::Draw() const {
-        vao->Bind();
-        glDrawElements(GL_TRIANGLES, n_tris * 3, GL_UNSIGNED_INT, 0);
-
-        if constexpr (false) {
-            vao->Unbind();  // with smart bindings, we don't need to unbind after the draw call
-        }
+        vao->Draw(GL_TRIANGLES, n_tris * 3);
     }
 
     void Mesh::DrawQuad() {

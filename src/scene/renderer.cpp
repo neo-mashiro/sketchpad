@@ -142,6 +142,20 @@ namespace scene {
         }
     }
 
+    void Renderer::PrimitiveRestart(bool enable) {
+        static bool is_enabled = false;
+
+        if (enable && !is_enabled) {
+            glEnable(GL_PRIMITIVE_RESTART);
+            glPrimitiveRestartIndex(0xFFFFFF);
+            is_enabled = true;
+        }
+        else if (!enable && is_enabled) {
+            glDisable(GL_PRIMITIVE_RESTART);
+            is_enabled = false;
+        }
+    }
+
     void Renderer::SetFrontFace(bool ccw) {
         glFrontFace(ccw ? GL_CCW : GL_CW);
     }

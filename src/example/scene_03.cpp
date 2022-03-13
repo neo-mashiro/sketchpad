@@ -28,6 +28,9 @@ namespace scene {
     static vec4  wide_line_color = vec4(0.2f, 0.2f, 0.2f, 1.0f);
     static vec3  dl_direction    = vec3(0.7f, -0.7f, 0.0f);
 
+    static float skybox_exposure = 1.0f;
+    static float skybox_lod      = 0.0f;
+
     static bool  show_gizmo    = false;
     static bool  rotate_model  = false;
     static bool  reset_model   = false;
@@ -44,18 +47,12 @@ namespace scene {
     static float specular      = 0.5f;
     static float anisotropy    = 0.0f;
     static vec3  aniso_dir     = world::right;
-
     static float transmission  = 0.0f;
     static float thickness     = 2.0f;
     static float ior           = 1.5f;
     static vec3  transmittance = color::purple;
     static float tr_distance   = 4.0f;
     static uint  volume_type   = 0U;
-
-    //static vec3  sheen_color   = color::white;
-    //static vec3  subsurf_color = color::yellow;
-    //////// now let's do scene04, first read the cloth compute shader chapter in the book!!!!!!!!
-
     static float clearcoat     = 0.0f;
     static float cc_roughness  = 0.0f;
 
@@ -68,11 +65,9 @@ namespace scene {
         resource_manager.Add(10, MakeAsset<Shader>(paths::shader + "core\\infinite_grid.glsl"));
         resource_manager.Add(11, MakeAsset<Shader>(paths::shader + "scene_03\\pbr.glsl"));
         resource_manager.Add(12, MakeAsset<Shader>(paths::shader + "scene_03\\skybox.glsl"));
-        resource_manager.Add(13, MakeAsset<Shader>(paths::shader + "scene_03\\light.glsl"));
         resource_manager.Add(19, MakeAsset<Shader>(paths::shader + "scene_03\\post_process.glsl"));
         resource_manager.Add(21, MakeAsset<Material>(resource_manager.Get<Shader>(11)));
         resource_manager.Add(22, MakeAsset<Material>(resource_manager.Get<Shader>(12)));
-        resource_manager.Add(23, MakeAsset<Material>(resource_manager.Get<Shader>(13)));
         
         AddUBO(resource_manager.Get<Shader>(11)->ID());
         AddUBO(resource_manager.Get<Shader>(12)->ID());
@@ -87,14 +82,15 @@ namespace scene {
         camera = CreateEntity("Camera", ETag::MainCamera);
         camera.GetComponent<Transform>().Translate(0.0f, 6.0f, 9.0f);
         camera.AddComponent<Camera>(View::Perspective);
-        camera.AddComponent<Spotlight>(vec3(1.0f, 0.553f, 0.0f), 3.8f);
+        camera.AddComponent<Spotlight>(color::red, 3.8f);
         camera.GetComponent<Spotlight>().SetCutoff(4.0f, 10.0f, 45.0f);
         
         skybox = CreateEntity("Skybox", ETag::Skybox);
         skybox.AddComponent<Mesh>(Primitive::Cube);
         if (auto& mat = skybox.AddComponent<Material>(resource_manager.Get<Material>(22)); true) {
             mat.SetTexture(0, prefiltered_map);
-            mat.SetUniform(0, 1.0f);  // skybox exposure
+            mat.BindUniform(0, &skybox_exposure);
+            mat.BindUniform(1, &skybox_lod);
         }
 
         direct_light = CreateEntity("Directional Light");
@@ -221,6 +217,10 @@ namespace scene {
             ui::DrawRainbowBar(rainbow_offset, 2.0f);
             Spacing();
 
+            PushItemWidth(130.0f);
+            SliderFloat("Skybox Exposure", &skybox_exposure, 0.5f, 2.0f);
+            SliderFloat("Skybox LOD", &skybox_lod, 0.0f, 7.0f);
+            PopItemWidth();
             Checkbox("Gizmo", &show_gizmo); SameLine();
             reset_model |= Button("###", ImVec2(30.0f, 0.0f)); SameLine();
             Text("Reset"); SameLine();
@@ -383,7 +383,6 @@ namespace scene {
         mat.SetTexture(pbr_t::irradiance_map, irradiance_map);
         mat.SetTexture(pbr_t::prefiltered_map, prefiltered_map);
         mat.SetTexture(pbr_t::BRDF_LUT, BRDF_LUT);
-        //mat.SetUniform(pbr_u::uv_scale, vec2(1.0f));
 
         mat.BindUniform(pbr_u::albedo, &albedo);
         mat.BindUniform(pbr_u::roughness, &roughness);
@@ -398,8 +397,6 @@ namespace scene {
         mat.BindUniform(pbr_u::transmittance, &transmittance);
         mat.BindUniform(pbr_u::tr_distance, &tr_distance);
         mat.BindUniform(pbr_u::volume_type, &volume_type);
-        //mat.BindUniform(pbr_u::sheen_color,   &sheen_color);
-        //mat.BindUniform(pbr_u::subsurf_color, &subsurf_color);
         mat.BindUniform(pbr_u::clearcoat, &clearcoat);
         mat.BindUniform(pbr_u::cc_roughness, &cc_roughness);
     }

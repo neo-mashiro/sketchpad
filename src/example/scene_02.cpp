@@ -635,10 +635,7 @@ namespace scene {
             }
         }
 
-        static float torus_hue = 1.0f;
-        torus_hue -= Clock::delta_time * 0.05f;
-        if (torus_hue < 0.0f) torus_hue += 1.0f;
-        torus_color = math::HSV2RGB(vec3(torus_hue, 1.0f, 1.0f));
+        torus_color = math::HSV2RGB(vec3(fmodf(Clock::delta_time * 0.05f, 1.0f), 1.0f, 1.0f));
 
         if (rotate_torus) {
             torus.GetComponent<Transform>().Rotate(world::right, 0.36f, Space::Local);

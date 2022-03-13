@@ -92,6 +92,7 @@ namespace scene {
         static void AlphaBlend(bool enable);
         static void FaceCulling(bool enable);
         static void SeamlessCubemap(bool enable);
+        static void PrimitiveRestart(bool enable);
         static void SetFrontFace(bool ccw);
         static void SetViewport(GLuint width, GLuint height);
 

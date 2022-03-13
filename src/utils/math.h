@@ -33,5 +33,6 @@ namespace utils::math {
     glm::vec3 HSV2RGB(const glm::vec3& hsv);
 
     float Gaussian(float x, float sigma);
+    float Bounce(float x, float k);
 
 }

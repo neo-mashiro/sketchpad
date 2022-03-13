@@ -123,4 +123,9 @@ namespace utils::math {
         return static_cast<float>(coefficient * exp(exponent));
     }
 
+    // returns a float that bounces between 0.0 and k as the value of x changes monotonically
+    float Bounce(float x, float k) {
+        return k - fabs(k - fmodf(x, k * 2));
+    }
+
 }
