@@ -6,7 +6,7 @@ This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose 
 
 This project is initially started as an exercise to learn the basics of graphics in modern OpenGL, which later incorporated some ideas from game engine architecture to raise up the scope and level of abstraction. It is designed with modularization in mind to let users prototype new scenes with relative ease, thus we can focus more on the rendering algorithms without worrying too much about details. This can also be a useful framework and codebase for future reference, and a good starting point for implementing something more feature-complete and advanced.
 
-[Watch Demo Video](insert link here) on Youtube. (Tested on a 2016 old laptop with NVIDIA GTX 1050 card)
+[Watch Demo Video](https://www.youtube.com/watch?v=JCagITtAmQ0) on Youtube. (Tested on a 2016 old laptop with __NVIDIA GTX 1050__ card)
 
 ## Requirements
 
@@ -15,9 +15,9 @@ This project is initially started as an exercise to learn the basics of graphics
 
 ## Dependencies
 
-- [GLFW](https://en.wikipedia.org/wiki/GLFW) (v3.3.2 and above) or [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), [GLAD](https://glad.dav1d.de/), [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (v0.9.2 and above), [spdlog](https://github.com/gabime/spdlog) (logging library)
-- [Dear ImGui](https://github.com/ocornut/imgui) (GUI), [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) (Gizmo), [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) (UI Icons), [Optick](https://github.com/bombomby/optick) (profiler), [taskflow](https://github.com/taskflow/taskflow) (parallel tasks system)
-- [EnTT](https://github.com/skypjack/entt) (entity-component system), [Date](https://github.com/HowardHinnant/date) (time zone), [stb](https://github.com/nothings/stb) (image loader), [Assimp](https://github.com/assimp/assimp) (use [vcpkg](https://github.com/microsoft/vcpkg) to compile from sources)
+- [GLFW](https://en.wikipedia.org/wiki/GLFW) (v3.3.2+) or [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), [GLAD](https://glad.dav1d.de/), [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (v0.9.2+), [spdlog](https://github.com/gabime/spdlog) (logging library)
+- [Dear ImGui](https://github.com/ocornut/imgui) (GUI), [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) (Gizmo), [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders), [Optick](https://github.com/bombomby/optick) (profiler), [taskflow](https://github.com/taskflow/taskflow) (parallel tasks system)
+- [EnTT](https://github.com/skypjack/entt) (entity-component system), [Date](https://github.com/HowardHinnant/date) (time zone), [stb](https://github.com/nothings/stb) (image loader), [Assimp](https://github.com/assimp/assimp) (compile from sources)
 ```bash
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
@@ -29,13 +29,13 @@ cd vcpkg
 
 ## Build (Windows only)
 
-The `premake5.lua` script will handle all the workspace/project/build settings for us, there's no need to configure `build/release` or `win32/x64` manually, just run `premake.bat` and you are good to go. Alternatively, you can build the solution in console using
+The `premake5.lua` script will handle all the workspace/project/build settings for us, there's no need to configure `build/release` or `win32/x64` manually, just run `premake.bat` and you are good to go. Alternatively, you can also build the solution on the command line like so:
 ```bash
 git clone https://github.com/neo-mashiro/sketchpad.git
 cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
-The `\vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and start building. Upon success, executables will be built into a sub-folder in `\bin` for the selected platform, and all dependent DLLs will be automatically copied over there. You can also move the exe folder around, as long as it's inside root, paths are automatically deducted.
+The `\vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and start building. Upon success, executables will be built into a sub-folder in `\bin` for the selected platform, and all dependent DLLs will be automatically copied over there. You can also move the exe folder around without problems, as long as it's inside root, paths are automatically deducted.
 
 ## Screenshots
 
