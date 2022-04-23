@@ -1,12 +1,7 @@
 #ifndef _GAUSSIAN_H
 #define _GAUSSIAN_H
 
-// precomputed two-pass Gaussian blur kernels
-// here we have some precomputed Gaussian blur filters of various kernel size, if you
-// would ever need to use kernels of other sizes or would like to control the size at
-// runtime, you can use the `utils::math::Gaussian()` function to compute dynamically
-
-#ifdef KERNEL9x9
+#ifdef k9x9
 
 // precomputed 9x9 Gaussian blur filter (sigma ~= 1.75)
 const float weight[5] = float[] (
@@ -19,7 +14,7 @@ const float weight[5] = float[] (
 
 #endif
 
-#ifdef KERNEL11x11
+#ifdef k11x11
 
 // precomputed 11x11 Gaussian blur filter (sigma = 4)
 const float weight[6] = float[] (
@@ -33,7 +28,7 @@ const float weight[6] = float[] (
 
 #endif
 
-#ifdef KERNEL13x13
+#ifdef k13x13
 
 // precomputed 13x13 Gaussian blur filter (sigma = 4)
 const float weight[7] = float[] (
@@ -48,7 +43,7 @@ const float weight[7] = float[] (
 
 #endif
 
-#ifdef KERNEL15x15
+#ifdef k15x15
 
 // precomputed 15x15 Gaussian blur filter (sigma = 4)
 const float weight[8] = float[] (
@@ -64,7 +59,7 @@ const float weight[8] = float[] (
 
 #endif
 
-#ifdef KERNEL19x19
+#ifdef k19x19
 
 // precomputed 19x19 Gaussian blur filter (sigma = 5)
 const float weight[10] = float[] (
