@@ -1,31 +1,23 @@
-# sketchpad
+# "sketchpad"
 
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
 
-This is a simple rendering library built with __OpenGL 4.6__ and C++17, the purpose of which is to experiment with various rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS tight budget. There are so many low-level details behind the rendering pipeline, so we need a solid understanding of every pixel in graphics. This project is an exercise to learn the basics of graphics in modern OpenGL, also a useful framework and codebase for future reference. I've borrowed some game engine concepts such as the ECS architecture to raise the level of abstraction, so that in the future we can prototype new scenes with relative ease and focus more on the rendering algorithms.
+This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose of which is to experiment with a wide range of rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS constraint. There are also lots of low-level details behind the graphics API, so we must have a solid understanding of every little step in the rendering pipeline.
 
-## Demo Video
+This project is initially started as an exercise to learn the basics of graphics in modern OpenGL, which later incorporated some ideas from game engine architecture to raise up the scope and level of abstraction. It is designed with modularization in mind to let users prototype new scenes with relative ease, thus we can focus more on the rendering algorithms without worrying too much about details. This can also be a useful framework and codebase for future reference, and a good starting point for implementing something more feature-complete and advanced.
 
-insert link here
+[Watch Demo Video](insert link here) on Youtube. (Tested on a 2016 old laptop with NVIDIA GTX 1050 card)
 
-Tested on: GTX 1050 on an old laptop (2016)
+## Requirements
 
-## Gallery
-
-<p align="center">
-  <b>CONSOLE LOGS</b>
-  <br><br>
-  <img src="">
-</p>
+- [Visual Studio](https://visualstudio.microsoft.com/downloads/) 2019 or later + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
+- Desktop Windows with OpenGL 4.6 support + [Premake5](https://github.com/premake/premake-core) (included in the `\vendor` folder)
 
 ## Dependencies
 
-- [Premake5](https://github.com/premake/premake-core), [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
-- [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library) (version 2.1.0), or better [GLAD](https://glad.dav1d.de/), and [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (version 0.9.2 or above)
-- [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), or [GLFW](https://en.wikipedia.org/wiki/GLFW) (version 3.3.2) for finer control
-- [stb](https://github.com/nothings/stb) (image loader), or better [SOIL](https://github.com/littlstar/soil), [SOIL2](https://github.com/SpartanJ/SOIL2) for more image utilities, and [spdlog](https://github.com/gabime/spdlog) (logging library)
-- [EnTT](...) for entity-component system.
-- [Assimp](https://github.com/assimp/assimp) (use [vcpkg](https://github.com/microsoft/vcpkg) to compile from sources)
+- [GLFW](https://en.wikipedia.org/wiki/GLFW) (v3.3.2 and above) or [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), [GLAD](https://glad.dav1d.de/), [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (v0.9.2 and above), [spdlog](https://github.com/gabime/spdlog) (logging library)
+- [Dear ImGui](https://github.com/ocornut/imgui) (GUI), [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) (Gizmo), [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) (UI Icons), [Optick](https://github.com/bombomby/optick) (profiler), [taskflow](https://github.com/taskflow/taskflow) (parallel tasks system)
+- [EnTT](https://github.com/skypjack/entt) (entity-component system), [Date](https://github.com/HowardHinnant/date) (time zone), [stb](https://github.com/nothings/stb) (image loader), [Assimp](https://github.com/assimp/assimp) (use [vcpkg](https://github.com/microsoft/vcpkg) to compile from sources)
 ```bash
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
@@ -34,20 +26,28 @@ cd vcpkg
 ./vcpkg.exe install assimp              # x86 build
 ./vcpkg.exe install assimp:x64-windows  # x64 build
 ```
-- [Dear ImGui] HUI
-- [xxx] Serialization
 
-## How to build (Windows only)
+## Build (Windows only)
 
-The Premake Lua scripts will handle the workspace/project/build settings for all configurations and platforms for us, there's no need to set things up in Visual Studio by hand. To build the solution, simply run
+The `premake5.lua` script will handle all the workspace/project/build settings for us, there's no need to configure `build/release` or `win32/x64` manually, just run `premake.bat` and you are good to go. Alternatively, you can build the solution in console using
 ```bash
 git clone https://github.com/neo-mashiro/sketchpad.git
 cd sketchpad/
 vendor/premake/premake5.exe vs2019
 ```
-Once you have cloned the repository, the `vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and fire up the application. The executables are then built into the `bin` folder for each platform (x86 or x64), and all dependent DLLs will be copied over there automatically so you don't need any extra setup.
+The `\vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and start building. Upon success, executables will be built into a sub-folder in `\bin` for the selected platform, and all dependent DLLs will be automatically copied over there. You can also move the exe folder around, as long as it's inside root, paths are automatically deducted.
+
+## Screenshots
+
+<p align="center">
+  <b>CONSOLE LOGS</b>
+  <br><br>
+  <img src="">
+</p>
 
 ## Features
+
+make a compact table here
 
 - managing objects with entity-component system
 - loading and switching scenes at runtime
@@ -68,8 +68,6 @@ Once you have cloned the repository, the `vendor` folder already contains the pr
 - built-in clock and framerate counter
 - automatic filepath deduction (can run `.exe` in any folder)
 - mapping between 3D vector, equirectangular uv coordinates and ILS vector
-
-
 - tiled forward rendering (light culling in compute shader)
 - physically-based shading and IBL (with energy compensation)
 - physically-based materials (Disney BRDF + clear coat + anisotropy + refraction + cloth)
