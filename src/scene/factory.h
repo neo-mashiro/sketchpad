@@ -17,25 +17,28 @@
 #include "example/scene_03.h"
 #include "example/scene_04.h"
 #include "example/scene_05.h"
+#include "example/scene_06.h"
 
 namespace scene::factory {
 
     inline const std::vector<std::string> titles {
         "Welcome Screen",
-        "Demo Scene",
+        "Tiled Forward Renderer",
         "Environment Lighting (IBL)",
-        "Disney BSDF",
-        "Cloth Simulation",
-        "PCSS VSSM Shadows"
+        "Disney Principled BSDF",
+        "Compute Shader Cloth Simulation",
+        "Animation and Realtime Shadows",
+        "Bezier Area Lights with LTC"
     };
 
     inline Scene* LoadScene(const std::string& title) {
         if (title == "Welcome Screen") return new Scene(title);
-        if (title == "Demo Scene") return new Scene01(title);
+        if (title == "Tiled Forward Renderer") return new Scene01(title);
         if (title == "Environment Lighting (IBL)") return new Scene02(title);
-        if (title == "Disney BSDF") return new Scene03(title);
-        if (title == "Cloth Simulation") return new Scene04(title);
-        if (title == "PCSS VSSM Shadows") return new Scene05(title);
+        if (title == "Disney Principled BSDF") return new Scene03(title);
+        if (title == "Compute Shader Cloth Simulation") return new Scene04(title);
+        if (title == "Animation and Realtime Shadows") return new Scene05(title);
+        if (title == "Bezier Area Lights with LTC") return new Scene06(title);
 
         CORE_ERROR("Scene \"{0}\" is not registered in the factory ...", title);
         std::cin.get();

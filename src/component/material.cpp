@@ -11,7 +11,8 @@ namespace component {
 
     template<typename T>
     Uniform<T>::Uniform(GLuint owner_id, GLuint location, const char* name)
-        : owner_id(owner_id), location(location), name(name), value(0), value_ptr(nullptr) {}
+        : owner_id(owner_id), location(location), name(name), size(1),
+          value(0), value_ptr(nullptr), array_ptr(nullptr) {}
 
     template<typename T>
     void Uniform<T>::operator<<(const T& value) {
@@ -24,29 +25,47 @@ namespace component {
     }
 
     template<typename T>
-    void Uniform<T>::Upload() const {
-        T val = this->value_ptr ? *(value_ptr) : value;
-        const GLuint& id = owner_id;
-        const GLuint& loc = location;
+    void Uniform<T>::operator<<=(const std::vector<T>* array_ptr) {
+        this->array_ptr = array_ptr;
+    }
 
-        /**/ if constexpr (std::is_same_v<T, bool>)   { glProgramUniform1i(id, loc, static_cast<int>(val)); }
-        else if constexpr (std::is_same_v<T, int>)    { glProgramUniform1i(id, loc, val); }
-        else if constexpr (std::is_same_v<T, float>)  { glProgramUniform1f(id, loc, val); }
-        else if constexpr (std::is_same_v<T, GLuint>) { glProgramUniform1ui(id, loc, val); }
-        else if constexpr (std::is_same_v<T, vec2>)   { glProgramUniform2fv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec3>)   { glProgramUniform3fv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, vec4>)   { glProgramUniform4fv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, ivec2>)  { glProgramUniform2iv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, ivec3>)  { glProgramUniform3iv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, ivec4>)  { glProgramUniform4iv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, uvec2>)  { glProgramUniform2uiv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, uvec3>)  { glProgramUniform3uiv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, uvec4>)  { glProgramUniform4uiv(id, loc, 1, &val[0]); }
-        else if constexpr (std::is_same_v<T, mat2>)   { glProgramUniformMatrix2fv(id, loc, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat3>)   { glProgramUniformMatrix3fv(id, loc, 1, GL_FALSE, &val[0][0]); }
-        else if constexpr (std::is_same_v<T, mat4>)   { glProgramUniformMatrix4fv(id, loc, 1, GL_FALSE, &val[0][0]); }
+    template<typename T>
+    void Uniform<T>::Upload(T val, GLuint index) const {
+        const GLuint& id = owner_id;
+        const GLuint& lc = location + index;
+
+        /**/ if constexpr (std::is_same_v<T, bool>)   { glProgramUniform1i(id, lc, static_cast<int>(val)); }
+        else if constexpr (std::is_same_v<T, int>)    { glProgramUniform1i(id, lc, val); }
+        else if constexpr (std::is_same_v<T, float>)  { glProgramUniform1f(id, lc, val); }
+        else if constexpr (std::is_same_v<T, GLuint>) { glProgramUniform1ui(id, lc, val); }
+        else if constexpr (std::is_same_v<T, vec2>)   { glProgramUniform2fv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec3>)   { glProgramUniform3fv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, vec4>)   { glProgramUniform4fv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, ivec2>)  { glProgramUniform2iv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, ivec3>)  { glProgramUniform3iv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, ivec4>)  { glProgramUniform4iv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, uvec2>)  { glProgramUniform2uiv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, uvec3>)  { glProgramUniform3uiv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, uvec4>)  { glProgramUniform4uiv(id, lc, 1, &val[0]); }
+        else if constexpr (std::is_same_v<T, mat2>)   { glProgramUniformMatrix2fv(id, lc, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat3>)   { glProgramUniformMatrix3fv(id, lc, 1, GL_FALSE, &val[0][0]); }
+        else if constexpr (std::is_same_v<T, mat4>)   { glProgramUniformMatrix4fv(id, lc, 1, GL_FALSE, &val[0][0]); }
         else {
             static_assert(const_false<T>, "Unspecified template uniform type T ...");
+        }
+    }
+
+    template<typename T>
+    void Uniform<T>::Upload() const {
+        if (size == 1) {
+            T val = this->value_ptr ? *(value_ptr) : value;
+            Upload(val);
+            return;
+        }
+
+        for (GLuint i = 0; i < size; ++i) {
+            T val = (*array_ptr)[i];
+            Upload(val, i);
         }
     }
 
@@ -115,14 +134,14 @@ namespace component {
         shader->Bind();  // smart bind the attached shader
 
         // upload uniform values to the shader
-        for (const auto& pair : uniforms) {
-            std::visit(upload, pair.second);
+        for (const auto& [location, unif_variant] : uniforms) {
+            std::visit(upload, unif_variant);
         }
 
         // smart bind textures to the slots
-        for (const auto& pair : textures) {
-            if (auto& texture = pair.second; texture != nullptr) {
-                texture->Bind(pair.first);
+        for (const auto& [unit, texture] : textures) {
+            if (texture != nullptr) {
+                texture->Bind(unit);
             }
         }
     }
@@ -131,9 +150,9 @@ namespace component {
         // thanks to smart shader and texture bindings, there's no need to unbind or cleanup
         // just keep the current rendering state and let the next material's bind does its work
         if constexpr (false) {
-            for (const auto& pair : textures) {
-                if (auto& texture = pair.second; texture != nullptr) {
-                    texture->Unbind(pair.first);
+            for (const auto& [unit, texture] : textures) {
+                if (texture != nullptr) {
+                    texture->Unbind(unit);
                 }
             }
             shader->Unbind();
@@ -204,12 +223,12 @@ namespace component {
                 case GL_FLOAT_VEC2:         IN_PLACE_CONSTRUCT_UNI_VARIANT(4);   break;
                 case GL_FLOAT_VEC3:         IN_PLACE_CONSTRUCT_UNI_VARIANT(5);   break;
                 case GL_FLOAT_VEC4:         IN_PLACE_CONSTRUCT_UNI_VARIANT(6);   break;
-                case GL_FLOAT_MAT2:         IN_PLACE_CONSTRUCT_UNI_VARIANT(7);   break;
-                case GL_FLOAT_MAT3:         IN_PLACE_CONSTRUCT_UNI_VARIANT(8);   break;
-                case GL_FLOAT_MAT4:         IN_PLACE_CONSTRUCT_UNI_VARIANT(9);   break;
-                case GL_UNSIGNED_INT_VEC2:  IN_PLACE_CONSTRUCT_UNI_VARIANT(10);  break;
-                case GL_UNSIGNED_INT_VEC3:  IN_PLACE_CONSTRUCT_UNI_VARIANT(11);  break;
-                case GL_UNSIGNED_INT_VEC4:  IN_PLACE_CONSTRUCT_UNI_VARIANT(12);  break;
+                case GL_UNSIGNED_INT_VEC2:  IN_PLACE_CONSTRUCT_UNI_VARIANT(7);   break;
+                case GL_UNSIGNED_INT_VEC3:  IN_PLACE_CONSTRUCT_UNI_VARIANT(8);   break;
+                case GL_UNSIGNED_INT_VEC4:  IN_PLACE_CONSTRUCT_UNI_VARIANT(9);   break;
+                case GL_FLOAT_MAT2:         IN_PLACE_CONSTRUCT_UNI_VARIANT(10);  break;
+                case GL_FLOAT_MAT3:         IN_PLACE_CONSTRUCT_UNI_VARIANT(11);  break;
+                case GL_FLOAT_MAT4:         IN_PLACE_CONSTRUCT_UNI_VARIANT(12);  break;
                 case GL_INT_VEC2:           IN_PLACE_CONSTRUCT_UNI_VARIANT(13);  break;
                 case GL_INT_VEC3:           IN_PLACE_CONSTRUCT_UNI_VARIANT(14);  break;
                 case GL_INT_VEC4:           IN_PLACE_CONSTRUCT_UNI_VARIANT(15);  break;
@@ -227,8 +246,8 @@ namespace component {
 
     void Material::SetTexture(GLuint unit, asset_ref<Texture> texture_ref) {
         size_t n_textures = 0;
-        for (const auto& pair : textures) {
-            if (pair.second != nullptr) {
+        for (const auto& [_, texture] : textures) {
+            if (texture != nullptr) {
                 n_textures++;
             }
         }
@@ -256,9 +275,9 @@ namespace component {
     template<typename T, typename>
     void Material::SetUniform(GLuint location, const T& value) {
         if (uniforms.count(location) > 0) {  // ignore inactive uniforms
-            auto& unif_var = uniforms[location];
-            CORE_ASERT(std::holds_alternative<Uniform<T>>(unif_var), "Mismatched uniform type!");
-            std::get<Uniform<T>>(unif_var) << value;
+            auto& unif_variant = uniforms[location];
+            CORE_ASERT(std::holds_alternative<Uniform<T>>(unif_variant), "Mismatched uniform type!");
+            std::get<Uniform<T>>(unif_variant) << value;
         }
     }
 
@@ -270,9 +289,9 @@ namespace component {
     template<typename T, typename>
     void Material::BindUniform(GLuint location, const T* value_ptr) {
         if (uniforms.count(location) > 0) {
-            auto& unif_var = uniforms[location];
-            CORE_ASERT(std::holds_alternative<Uniform<T>>(unif_var), "Mismatched uniform type!");
-            std::get<Uniform<T>>(unif_var) <<= value_ptr;
+            auto& unif_variant = uniforms[location];
+            CORE_ASERT(std::holds_alternative<Uniform<T>>(unif_variant), "Mismatched uniform type!");
+            std::get<Uniform<T>>(unif_variant) <<= value_ptr;
         }
     }
 
@@ -281,13 +300,25 @@ namespace component {
         BindUniform<T>(static_cast<GLuint>(attribute), value_ptr);
     }
 
+    template<typename T, typename>
+    void Material::SetUniformArray(GLuint location, GLuint size, const std::vector<T>* array_ptr) {
+        if (uniforms.count(location) > 0) {
+            auto& unif_variant = uniforms[location];
+            CORE_ASERT(std::holds_alternative<Uniform<T>>(unif_variant), "Mismatched uniform type!");
+            auto& uniform = std::get<Uniform<T>>(unif_variant);
+            uniform.size = size;
+            uniform <<= array_ptr;
+        }
+    }
+
     // explicit template instantiation using X macro
     #define INSTANTIATE_TEMPLATE(T) \
         template class Uniform<T>; \
         template void Material::SetUniform<T>(GLuint location, const T& value); \
         template void Material::SetUniform<T>(pbr_u attribute, const T& value); \
         template void Material::BindUniform<T>(GLuint location, const T* value_ptr); \
-        template void Material::BindUniform<T>(pbr_u attribute, const T* value_ptr);
+        template void Material::BindUniform<T>(pbr_u attribute, const T* value_ptr); \
+        template void Material::SetUniformArray(GLuint location, GLuint size, const std::vector<T>* array_ptr);
 
     INSTANTIATE_TEMPLATE(int)
     INSTANTIATE_TEMPLATE(GLuint)

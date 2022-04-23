@@ -44,7 +44,9 @@ namespace scene::ui {
     static ImVec4 blue   = ImVec4(0.0f, 0.0f, 1.0f, 1.0f);
     static ImVec4 cyan   = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
 
-    static ImGuiWindowFlags invisible_window_flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+    static const ImGuiColorEditFlags color3_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha;
+    static const ImGuiWindowFlags invisible_window_flags = ImGuiWindowFlags_NoBackground
+        | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
     static int rotation_start_index = 0;
 
     void Init() {
@@ -451,7 +453,7 @@ namespace scene::ui {
         Text("Sketchpad %s", version);
         Separator();
         Text("Open source work by neo-mashiro, July 2021.");
-        Text("A simple OpenGL sandbox renderer for experimenting with various rendering techniques.");
+        Text("A simple rendering library for playing with graphics in OpenGL.");
         Separator();
 
         static bool show_contact_info = false;
@@ -490,10 +492,8 @@ namespace scene::ui {
 
         Spacing();
 
-        static const ImVec4 text_color = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
-        static const char instructions[] =
-            "This software is a simple sandbox for playing with modern graphics rendering in OpenGL. "
-            "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog";
+        const ImVec4 text_color = ImVec4(0.4f, 0.8f, 0.4f, 1.0f);
+        const char instructions[] = "Just play with it to find out :)";
 
         if (TreeNode("Basic Guide")) {
             Spacing();
@@ -509,8 +509,9 @@ namespace scene::ui {
 
         if (TreeNode("Mouse")) {
             Spacing();
-            BulletText("Move the cursor around to rotate the camera.");
-            BulletText("Hold the right button and slide to zoom in & out.");
+            BulletText("Move cursor around to rotate the camera.");
+            BulletText("Hold the RMB and slide to zoom in & out.");
+            BulletText("Hold the LMB to rotate in arcball mode.");
             Spacing();
             TreePop();
         }
@@ -525,7 +526,7 @@ namespace scene::ui {
         if (TreeNode("Keyboard")) {
             Spacing();
             color_text("Enter");
-            Text("Show or hide the UI menus.");
+            Text("Toggle On/Off the UI inspector.");
             color_text("Escape");
             Text("Confirm to exit the window.");
             color_text("WASD");
@@ -533,24 +534,8 @@ namespace scene::ui {
             color_text("Space/Z");
             Text("Move the camera upward/downward.");
             color_text("R");
-            Text("Recover camera to the initial setup.");
+            Text("Reset the camera to initial transform.");
             Spacing();
-            TreePop();
-        }
-
-        static const char menus_guide[] =
-            "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. "
-            "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.";
-
-        if (TreeNode("Menus")) {
-            Spacing();
-            Indent(10.0f);
-            PushStyleColor(ImGuiCol_Text, text_color);
-            PushTextWrapPos(412.903f);
-            TextWrapped(menus_guide);
-            PopTextWrapPos();
-            PopStyleColor();
-            Unindent(10.0f);
             TreePop();
         }
 

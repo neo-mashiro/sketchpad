@@ -1,6 +1,9 @@
 #include "pch.h"
 
 #define STB_IMAGE_IMPLEMENTATION
+#ifdef STB_IMAGE_WRITE_IMPLEMENTATION
+#undef STB_IMAGE_WRITE_IMPLEMENTATION
+#endif
 #include <stb_image.h>
 
 #include "core/log.h"
@@ -19,9 +22,7 @@ namespace utils {
         stbi_set_flip_vertically_on_load(flip);
 
         // supported file extensions (will support ".psd", ".tga" and ".gif" in the future)
-        static const std::vector<std::string> extensions {
-            ".jpg", ".png", ".jpeg", ".bmp", ".hdr", ".exr"
-        };
+        const std::vector<std::string> extensions { ".jpg", ".png", ".jpeg", ".bmp", ".hdr", ".exr" };
 
         // check valid file extension
         auto ext = filepath.substr(filepath.rfind("."));
@@ -34,7 +35,7 @@ namespace utils {
         this->is_hdr = stbi_is_hdr(filepath.c_str());
 
         if (is_hdr) {
-            float* buffer = stbi_loadf(filepath.c_str(), &width, &height, &n_channels, 3);
+            float* buffer = stbi_loadf(filepath.c_str(), &width, &height, &n_channels, 4);
 
             if (buffer == nullptr) {
                 CORE_ERROR("Failed to load image: {0}", filepath);
@@ -49,7 +50,7 @@ namespace utils {
             float sum_log_luminance = 0.0f;
 
             for (size_t i = 0; i < n_pixels; i++) {
-                float* pixel_ptr = buffer + (i * 3);  // move forward 3 channels
+                const float* pixel_ptr = buffer + (i * 3);  // move forward 3 channels
 
                 auto color = glm::vec3(pixel_ptr[0], pixel_ptr[1], pixel_ptr[2]);
                 auto luminance = glm::dot(color, glm::vec3(0.2126f, 0.7152f, 0.0722f));
@@ -65,6 +66,13 @@ namespace utils {
             CORE_TRACE("------------------------------------------------------------------------");
             CORE_DEBUG("min: {0}, max: {1}, log average: {2}", min_luminance, max_luminance, log_average_luminance);
             CORE_TRACE("------------------------------------------------------------------------");
+
+            float luminance_diff = max_luminance - min_luminance;
+            if (luminance_diff > 10000.0f) {
+                CORE_WARN("Input HDR image is too bright, some pixels have values close to infinity!");
+                CORE_WARN("This can lead to serious artifact in IBL or even completely white images!");
+                CORE_WARN("Please use a different image or manually adjust the exposure values (EV)!");
+            }
             
             pixels.reset(reinterpret_cast<uint8_t*>(buffer));
         }
@@ -103,7 +111,7 @@ namespace utils {
 
     GLenum Image::Format() const {
         if (is_hdr) {
-            return GL_RGB;
+            return GL_RGBA;
         }
 
         switch (n_channels) {
@@ -117,7 +125,7 @@ namespace utils {
 
     GLenum Image::IFormat() const {
         if (is_hdr) {
-            return GL_RGB16F;
+            return GL_RGBA16F;
         }
 
         switch (n_channels) {

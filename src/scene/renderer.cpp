@@ -32,6 +32,7 @@ namespace scene {
     std::queue<entt::entity> Renderer::render_queue {};
 
     static bool depth_prepass = false;
+    static uint shadow_index = 0U;
     static asset_tmp<UBO> renderer_input = nullptr;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -164,6 +165,11 @@ namespace scene {
         glViewport(0, 0, width, height);
     }
 
+    void Renderer::SetShadowPass(unsigned int index) {
+        // to cast shadows from multiple lights, we need multiple passes, once per light source
+        shadow_index = index;  // use this to identify a specific shadow pass and light source
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     void Renderer::Attach(const std::string& title) {
@@ -171,9 +177,9 @@ namespace scene {
 
         // create the renderer input UBO on the first run (internal UBO)
         if (renderer_input == nullptr) {
-            const std::vector<GLuint> offset { 0U, 8U, 16U, 20U, 24U, 28U, 32U };
-            const std::vector<GLuint> length { 8U, 8U, 4U, 4U, 4U, 4U, 4U };
-            const std::vector<GLuint> stride { 8U, 8U, 4U, 4U, 4U, 4U, 4U };
+            const std::vector<GLuint> offset { 0U, 8U, 16U, 20U, 24U, 28U, 32U, 36U };
+            const std::vector<GLuint> length { 8U, 8U, 4U, 4U, 4U, 4U, 4U, 4U };
+            const std::vector<GLuint> stride { 8U, 8U, 4U, 4U, 4U, 4U, 4U, 4U };
 
             renderer_input = WrapAsset<UBO>(10, offset, length, stride);
         }
@@ -248,14 +254,14 @@ namespace scene {
         }
     }
 
-    void Renderer::Render() {
+    void Renderer::Render(const asset_ref<asset::Shader> custom_shader) {
         auto& reg = curr_scene->registry;
         auto mesh_group = reg.group<Mesh>(entt::get<Transform, Tag, Material>);
         auto model_group = reg.group<Model>(entt::get<Transform, Tag>);  // materials are managed by the model
 
         if (!render_queue.empty()) {
-            static constexpr float near_clip = 0.1f;
-            static constexpr float far_clip = 100.0f;
+            constexpr float near_clip = 0.1f;
+            constexpr float far_clip = 100.0f;
 
             glm::ivec2 resolution = glm::ivec2(Window::width, Window::height);
             glm::ivec2 cursor_pos = ui::GetCursorPosition();
@@ -270,6 +276,7 @@ namespace scene {
             renderer_input->SetUniform(4U, utils::val_ptr(total_time));
             renderer_input->SetUniform(5U, utils::val_ptr(delta_time));
             renderer_input->SetUniform(6U, utils::val_ptr(static_cast<int>(depth_prepass)));
+            renderer_input->SetUniform(7U, utils::val_ptr(shadow_index));
         }
 
         while (!render_queue.empty()) {
@@ -288,12 +295,22 @@ namespace scene {
                 auto& material  = mesh_group.get<Material>(e);
                 auto& tag       = mesh_group.get<Tag>(e);
 
-                material.SetUniform(1000U, transform.transform);
-                material.SetUniform(1001U, 0U);  // primitive mesh does not need a material id
-                material.SetUniform(1002U, 0U);  // ext_1002
-                material.SetUniform(1003U, 0U);  // ext_1003
-                material.SetUniform(1004U, 0U);  // ext_1004
-                material.Bind();  // smart binding, no need to unbind
+                if (custom_shader) {
+                    custom_shader->SetUniform(1000U, transform.transform);
+                    custom_shader->SetUniform(1001U, 0U);
+                    custom_shader->Bind();
+                }
+                else {
+                    material.SetUniform(1000U, transform.transform);
+                    material.SetUniform(1001U, 0U);  // primitive mesh does not have a material id
+                    material.SetUniform(1002U, 0U);  // ext_1002
+                    material.SetUniform(1003U, 0U);  // ext_1003
+                    material.SetUniform(1004U, 0U);  // ext_1004
+                    material.SetUniform(1005U, 0U);  // ext_1005
+                    material.SetUniform(1006U, 0U);  // ext_1006
+                    material.SetUniform(1007U, 0U);  // ext_1007
+                    material.Bind();  // smart binding, no need to unbind
+                }
 
                 if (tag.Contains(ETag::Skybox)) {
                     SetFrontFace(0);  // skybox has reversed winding order, we only draw the inner faces
@@ -314,12 +331,22 @@ namespace scene {
                     GLuint material_id = mesh.material_id;
                     auto& material = model.materials.at(material_id);
 
-                    material.SetUniform(1000U, transform.transform);
-                    material.SetUniform(1001U, material_id);
-                    material.SetUniform(1002U, 0U);  // ext_1002
-                    material.SetUniform(1003U, 0U);  // ext_1003
-                    material.SetUniform(1004U, 0U);  // ext_1004
-                    material.Bind();  // smart binding, no need to unbind
+                    if (custom_shader) {
+                        custom_shader->SetUniform(1000U, transform.transform);
+                        custom_shader->SetUniform(1001U, material_id);
+                        custom_shader->Bind();
+                    }
+                    else {
+                        material.SetUniform(1000U, transform.transform);
+                        material.SetUniform(1001U, material_id);
+                        material.SetUniform(1002U, 0U);  // ext_1002
+                        material.SetUniform(1003U, 0U);  // ext_1003
+                        material.SetUniform(1004U, 0U);  // ext_1004
+                        material.SetUniform(1005U, 0U);  // ext_1005
+                        material.SetUniform(1006U, 0U);  // ext_1006
+                        material.SetUniform(1007U, 0U);  // ext_1007
+                        material.Bind();  // smart binding, no need to unbind
+                    }
 
                     mesh.Draw();
                 }

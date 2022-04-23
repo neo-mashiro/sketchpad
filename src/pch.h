@@ -1,6 +1,5 @@
-#pragma once
-
-/* only header files that are external to your project (rarely changed) AND needed
+/* 
+   only header files that are external to your project (rarely changed) AND needed
    by most of your source files (often used) should be included in the precompiled
    header, do not blindly include every single external library header file, avoid
    inclusion of headers that are included only in few source files.
@@ -14,6 +13,8 @@
    these translation units may be slightly larger in size. That said, such overhead
    is considered trivial in most cases, unless our project is huge.
 */
+
+#pragma once
 
 #include <algorithm>
 #include <array>
@@ -36,6 +37,7 @@
 #include <queue>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>

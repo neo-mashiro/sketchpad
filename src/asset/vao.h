@@ -27,7 +27,7 @@ namespace asset {
         void Bind() const override;
         void Unbind() const override;
 
-        void SetVBO(GLuint vbo, GLuint attr_id, GLint offset, GLint size, GLint stride) const;
+        void SetVBO(GLuint vbo, GLuint attr_id, GLint offset, GLint size, GLint stride, GLenum type) const;
         void SetIBO(GLuint ibo) const;
         void Draw(GLenum mode, GLsizei count);
     };

@@ -112,7 +112,8 @@ namespace core {
             CORE_ERROR("Please restart the application to see if the hang persists.");
         }
 
-        CORE_ASERT(false, "Fatal error detected, aborting application ...");
+        CORE_ERROR("Fatal error detected, aborting application ...");
+        SP_DBG_BREAK();
     }
 
     void Debug::CheckGLError(int checkpoint) {

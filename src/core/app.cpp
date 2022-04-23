@@ -40,7 +40,8 @@ namespace core {
             glutInit(&argc, argv);
         }
         else {
-            CORE_ASERT(glfwInit() == GLFW_TRUE, "Fatal: Unable to initialize GLFW ...");
+            int ret = glfwInit();
+            CORE_ASERT(ret == GLFW_TRUE, "Fatal: Unable to initialize GLFW ...");
         }
         
         CORE_INFO("Creating application main window ...");
@@ -51,10 +52,12 @@ namespace core {
 
         CORE_INFO("Loading OpenGL core profile specs ...");
         if constexpr (_freeglut) {
-            CORE_ASERT(gladLoadGL(), "Failed to initialize GLAD with the internal loader...");
+            int ret = gladLoadGL();
+            CORE_ASERT(ret, "Failed to initialize GLAD with the internal loader...");
         }
         else {
-            CORE_ASERT(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress), "Failed to initialize GLAD...");
+            int ret = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+            CORE_ASERT(ret, "Failed to initialize GLAD...");
         }
 
         CORE_INFO("Initializing Dear ImGui backends ...");

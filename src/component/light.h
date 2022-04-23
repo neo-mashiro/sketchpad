@@ -1,3 +1,10 @@
+/* 
+   the collection of light classes here merely provide a container for storing light
+   relevant attributes and a set of query functions, there's nothing special to look
+   at here. These light data is intended to be consumed by buffer objects like UBOs
+   and SSBOs, and the real part of lighting calculations are all done in the shaders
+*/
+
 #pragma once
 
 #include <limits>
@@ -5,12 +12,6 @@
 #include "component/component.h"
 
 namespace component {
-
-    /* the collection of light classes here merely provide a container for storing light
-       relevant attributes and a set of query functions, there's nothing special to look
-       at here. These light data is intended to be consumed by buffer objects like UBOs
-       and SSBOs, and the real part of lighting calculations are all done in the shaders
-    */
 
     class Light : public Component {
       public:
@@ -55,14 +56,14 @@ namespace component {
       public:
         using Light::Light;
 
-        // TODO: to be implemented
+        // TODO: to be implemented, using Bezier curves sampling and LTC
     };
 
     class VolumeLight : public Light {
       public:
         using Light::Light;
 
-        // TODO: to be implemented
+        // TODO: to be implemented, requires volumetric path tracing
     };
 
 }

@@ -17,6 +17,7 @@
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <vector>
 #include <glad/glad.h>
 
 #include "asset/shader.h"
@@ -25,19 +26,7 @@
 
 namespace component {
 
-    using vec2 = glm::vec2;
-    using vec3 = glm::vec3;
-    using vec4 = glm::vec4;
-    using mat2 = glm::mat2;
-    using mat3 = glm::mat3;
-    using mat4 = glm::mat4;
-
-    using uvec2 = glm::uvec2;
-    using uvec3 = glm::uvec3;
-    using uvec4 = glm::uvec4;
-    using ivec2 = glm::ivec2;
-    using ivec3 = glm::ivec3;
-    using ivec4 = glm::ivec4;
+    using namespace glm;
 
     // allowed uniform types: int, uint, bool, float + 32-bit float vector/matrix
     template<typename T>
@@ -62,8 +51,13 @@ namespace component {
         std::string name;
         GLuint location;
         GLuint owner_id;  // which shader owns this uniform
+        GLuint size;  // if not an array, this is 1
+
+      private:
         T value;
         const T* value_ptr;
+        const std::vector<T>* array_ptr;
+        void Upload(T val, GLuint index = 0) const;
 
       public:
         Uniform() = default;
@@ -71,6 +65,7 @@ namespace component {
 
         void operator<<(const T& value);
         void operator<<=(const T* value_ptr);
+        void operator<<=(const std::vector<T>* array_ptr);
         void Upload() const;
     };
 
@@ -116,26 +111,10 @@ namespace component {
 
     class Material : public Component {
       private:
-        using uni_int   = Uniform<int>;
-        using uni_uint  = Uniform<GLuint>;
-        using uni_bool  = Uniform<bool>;
-        using uni_float = Uniform<float>;
-        using uni_vec2  = Uniform<vec2>;
-        using uni_vec3  = Uniform<vec3>;
-        using uni_vec4  = Uniform<vec4>;
-        using uni_mat2  = Uniform<mat2>;
-        using uni_mat3  = Uniform<mat3>;
-        using uni_mat4  = Uniform<mat4>;
-        using uni_uvec2 = Uniform<uvec2>;
-        using uni_uvec3 = Uniform<uvec3>;
-        using uni_uvec4 = Uniform<uvec4>;
-        using uni_ivec2 = Uniform<ivec2>;
-        using uni_ivec3 = Uniform<ivec3>;
-        using uni_ivec4 = Uniform<ivec4>;
-
         using uniform_variant = std::variant<
-            uni_int, uni_uint, uni_bool, uni_float, uni_vec2, uni_vec3, uni_vec4, uni_mat2, uni_mat3, uni_mat4,
-            uni_uvec2, uni_uvec3, uni_uvec4, uni_ivec2, uni_ivec3, uni_ivec4
+            Uniform<int>,  Uniform<uint>, Uniform<bool>, Uniform<float>,
+            Uniform<vec2>, Uniform<vec3>, Uniform<vec4>, Uniform<uvec2>, Uniform<uvec3>, Uniform<uvec4>,
+            Uniform<mat2>, Uniform<mat3>, Uniform<mat4>, Uniform<ivec2>, Uniform<ivec3>, Uniform<ivec4>
         >;
 
         static_assert(std::variant_size_v<uniform_variant> == 16);
@@ -170,6 +149,9 @@ namespace component {
 
         template<typename T, typename = is_glsl_t<T>>
         void BindUniform(pbr_u attribute, const T* value_ptr);
+
+        template<typename T, typename = is_glsl_t<T>>
+        void SetUniformArray(GLuint location, GLuint size, const std::vector<T>* array_ptr);
     };
 
 }

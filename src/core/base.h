@@ -1,6 +1,5 @@
-#pragma once
-
-/* this file may contain the following at the project's level (root level)
+/* 
+   this file may contain the following at the project's level (root level)
 
    > detection and pre-check of platform, compiler, version, etc.
    > switch on build/compilation mode, context and backends
@@ -11,6 +10,8 @@
    > ......
    > global utility or helper stuff should go to "utils/ext.h" instead
 */
+
+#pragma once
 
 // require Windows x86 (32 bit) or x64 (64 bit)
 #ifndef _WIN32

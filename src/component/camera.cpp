@@ -26,7 +26,15 @@ namespace component {
         T(T), view(view) {}
 
     glm::mat4 Camera::GetViewMatrix() const {
-        return glm::lookAt(T->position, T->position + T->forward, T->up);
+        // since we already have the correct transform matrix, taking its inverse will give us
+        // the view matrix right away, however, that's a little bit expensive so we opt to use
+        // the `glm::lookAt()` function instead, which only needs a few cross and dot products
+        if constexpr (true) {
+            return glm::inverse(T->transform);
+        }
+        else {
+            return glm::lookAt(T->position, T->position + T->forward, T->up);
+        }
     }
 
     glm::mat4 Camera::GetProjectionMatrix() const {

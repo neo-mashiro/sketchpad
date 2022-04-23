@@ -270,7 +270,7 @@ namespace asset {
     }
 
     void Texture::GenerateMipmap() const {
-        CORE_ASERT(n_levels > 1, "Failed to generate mipmaps, levels must be greater than 1...");
+        CORE_ASERT(n_levels > 1, "Unable to generate mipmaps, levels must be greater than 1...");
         glGenerateTextureMipmap(id);
     }
 
@@ -325,7 +325,6 @@ namespace asset {
                 else if (i_format == GL_DEPTH_COMPONENT) {  // depth texture and shadow maps
                     glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_REPEAT);
                     glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
-                    // for shadows, we will implement PCF and VSM, so filtering state is not a concern
                     glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                     glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                 }
@@ -349,14 +348,14 @@ namespace asset {
                 // in fact, trying to set any of the sampler states will cause a `GL_INVALID_ENUM` error.
                 return;
             }
-            case GL_TEXTURE_CUBE_MAP:
+            case GL_TEXTURE_CUBE_MAP:  // skybox and IBL maps
             case GL_TEXTURE_CUBE_MAP_ARRAY: {
                 glTextureParameteri(id, GL_TEXTURE_MIN_FILTER, min_filter);
                 glTextureParameteri(id, GL_TEXTURE_MAG_FILTER, mag_filter);
                 glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
                 glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
                 glTextureParameteri(id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-                static const float border[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+                const float border[] = { 0.0f, 0.0f, 0.0f, 1.0f };
                 glTextureParameterfv(id, GL_TEXTURE_BORDER_COLOR, border);
                 break;
             }

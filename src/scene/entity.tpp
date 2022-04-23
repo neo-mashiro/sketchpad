@@ -15,6 +15,10 @@ namespace scene {
             auto& transform = registry->get<Transform>(id);
             return registry->emplace<T>(id, &transform, std::forward<Args>(args)...);
         }
+        else if constexpr (std::is_same_v<T, Animator>) {
+            auto& model = registry->get<Model>(id);
+            return registry->emplace<T>(id, &model, std::forward<Args>(args)...);
+        }
         else {
             return registry->emplace<T>(id, std::forward<Args>(args)...);
         }

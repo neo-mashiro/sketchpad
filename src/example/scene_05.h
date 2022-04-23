@@ -16,19 +16,20 @@ namespace scene {
         Entity skybox;
         Entity point_light;
         Entity spotlight;
-        Entity area_light;
+        Entity moonlight;
+        Entity lantern;
 
         Entity floor;
         Entity wall;
         Entity ball[3];
         Entity suzune;
-        Entity vehicle;
+        Entity pillars[8];
 
         asset_ref<Texture> irradiance_map;
         asset_ref<Texture> prefiltered_map;
         asset_ref<Texture> BRDF_LUT;
 
-        void PrecomputeIBL();
+        void PrecomputeIBL(const std::string& hdri);
         void SetupMaterial(Material& pbr_mat, int mat_id);
     };
 

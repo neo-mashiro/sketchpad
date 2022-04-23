@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "asset/vao.h"
+#include "core/debug.h"
 
 namespace asset {
 
@@ -28,11 +29,27 @@ namespace asset {
         }
     }
 
-    void VAO::SetVBO(GLuint vbo, GLuint attr_id, GLint offset, GLint size, GLint stride) const {
+    void VAO::SetVBO(GLuint vbo, GLuint attr_id, GLint offset, GLint size, GLint stride, GLenum type) const {
         glVertexArrayVertexBuffer(id, attr_id, vbo, offset, stride);
         glEnableVertexArrayAttrib(id, attr_id);
-        glVertexArrayAttribFormat(id, attr_id, size, GL_FLOAT, GL_FALSE, 0);
         glVertexArrayAttribBinding(id, attr_id, attr_id);
+
+        switch (type) {
+            case GL_HALF_FLOAT:
+            case GL_FLOAT: {
+                glVertexArrayAttribFormat(id, attr_id, size, type, GL_FALSE, 0); break;
+            }
+            case GL_UNSIGNED_INT:
+            case GL_INT: {
+                glVertexArrayAttribIFormat(id, attr_id, size, type, 0); break;  // notice the "I" here
+            }
+            case GL_DOUBLE: {
+                glVertexArrayAttribLFormat(id, attr_id, size, type, 0); break;  // notice the "L" here
+            }
+            default: {
+                throw core::NotImplementedError("Unsupported vertex attribute type!"); break;
+            }
+        }
     }
 
     void VAO::SetIBO(GLuint ibo) const {

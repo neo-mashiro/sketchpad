@@ -207,7 +207,7 @@ namespace core {
             return;
         }
 
-        static HDC desktopDC = GetDC(HWND_DESKTOP);  // get the desktop handle once and caches it
+        HDC desktopDC = GetDC(HWND_DESKTOP);
         HDC hDC = CreateCompatibleDC(desktopDC);
         SetStretchBltMode(hDC, COLORONCOLOR);
 

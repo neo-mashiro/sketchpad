@@ -30,8 +30,7 @@ namespace component {
         // this range will be considered to have an attenuation of 0.
 
         CORE_ASERT(distance >= 0.0f, "Distance to the light source cannot be negative ...");
-        return distance >= range
-            ? 0.0f
+        return distance >= range ? 0.0f
             : 1.0f / (1.0f + linear * distance + quadratic * pow(distance, 2.0f));
     }
 

@@ -155,6 +155,14 @@ namespace asset {
         }
     }
 
+    template<typename T>
+    void Shader::SetUniformArray(GLuint location, GLuint size, const std::vector<T>& vec) const {
+        for (GLuint i = 0; i < size; ++i) {
+            const T& val = vec[i];
+            SetUniform(location + i, val);
+        }
+    }
+
     void Shader::ReadShader(const std::string& path, const std::string& macro, std::string& output) {
         std::ifstream file_stream = std::ifstream(path, std::ios::in);
         if (!file_stream.is_open()) {
@@ -312,12 +320,14 @@ namespace asset {
 
     CShader::CShader(const std::string& binary_path, GLenum format)
     try : Shader(binary_path, format) {
+        // this is the ctor body, we won't reach here if `try` failed in the initializer list
         GLint local_size[3];
         glGetProgramiv(id, GL_COMPUTE_WORK_GROUP_SIZE, local_size);
         this->local_size_x = local_size[0];
         this->local_size_y = local_size[1];
         this->local_size_z = local_size[2];
     }
+    // this is the `catch` block in the initializer list, not the ctor body
     catch (const std::runtime_error& e) {
         CORE_ERROR("Cannot load compute shader: {0}", e.what());
         throw std::runtime_error("Compute shader compilation failed...");
@@ -352,7 +362,8 @@ namespace asset {
     
     // explicit template function instantiation using X macro
     #define INSTANTIATE_TEMPLATE(T) \
-        template void Shader::SetUniform<T>(GLuint location, const T& val) const;
+        template void Shader::SetUniform<T>(GLuint location, const T& val) const; \
+        template void Shader::SetUniformArray<T>(GLuint location, GLuint size, const std::vector<T>& vec) const;
 
     using namespace glm;
 

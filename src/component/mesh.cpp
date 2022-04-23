@@ -6,22 +6,26 @@
 #include "core/log.h"
 #include "component/mesh.h"
 
+using namespace glm;
 using namespace core;
+using namespace asset;
 
 namespace component {
 
-    static const std::vector<GLint> vertex_attribute_offset = {
+    static const std::vector<GLint> va_offset = {  // vertex attribute offset
         offsetof(Mesh::Vertex, position),
         offsetof(Mesh::Vertex, normal),
         offsetof(Mesh::Vertex, uv),
         offsetof(Mesh::Vertex, uv2),
         offsetof(Mesh::Vertex, tangent),
-        offsetof(Mesh::Vertex, binormal)
+        offsetof(Mesh::Vertex, binormal),
+        offsetof(Mesh::Vertex, bone_id),
+        offsetof(Mesh::Vertex, bone_wt)
     };
 
-    static const std::vector<GLint> vertex_attribute_size = { 3, 3, 2, 2, 3, 3 };
+    static const std::vector<GLint> va_size = { 3, 3, 2, 2, 3, 3, 4, 4 };  // vertex attribute size
 
-    static asset_tmp<asset::VAO> internal_vao;
+    static asset_tmp<VAO> internal_vao;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -483,8 +487,9 @@ namespace component {
         GLuint vbo_id = vbo->ID();
         GLuint ibo_id = ibo->ID();
 
-        for (GLuint i = 0; i < 6; i++) {
-            vao->SetVBO(vbo_id, i, vertex_attribute_offset[i], vertex_attribute_size[i], sizeof(Vertex));
+        for (GLuint i = 0; i < 8; i++) {
+            GLenum va_type = i == 6 ? GL_INT : GL_FLOAT;
+            vao->SetVBO(vbo_id, i, va_offset[i], va_size[i], sizeof(Vertex), va_type);
         }
 
         vao->SetIBO(ibo_id);

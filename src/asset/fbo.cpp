@@ -140,15 +140,8 @@ namespace asset {
 
     void FBO::AddDepStTexture(bool multisample) {
         // a framebuffer can only have one depth stencil buffer, either as a texture or a renderbuffer
-        if (depst_renderbuffer != nullptr) {
-            CORE_ERROR("The framebuffer already has a depth stencil renderbuffer...");
-            return;
-        }
-
-        if (depst_texture != nullptr) {
-            CORE_ERROR("Only one depth stencil texture can be attached to the framebuffer...");
-            return;
-        }
+        CORE_ASERT(!depst_renderbuffer, "The framebuffer already has a depth stencil renderbuffer...");
+        CORE_ASERT(!depst_texture, "Only one depth stencil texture can be attached to the framebuffer...");
 
         // depth stencil textures are meant to be filtered anyway, it doesn't make sense to use a depth
         // stencil texture for MSAA because filtering on multisampled textures is not allowed by OpenGL.
@@ -178,15 +171,8 @@ namespace asset {
 
     void FBO::AddDepStRenderBuffer(bool multisample) {
         // a framebuffer can only have one depth stencil buffer, either as a texture or a renderbuffer
-        if (depst_texture != nullptr) {
-            CORE_ERROR("The framebuffer already has a depth stencil texture...");
-            return;
-        }
-
-        if (depst_renderbuffer != nullptr) {
-            CORE_ERROR("Only one depth stencil renderbuffer can be attached to the framebuffer...");
-            return;
-        }
+        CORE_ASERT(!depst_texture, "The framebuffer already has a depth stencil texture...");
+        CORE_ASERT(!depst_renderbuffer, "Only one depth stencil renderbuffer can be attached to the framebuffer...");
 
         // depth and stencil values are combined in a single renderbuffer (RBO)
         // each 32-bit pixel contains 24 bits of depth value and 8 bits of stencil value
@@ -197,6 +183,33 @@ namespace asset {
 
         // the depth and stencil buffer in the form of a renderbuffer is write-only
         // we can't read it later so there's no need to create a stencil texture view
+
+        status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
+    }
+
+    void FBO::AddDepthCubemap() {
+        // a framebuffer can only have one depth stencil buffer, either as a texture or a renderbuffer
+        CORE_ASERT(!depst_renderbuffer, "The framebuffer already has a depth stencil renderbuffer...");
+        CORE_ASERT(!depst_texture, "Only one depth stencil texture can be attached to the framebuffer...");
+
+        // for omni-directional shadow mapping, we only need a cubemap depth texture of high precision
+        // we can obtain the best precision using `GL_DEPTH_COMPONENT32F`, but it's mostly an overkill
+        // and quite slow in performance. In practice, people commonly use `GL_DEPTH_COMPONENT24/16`
+
+        depst_texture = WrapAsset<Texture>(GL_TEXTURE_CUBE_MAP, width, height, 6, GL_DEPTH_COMPONENT24, 1);
+        GLuint tid = depst_texture->ID();
+
+        glTextureParameteri(tid, GL_DEPTH_STENCIL_TEXTURE_MODE, GL_DEPTH_COMPONENT);
+        glTextureParameteri(tid, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTextureParameteri(tid, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTextureParameteri(tid, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(tid, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(tid, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        glNamedFramebufferTexture(id, GL_DEPTH_ATTACHMENT, tid, 0);
+        const GLenum null[] = { GL_NONE };
+        glNamedFramebufferReadBuffer(id, GL_NONE);
+        glNamedFramebufferDrawBuffers(id, 1, null);
 
         status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     }
@@ -277,7 +290,7 @@ namespace asset {
         internal_shader->Bind();
 
         // subroutine indexes are explicitly specified in the shader, see "framebuffer.glsl"
-        static GLuint subroutine_index = 0;
+        GLuint subroutine_index = 0;
 
         // visualize one of the color attachments
         if (index >= 0 && index < color_attachments.size()) {
@@ -317,15 +330,15 @@ namespace asset {
     }
 
     void FBO::Clear(GLint index) const {
-        static GLfloat clear_color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        static GLfloat clear_depth = 1.0f;
-        static GLint clear_stencil = 0;
+        const GLfloat clear_color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        const GLfloat clear_depth = 1.0f;
+        const GLint clear_stencil = 0;
 
         // a framebuffer always has a depth buffer, a stencil buffer and all color buffers,
         // an empty buffer just doesn't have any textures attached to it, but the buffer is
         // still there. It's ok to clear a buffer even if there's no textures attached
 
-        static size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
+        const size_t max_color_buffs = core::Application::GetInstance().gl_max_color_buffs;
 
         // clear one of the color attachments
         if (index >= 0 && index < max_color_buffs) {

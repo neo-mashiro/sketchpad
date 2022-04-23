@@ -1,4 +1,5 @@
-/* scene class is the base class for all other scenes in the inheritance hierarchy.
+/* 
+   scene class is the base class for all other scenes in the inheritance hierarchy.
    to make a new scene, simply inherit this class and override these three virtual
    functions listed below in your derived scene class. Here in the base class they
    are only used to display the welcome screen.
@@ -67,21 +68,11 @@ namespace scene {
         asset_tmp<Texture> welcome_screen;
     };
 
+    using glm::vec2, glm::vec3, glm::vec4;
+    using glm::mat2, glm::mat3, glm::mat4, glm::quat;
+    using glm::ivec2, glm::ivec3, glm::ivec4;
+    using glm::uvec2, glm::uvec3, glm::uvec4;
     using uint = unsigned int;
-    using vec2 = glm::vec2;
-    using vec3 = glm::vec3;
-    using vec4 = glm::vec4;
-    using mat2 = glm::mat2;
-    using mat3 = glm::mat3;
-    using mat4 = glm::mat4;
-    using quat = glm::quat;
-
-    using ivec2 = glm::ivec2;
-    using ivec3 = glm::ivec3;
-    using ivec4 = glm::ivec4;
-    using uvec2 = glm::uvec2;
-    using uvec3 = glm::uvec3;
-    using uvec4 = glm::uvec4;
 
     namespace world {
         // world space constants (OpenGL adopts a right-handed coordinate system)

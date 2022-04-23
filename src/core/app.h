@@ -6,8 +6,8 @@ namespace core {
 
     class Application final {
       private:
-        bool app_pause = false;
-        bool app_shutdown = false;
+        bool app_pause         = false;
+        bool app_shutdown      = false;
         bool gl_context_active = false;
 
       public:

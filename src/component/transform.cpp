@@ -18,29 +18,6 @@ namespace component {
         euler_x(0.0f), euler_y(0.0f), euler_z(0.0f),
         scale_x(1.0f), scale_y(1.0f), scale_z(1.0f) {}
 
-    glm::vec3 Transform::Local2World(const glm::vec3& v) const {
-        if constexpr (false) {
-            return glm::mat3(this->transform) * v;  // this is equivalent
-        }
-
-        return this->rotation * v;
-    }
-
-    glm::vec3 Transform::World2Local(const glm::vec3& v) const {
-        // this is equivalent but computing the inverse of a matrix is expensive
-        if constexpr (false) {
-            return glm::inverse(glm::mat3(this->transform)) * v;
-        }
-
-        // this is equivalent iff the matrix is orthogonal (without non-uniform scaling)
-        if constexpr (false) {
-            return glm::transpose(glm::mat3(this->transform)) * v;
-        }
-
-        // the inverse of a quaternion only takes a `glm::dot(vec4, vec4)` so is cheap
-        return glm::inverse(this->rotation) * v;
-    }
-
     void Transform::Translate(const glm::vec3& vector, Space space) {
         // local space translation: expect vector in local space coordinates
         if (space == Space::Local) {
@@ -244,6 +221,37 @@ namespace component {
             this->euler_y = glm::degrees(eulers.y);
             this->euler_z = glm::degrees(eulers.z);
         }
+    }
+
+    glm::vec3 Transform::Local2World(const glm::vec3& v) const {
+        if constexpr (false) {
+            return glm::mat3(this->transform) * v;  // this is equivalent
+        }
+
+        return this->rotation * v;
+    }
+
+    glm::vec3 Transform::World2Local(const glm::vec3& v) const {
+        // this is equivalent but computing the inverse of a matrix is expensive
+        if constexpr (false) {
+            return glm::inverse(glm::mat3(this->transform)) * v;
+        }
+
+        // this is equivalent iff the matrix is orthogonal (without non-uniform scaling)
+        if constexpr (false) {
+            return glm::transpose(glm::mat3(this->transform)) * v;
+        }
+
+        // the inverse of a quaternion only takes a `glm::dot(vec4, vec4)` so is cheap
+        return glm::inverse(this->rotation) * v;
+    }
+
+    glm::mat4 Transform::GetLocalTransform() const {
+        return glm::lookAt(position, position + forward, up);
+    }
+
+    glm::mat4 Transform::GetLocalTransform(const glm::vec3& forward, const glm::vec3& up) const {
+        return glm::lookAt(position, position + forward, up);
     }
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <string_view>
 #include <type_traits>
 #include <glm/gtc/type_ptr.hpp>
@@ -57,6 +58,23 @@ namespace utils {
         template<typename Container, typename T>
         typename Container::const_iterator find(const Container& c, const T& value) {
             return std::find(c.begin(), c.end(), value);
+        }
+
+        template<typename Container, typename Pred>
+        typename Container::const_iterator find_if(const Container& c, Pred predicate) {
+            return std::find_if(c.begin(), c.end(), predicate);
+        }
+
+        template<typename T> using iter_diff = typename std::iterator_traits<T>::difference_type;
+
+        template<typename Container, typename Pred>
+        iter_diff<typename Container::const_iterator> count_if(const Container& c, Pred predicate) {
+            return std::count_if(c.begin(), c.end(), predicate);
+        }
+
+        template<typename Container, typename T>
+        constexpr void fill(const Container& c, const T& value) {
+            std::fill(c.begin(), c.end(), value);
         }
     }
 

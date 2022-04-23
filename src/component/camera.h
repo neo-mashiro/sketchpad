@@ -1,3 +1,13 @@
+/*
+   this is a simple FPS camera + the feature of smooth recovery, smooth zooming
+   and camera orbiting (arcball camera like the one in Blender), note that it's
+   tied to the transform component for doing updates, and every scene must have
+   exactly one main camera.
+
+   smooth camera shakes using 3D Perlin noise will be added in the next release.
+   (copy from my Unity C# project)
+*/
+
 #pragma once
 
 #include <glm/glm.hpp>

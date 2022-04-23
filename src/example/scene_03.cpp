@@ -36,9 +36,9 @@ namespace scene {
     static bool  reset_model   = false;
     static vec3  model_axis    = world::right;
 
-    static const float const_zero = 0.0f;
-    static int eid = 1;
-    static uint shading_model = 11;
+    static float const_zero    = 0.0f;
+    static int   entity_id     = 1;
+    static uint  shading_model = 11;
 
     static vec4  albedo        = vec4(color::white, 1.0f);
     static float roughness     = 1.0f;
@@ -59,21 +59,21 @@ namespace scene {
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     void Scene03::Init() {
-        this->title = "Disney BSDF";
-        PrecomputeIBL();
+        this->title = "Disney Principled BSDF";
+        PrecomputeIBL(utils::paths::texture + "HDRI\\hotel_room_4k2.hdr");
 
-        resource_manager.Add(10, MakeAsset<Shader>(paths::shader + "core\\infinite_grid.glsl"));
-        resource_manager.Add(11, MakeAsset<Shader>(paths::shader + "scene_03\\pbr.glsl"));
-        resource_manager.Add(12, MakeAsset<Shader>(paths::shader + "scene_03\\skybox.glsl"));
-        resource_manager.Add(19, MakeAsset<Shader>(paths::shader + "scene_03\\post_process.glsl"));
-        resource_manager.Add(21, MakeAsset<Material>(resource_manager.Get<Shader>(11)));
-        resource_manager.Add(22, MakeAsset<Material>(resource_manager.Get<Shader>(12)));
+        resource_manager.Add(01, MakeAsset<Shader>(paths::shader + "core\\infinite_grid.glsl"));
+        resource_manager.Add(02, MakeAsset<Shader>(paths::shader + "core\\skybox.glsl"));
+        resource_manager.Add(04, MakeAsset<Shader>(paths::shader + "scene_03\\pbr.glsl"));
+        resource_manager.Add(05, MakeAsset<Shader>(paths::shader + "scene_03\\post_process.glsl"));
+        resource_manager.Add(12, MakeAsset<Material>(resource_manager.Get<Shader>(02)));
+        resource_manager.Add(14, MakeAsset<Material>(resource_manager.Get<Shader>(04)));
         
-        AddUBO(resource_manager.Get<Shader>(11)->ID());
-        AddUBO(resource_manager.Get<Shader>(12)->ID());
+        AddUBO(resource_manager.Get<Shader>(02)->ID());
+        AddUBO(resource_manager.Get<Shader>(04)->ID());
 
-        AddFBO(Window::width, Window::height);  // MSAA
-        AddFBO(Window::width, Window::height);  // resolve MSAA
+        AddFBO(Window::width, Window::height);
+        AddFBO(Window::width, Window::height);
 
         FBOs[0].AddColorTexture(1, true);
         FBOs[0].AddDepStRenderBuffer(true);
@@ -87,7 +87,7 @@ namespace scene {
         
         skybox = CreateEntity("Skybox", ETag::Skybox);
         skybox.AddComponent<Mesh>(Primitive::Cube);
-        if (auto& mat = skybox.AddComponent<Material>(resource_manager.Get<Material>(22)); true) {
+        if (auto& mat = skybox.AddComponent<Material>(resource_manager.Get<Material>(12)); true) {
             mat.SetTexture(0, prefiltered_map);
             mat.BindUniform(0, &skybox_exposure);
             mat.BindUniform(1, &skybox_lod);
@@ -103,8 +103,8 @@ namespace scene {
 
         if (auto m_path = paths::model + "SW500\\"; true) {
             auto& model = pistol.AddComponent<Model>(m_path + "SW500.fbx", Quality::Auto);
-            auto& mat_b = model.SetMaterial("TEX_Bullet",  resource_manager.Get<Material>(21));
-            auto& mat_p = model.SetMaterial("TEX_Lowpoly", resource_manager.Get<Material>(21));
+            auto& mat_b = model.SetMaterial("TEX_Bullet",  resource_manager.Get<Material>(14));
+            auto& mat_p = model.SetMaterial("TEX_Lowpoly", resource_manager.Get<Material>(14));
 
             SetupMaterial(mat_b);
             mat_b.SetUniform(pbr_u::shading_model, uvec2(1, 0));  // bullet ignores clear coat layer
@@ -128,12 +128,8 @@ namespace scene {
         helmet.GetComponent<Transform>().Scale(0.02f);
 
         if (auto& model = helmet.AddComponent<Model>(paths::model + "mandalorian.fbx", Quality::Auto); true) {
-            auto& mat_1 = model.SetMaterial("DefaultMaterial", resource_manager.Get<Material>(21));
-            auto& mat_2 = model.SetMaterial("Material #26", resource_manager.Get<Material>(21));
-            SetupMaterial(mat_1);
-            SetupMaterial(mat_2);
-            mat_1.SetUniform(pbr_u::shading_model, uvec2(1, 0));
-            mat_2.SetUniform(pbr_u::shading_model, uvec2(1, 0));
+            SetupMaterial(model.SetMaterial("DefaultMaterial", resource_manager.Get<Material>(14)));
+            SetupMaterial(model.SetMaterial("Material #26", resource_manager.Get<Material>(14)));
         }
 
         pyramid = CreateEntity("Pyramid");
@@ -141,7 +137,7 @@ namespace scene {
         pyramid.GetComponent<Transform>().Translate(world::up * 5.0f);
         pyramid.GetComponent<Transform>().Scale(2.0f);
 
-        if (auto& mat = pyramid.AddComponent<Material>(resource_manager.Get<Material>(21)); true) {
+        if (auto& mat = pyramid.AddComponent<Material>(resource_manager.Get<Material>(14)); true) {
             SetupMaterial(mat);
             mat.SetUniform(pbr_u::shading_model, uvec2(2, 0));
         }
@@ -151,30 +147,90 @@ namespace scene {
         capsule.GetComponent<Transform>().Translate(world::up * 5.0f);
         capsule.GetComponent<Transform>().Scale(2.0f);
 
-        if (auto& mat = capsule.AddComponent<Material>(resource_manager.Get<Material>(21)); true) {
+        if (auto& mat = capsule.AddComponent<Material>(resource_manager.Get<Material>(14)); true) {
             SetupMaterial(mat);
             mat.SetUniform(pbr_u::shading_model, uvec2(2, 0));
+        }
+
+        Renderer::MSAA(true);
+        Renderer::DepthTest(true);
+        Renderer::AlphaBlend(true);
+    }
+
+    Entity& Scene03::GetEntity(int entity_id) {
+        switch (entity_id) {
+            case 1: return pistol;
+            case 2: return helmet;
+            case 3: return pyramid;
+            case 4: return capsule;
+            default: throw std::runtime_error("Invalid entity id!");
         }
     }
 
     void Scene03::OnSceneRender() {
-        UpdateEntities();
-        UpdateUBOs();
+        auto& e = GetEntity(entity_id);
+        auto& main_camera = camera.GetComponent<Camera>();
+        main_camera.Update();
 
-        FBO& msaa_buffer = FBOs[0];
-        msaa_buffer.Clear();
-        msaa_buffer.Bind();
+        if (auto& ubo = UBOs[0]; true) {
+            ubo.SetUniform(0, val_ptr(main_camera.T->position));
+            ubo.SetUniform(1, val_ptr(main_camera.T->forward));
+            ubo.SetUniform(2, val_ptr(main_camera.GetViewMatrix()));
+            ubo.SetUniform(3, val_ptr(main_camera.GetProjectionMatrix()));
+        }
 
-        Renderer::MSAA(true);
-        Renderer::DepthTest(true);
-        Renderer::FaceCulling(eid != 2);
-        Renderer::AlphaBlend(true);
-        Renderer::Submit(GetEntity(eid).id);
+        if (auto& ubo = UBOs[1]; true) {
+            auto& dl = direct_light.GetComponent<DirectionLight>();
+            vec3 direction = -glm::normalize(dl_direction);
+            ubo.SetUniform(0, val_ptr(dl.color));
+            ubo.SetUniform(1, val_ptr(direction));
+            ubo.SetUniform(2, val_ptr(dl.intensity));
+        }
+
+        if (auto& ubo = UBOs[2]; true) {
+            auto& sl = camera.GetComponent<Spotlight>();
+            auto& ct = camera.GetComponent<Transform>();
+            float inner_cos = sl.GetInnerCosine();
+            float outer_cos = sl.GetOuterCosine();
+            ubo.SetUniform(0, val_ptr(sl.color));
+            ubo.SetUniform(1, val_ptr(ct.position));
+            ubo.SetUniform(2, val_ptr(-ct.forward));
+            ubo.SetUniform(3, val_ptr(sl.intensity));
+            ubo.SetUniform(4, val_ptr(inner_cos));
+            ubo.SetUniform(5, val_ptr(outer_cos));
+            ubo.SetUniform(6, val_ptr(sl.range));
+        }
+
+        FBO& framebuffer_0 = FBOs[0];
+        FBO& framebuffer_1 = FBOs[1];
+
+        // ------------------------------ MRT render pass ------------------------------
+
+        framebuffer_0.Clear();
+        framebuffer_0.Bind();
+
+        if (reset_model) {
+            const vec3 origin = vec3(0.0f, 5.0f, 0.0f);
+            auto& T = e.GetComponent<Transform>();
+            float t = math::EaseFactor(5.0f, Clock::delta_time);
+            T.SetPosition(math::Lerp(T.position, origin, t));
+            T.SetRotation(math::SlerpRaw(T.rotation, world::eye, t));
+
+            if (math::Equals(T.position, origin) && math::Equals(T.rotation, world::eye)) {
+                reset_model = false;
+            }
+        }
+        else if (rotate_model) {
+            e.GetComponent<Transform>().Rotate(model_axis, 0.36f, Space::Local);
+        }
+
+        Renderer::FaceCulling(entity_id != 2);
+        Renderer::Submit(e.id);
         Renderer::Submit(skybox.id);
         Renderer::Render();
 
         if (show_grid) {
-            auto grid_shader = resource_manager.Get<Shader>(10);
+            auto grid_shader = resource_manager.Get<Shader>(01);
             grid_shader->Bind();
             grid_shader->SetUniform(0, grid_cell_size);
             grid_shader->SetUniform(1, thin_line_color);
@@ -182,18 +238,17 @@ namespace scene {
             Mesh::DrawGrid();
         }
 
-        msaa_buffer.Unbind();
+        framebuffer_0.Unbind();
+
+        // ------------------------------ MSAA resolve pass ------------------------------
         
-        // resolve MSAA
-        FBO& source = FBOs[0];
-        FBO& target = FBOs[1];
-        target.Clear();
+        framebuffer_1.Clear();
+        FBO::CopyColor(framebuffer_0, 0, framebuffer_1, 0);
 
-        FBO::CopyColor(source, 0, target, 0);
-        target.GetColorTexture(0).Bind(0);
+        // ------------------------------ postprocessing pass ------------------------------
 
-        // apply post-processing
-        auto postprocess_shader = resource_manager.Get<Shader>(19);
+        framebuffer_1.GetColorTexture(0).Bind(0);
+        auto postprocess_shader = resource_manager.Get<Shader>(05);
         postprocess_shader->Bind();
         postprocess_shader->SetUniform(0, 3);
 
@@ -204,21 +259,20 @@ namespace scene {
 
     void Scene03::OnImGuiRender() {
         using namespace ImGui;
-        static int current_tab = 1;
+        const ImGuiColorEditFlags color_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha;
         const ImVec2 rainbow_offset = ImVec2(5.0f, 105.0f);
         const ImVec4 tab_color_off  = ImVec4(0.0f, 0.3f, 0.6f, 1.0f);
         const ImVec4 tab_color_on   = ImVec4(0.0f, 0.4f, 0.8f, 1.0f);
-        const ImGuiColorEditFlags color_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha;
 
         if (ui::NewInspector()) {
             Indent(5.0f);
-            Text(ICON_FK_SUN_O "  Directional Light");
+            Text(ICON_FK_SUN_O "  Directional Light Vector");
             DragFloat3("###", val_ptr(dl_direction), 0.01f, -1.0f, 1.0f, "%.3f");
             ui::DrawRainbowBar(rainbow_offset, 2.0f);
             Spacing();
 
             PushItemWidth(130.0f);
-            SliderFloat("Skybox Exposure", &skybox_exposure, 0.5f, 2.0f);
+            SliderFloat("Skybox Exposure", &skybox_exposure, 0.5f, 4.0f);
             SliderFloat("Skybox LOD", &skybox_lod, 0.0f, 7.0f);
             PopItemWidth();
             Checkbox("Gizmo", &show_gizmo); SameLine();
@@ -232,8 +286,8 @@ namespace scene {
             BeginTabBar("InspectorTab", ImGuiTabBarFlags_None);
 
             if (BeginTabItem("ClearCoat")) {
-                if (current_tab != 1) {
-                    current_tab = eid = 1;
+                if (entity_id != 1) {
+                    entity_id = 1;
                     anisotropy = 0.0f;
                 }
                 PushItemWidth(130.0f);
@@ -245,8 +299,8 @@ namespace scene {
             }
 
             if (BeginTabItem("Anisotropy")) {
-                if (current_tab != 2) {
-                    current_tab = eid = 2;
+                if (entity_id != 2) {
+                    entity_id = 2;
                     metalness = roughness = 1.0f;
                 }
                 PushItemWidth(130.0f);
@@ -260,14 +314,13 @@ namespace scene {
             }
 
             if (BeginTabItem("Refraction")) {
-                if (current_tab != 3) {
-                    current_tab = 3;
-                    eid = std::max(eid, 3);
+                if (entity_id < 3) {
+                    entity_id = std::max(entity_id, 3);
                     roughness = 0.2f;
                 }
-                RadioButton("Cubic/Flat", &eid, 3); SameLine(164);
-                RadioButton("Spherical", &eid, 4);
-                volume_type = eid == 4 ? 0U : 1U;
+                RadioButton("Cubic/Flat", &entity_id, 3); SameLine(164);
+                RadioButton("Spherical", &entity_id, 4);
+                volume_type = entity_id == 4 ? 0U : 1U;
                 
                 PushItemWidth(130.0f);
                 ColorEdit4("Albedo", val_ptr(albedo), ImGuiColorEditFlags_NoInputs); SameLine(164);
@@ -304,36 +357,35 @@ namespace scene {
         }
 
         if (show_gizmo) {
-            ui::DrawGizmo(camera, GetEntity(eid), ui::Gizmo::Translate);
+            ui::DrawGizmo(camera, GetEntity(entity_id), ui::Gizmo::Translate);
         }
     }
 
-    void Scene03::PrecomputeIBL() {
+    void Scene03::PrecomputeIBL(const std::string& hdri) {
         Renderer::SeamlessCubemap(true);
         Renderer::DepthTest(false);
         Renderer::FaceCulling(true);
 
-        auto irradiance_shader = CShader(paths::shader + "scene_03\\irradiance_map.glsl");
-        auto prefilter_shader  = CShader(paths::shader + "scene_03\\prefilter_envmap.glsl");
-        auto envBRDF_shader    = CShader(paths::shader + "scene_03\\environment_BRDF.glsl");
+        auto irradiance_shader = CShader(paths::shader + "core\\irradiance_map.glsl");
+        auto prefilter_shader  = CShader(paths::shader + "core\\prefilter_envmap.glsl");
+        auto envBRDF_shader    = CShader(paths::shader + "core\\environment_BRDF.glsl");
 
         std::string rootpath = utils::paths::root;
         if (rootpath.find("mashiro") == std::string::npos) {
             irradiance_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
-            prefiltered_map = MakeAsset<Texture>(paths::texture + "test\\newport_loft.hdr", 1024, 8);
+            prefiltered_map = MakeAsset<Texture>(hdri, 1024, 8);
             Texture::Copy(*prefiltered_map, 3, *irradiance_map, 0);
             BRDF_LUT = MakeAsset<Texture>(paths::texture + "common\\checkboard.png", 1);
             Sync::WaitFinish();
             return;
         }
 
-        std::string hdri = "newport_loft.hdr";
-        auto env_map = MakeAsset<Texture>(utils::paths::texture + "test\\" + hdri, 2048, 0);
+        auto env_map = MakeAsset<Texture>(hdri, 2048, 0);
         env_map->Bind(0);
 
         irradiance_map  = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
         prefiltered_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 2048, 2048, 6, GL_RGBA16F, 8);
-        BRDF_LUT        = MakeAsset<Texture>(GL_TEXTURE_2D, 1024, 1024, 1, GL_RGBA16F, 1);///////////////// 3 channels but ILS can only be RGBA
+        BRDF_LUT        = MakeAsset<Texture>(GL_TEXTURE_2D, 1024, 1024, 1, GL_RGBA16F, 1);
 
         CORE_INFO("Precomputing diffuse irradiance map from {0}", hdri);
         irradiance_map->BindILS(0, 0, GL_WRITE_ONLY);
@@ -384,6 +436,7 @@ namespace scene {
         mat.SetTexture(pbr_t::prefiltered_map, prefiltered_map);
         mat.SetTexture(pbr_t::BRDF_LUT, BRDF_LUT);
 
+        mat.BindUniform(0, &skybox_exposure);
         mat.BindUniform(pbr_u::albedo, &albedo);
         mat.BindUniform(pbr_u::roughness, &roughness);
         mat.BindUniform(pbr_u::ao, &ao);
@@ -399,71 +452,6 @@ namespace scene {
         mat.BindUniform(pbr_u::volume_type, &volume_type);
         mat.BindUniform(pbr_u::clearcoat, &clearcoat);
         mat.BindUniform(pbr_u::cc_roughness, &cc_roughness);
-    }
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-
-    Entity& Scene03::GetEntity(int eid) {
-        switch (eid) {
-            case 1: return pistol;
-            case 2: return helmet;
-            case 3: return pyramid;
-            case 4: return capsule;
-            default: throw std::runtime_error("Invalid entity id!");
-        }
-    }
-
-    void Scene03::UpdateEntities() {
-        auto& main_camera = camera.GetComponent<Camera>();
-        main_camera.Update();
-
-        auto& e = GetEntity(eid);
-        if (reset_model) {
-            constexpr auto origin = vec3(0.0f, 5.0f, 0.0f);
-            auto& T = e.GetComponent<Transform>();
-            float t = math::EaseFactor(5.0f, Clock::delta_time);
-            T.SetPosition(math::Lerp(T.position, origin, t));
-            T.SetRotation(math::SlerpRaw(T.rotation, world::eye, t));
-
-            if (math::Equals(T.position, origin) && math::Equals(T.rotation, world::eye)) {
-                reset_model = false;
-            }
-        }
-        else if (rotate_model) {
-            e.GetComponent<Transform>().Rotate(model_axis, 0.36f, Space::Local);
-        }
-    }
-
-    void Scene03::UpdateUBOs() {
-        if (auto& ubo = UBOs[0]; true) {
-            auto& main_camera = camera.GetComponent<Camera>();
-            ubo.SetUniform(0, val_ptr(main_camera.T->position));
-            ubo.SetUniform(1, val_ptr(main_camera.T->forward));
-            ubo.SetUniform(2, val_ptr(main_camera.GetViewMatrix()));
-            ubo.SetUniform(3, val_ptr(main_camera.GetProjectionMatrix()));
-        }
-
-        if (auto& ubo = UBOs[1]; true) {
-            auto& dl = direct_light.GetComponent<DirectionLight>();
-            vec3 direction = -glm::normalize(dl_direction);
-            ubo.SetUniform(0, val_ptr(dl.color));
-            ubo.SetUniform(1, val_ptr(direction));
-            ubo.SetUniform(2, val_ptr(dl.intensity));
-        }
-
-        if (auto& ubo = UBOs[2]; true) {
-            auto& sl = camera.GetComponent<Spotlight>();
-            auto& ct = camera.GetComponent<Transform>();
-            float inner_cos = sl.GetInnerCosine();
-            float outer_cos = sl.GetOuterCosine();
-            ubo.SetUniform(0, val_ptr(sl.color));
-            ubo.SetUniform(1, val_ptr(ct.position));
-            ubo.SetUniform(2, val_ptr(-ct.forward));
-            ubo.SetUniform(3, val_ptr(sl.intensity));
-            ubo.SetUniform(4, val_ptr(inner_cos));
-            ubo.SetUniform(5, val_ptr(outer_cos));
-            ubo.SetUniform(6, val_ptr(sl.range));
-        }
     }
 
 }

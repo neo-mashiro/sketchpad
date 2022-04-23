@@ -21,7 +21,7 @@ namespace scene {
         asset_ref<Texture> prefiltered_map;
         asset_ref<Texture> BRDF_LUT;
 
-        void PrecomputeIBL();
+        void PrecomputeIBL(const std::string& hdri);
         void SetupBuffers();
         void SetupMaterial(Material& pbr_mat, bool cloth, bool textured);
 

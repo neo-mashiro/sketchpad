@@ -7,3 +7,4 @@
 #include "component/mesh.h"
 #include "component/model.h"
 #include "component/material.h"
+#include "component/animator.h"

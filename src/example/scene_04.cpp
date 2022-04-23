@@ -22,7 +22,7 @@ using namespace utils;
 
 namespace scene {
 
-    static const ivec2 n_verts = ivec2(32, 32);     // number of vertices in each dimension
+    static const ivec2 n_verts = ivec2(32, 32);       // number of vertices in each dimension
     static const vec2 cloth_sz = vec2(16.0f, 12.0f);  // size of the cloth/lattice
 
     static bool  show_grid       = true;
@@ -34,12 +34,13 @@ namespace scene {
     static float skybox_exposure = 1.0f;
     static float skybox_lod      = 0.0f;
 
-    static bool rotate_model   = false;
-    static bool simulate       = false;
-    static bool show_wireframe = false;
-    static int  n_indices      = 0;
-    static uint rd_buffer      = 0;
-    static uint wt_buffer      = 1;
+    static bool  rotate_model    = false;
+    static bool  simulate        = false;
+    static bool  show_wireframe  = false;
+    static vec4  wireframe_color = vec4(1.0f);
+    static int   n_indices       = 0;
+    static uint  rd_buffer       = 0;
+    static uint  wt_buffer       = 1;
 
     static vec4  albedo        = vec4(color::black, 1.0f);
     static float roughness     = 1.0f;
@@ -51,27 +52,23 @@ namespace scene {
     ///////////////////////////////////////////////////////////////////////////////////////////////
 
     void Scene04::Init() {
-        this->title = "Cloth Simulation";
-        PrecomputeIBL();
+        this->title = "Compute Shader Cloth Simulation";
+        PrecomputeIBL(utils::paths::texture + "HDRI\\loc00184-22-4k.hdr");
 
-        resource_manager.Add(10, MakeAsset<Shader>(paths::shader + "core\\infinite_grid.glsl"));
-        resource_manager.Add(11, MakeAsset<Shader>(paths::shader + "scene_04\\pbr.glsl"));
-        resource_manager.Add(12, MakeAsset<Shader>(paths::shader + "scene_04\\skybox.glsl"));
-        resource_manager.Add(19, MakeAsset<Shader>(paths::shader + "scene_04\\post_process.glsl"));
-        resource_manager.Add(21, MakeAsset<Material>(resource_manager.Get<Shader>(11)));
-        resource_manager.Add(22, MakeAsset<Material>(resource_manager.Get<Shader>(12)));
+        resource_manager.Add(01, MakeAsset<Shader>(paths::shader + "core\\infinite_grid.glsl"));
+        resource_manager.Add(02, MakeAsset<Shader>(paths::shader + "core\\skybox.glsl"));
+        resource_manager.Add(04, MakeAsset<Shader>(paths::shader + "scene_04\\pbr.glsl"));
+        resource_manager.Add(05, MakeAsset<Shader>(paths::shader + "scene_04\\post_process.glsl"));
+        resource_manager.Add(12, MakeAsset<Material>(resource_manager.Get<Shader>(02)));
+        resource_manager.Add(14, MakeAsset<Material>(resource_manager.Get<Shader>(04)));
         resource_manager.Add(30, MakeAsset<CShader>(paths::shader + "scene_04\\cloth_position.glsl"));
         resource_manager.Add(31, MakeAsset<CShader>(paths::shader + "scene_04\\cloth_normal.glsl"));
-        resource_manager.Add(50, MakeAsset<Texture>(paths::texture + "fabric\\albedo.jpg"));
-        resource_manager.Add(51, MakeAsset<Texture>(paths::texture + "fabric\\normal.jpg"));
-        resource_manager.Add(52, MakeAsset<Texture>(paths::texture + "fabric\\roughness.jpg"));
-        resource_manager.Add(53, MakeAsset<Texture>(paths::texture + "fabric\\ao.jpg"));
         
-        AddUBO(resource_manager.Get<Shader>(11)->ID());
-        AddUBO(resource_manager.Get<Shader>(12)->ID());
+        AddUBO(resource_manager.Get<Shader>(04)->ID());
+        AddUBO(resource_manager.Get<Shader>(02)->ID());
 
-        AddFBO(Window::width, Window::height);  // MSAA
-        AddFBO(Window::width, Window::height);  // resolve MSAA
+        AddFBO(Window::width, Window::height);
+        AddFBO(Window::width, Window::height);
 
         FBOs[0].AddColorTexture(1, true);
         FBOs[0].AddDepStRenderBuffer(true);
@@ -83,7 +80,7 @@ namespace scene {
         
         skybox = CreateEntity("Skybox", ETag::Skybox);
         skybox.AddComponent<Mesh>(Primitive::Cube);
-        if (auto& mat = skybox.AddComponent<Material>(resource_manager.Get<Material>(22)); true) {
+        if (auto& mat = skybox.AddComponent<Material>(resource_manager.Get<Material>(12)); true) {
             mat.SetTexture(0, prefiltered_map);
             mat.BindUniform(0, &skybox_exposure);
             mat.BindUniform(1, &skybox_lod);
@@ -98,15 +95,13 @@ namespace scene {
         cloth_model.GetComponent<Transform>().Scale(2.0f);
 
         if (auto& model = cloth_model.AddComponent<Model>(paths::model + "cloth.obj", Quality::Auto); true) {
-            auto& mat_1 = model.SetMaterial("cloth", resource_manager.Get<Material>(21));
-            auto& mat_2 = model.SetMaterial("outside", resource_manager.Get<Material>(21));
-            SetupMaterial(mat_1, true, false);
-            SetupMaterial(mat_2, false, false);
+            SetupMaterial(model.SetMaterial("cloth", resource_manager.Get<Material>(14)), true, false);
+            SetupMaterial(model.SetMaterial("outside", resource_manager.Get<Material>(14)), false, false);
         }
 
         // dynamic cloth simulation
         SetupBuffers();
-        auto cloth_mat = resource_manager.Get<Material>(21);
+        auto cloth_mat = resource_manager.Get<Material>(14);
         SetupMaterial(*cloth_mat, true, true);
         cloth_mat->SetUniform(1000U, world::identity);
         cloth_mat->BindUniform(pbr_u::shading_model, &shading_model);
@@ -122,7 +117,6 @@ namespace scene {
         main_camera.Update();
 
         if (auto& ubo = UBOs[0]; true) {
-            auto& main_camera = camera.GetComponent<Camera>();
             ubo.SetUniform(0, val_ptr(main_camera.T->position));
             ubo.SetUniform(1, val_ptr(main_camera.T->forward));
             ubo.SetUniform(2, val_ptr(main_camera.GetViewMatrix()));
@@ -137,9 +131,13 @@ namespace scene {
             ubo.SetUniform(2, val_ptr(dl.intensity));
         }
 
-        FBO& msaa_buffer = FBOs[0];
-        msaa_buffer.Clear();
-        msaa_buffer.Bind();
+        FBO& framebuffer_0 = FBOs[0];
+        FBO& framebuffer_1 = FBOs[1];
+
+        // ------------------------------ simulation & render pass ------------------------------
+
+        framebuffer_0.Clear();
+        framebuffer_0.Bind();
 
         // since cloth depends on alpha blending we need to render the skybox before it
         Renderer::FaceCulling(true);
@@ -169,7 +167,7 @@ namespace scene {
             normal_cs->Dispatch(n_verts.x / 32, n_verts.y / 32);
             normal_cs->SyncWait();
 
-            resource_manager.Get<Material>(21)->Bind();
+            resource_manager.Get<Material>(14)->Bind();
             cloth_vao->Draw(GL_TRIANGLE_STRIP, n_indices);
         }
         else {
@@ -181,7 +179,7 @@ namespace scene {
         }
 
         if (show_grid) {
-            auto grid_shader = resource_manager.Get<Shader>(10);
+            auto grid_shader = resource_manager.Get<Shader>(01);
             grid_shader->Bind();
             grid_shader->SetUniform(0, grid_cell_size);
             grid_shader->SetUniform(1, thin_line_color);
@@ -189,18 +187,17 @@ namespace scene {
             Mesh::DrawGrid();
         }
 
-        msaa_buffer.Unbind();
+        framebuffer_0.Unbind();
+
+        // ------------------------------ MSAA resolve pass ------------------------------
         
-        // resolve MSAA
-        FBO& source = FBOs[0];
-        FBO& target = FBOs[1];
-        target.Clear();
+        framebuffer_1.Clear();
+        FBO::CopyColor(framebuffer_0, 0, framebuffer_1, 0);
 
-        FBO::CopyColor(source, 0, target, 0);
-        target.GetColorTexture(0).Bind(0);
+        // ------------------------------ postprocessing pass ------------------------------
 
-        // apply post-processing
-        auto postprocess_shader = resource_manager.Get<Shader>(19);
+        framebuffer_1.GetColorTexture(0).Bind(0);
+        auto postprocess_shader = resource_manager.Get<Shader>(05);
         postprocess_shader->Bind();
         postprocess_shader->SetUniform(0, 3);
 
@@ -211,16 +208,16 @@ namespace scene {
 
     void Scene04::OnImGuiRender() {
         using namespace ImGui;
+        const ImGuiColorEditFlags color_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha;
         const ImVec2 rainbow_offset = ImVec2(5.0f, 105.0f);
         const ImVec4 tab_color_off  = ImVec4(0.0f, 0.3f, 0.6f, 1.0f);
         const ImVec4 tab_color_on   = ImVec4(0.0f, 0.4f, 0.8f, 1.0f);
-        const ImGuiColorEditFlags color_flags = ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoAlpha;
         static bool simulation_clearcoat = false;
         static float cloth_alpha = 1.0f;
 
         if (ui::NewInspector()) {
             Indent(5.0f);
-            Text(ICON_FK_SUN_O "  Directional Light");
+            Text(ICON_FK_SUN_O "  Directional Light Vector");
             DragFloat3("###", val_ptr(dl_direction), 0.01f, -1.0f, 1.0f, "%.3f");
             ui::DrawRainbowBar(rainbow_offset, 2.0f);
             Spacing();
@@ -233,7 +230,7 @@ namespace scene {
             // shading model with properly tweaked anisotropic patterns usually fits better.
 
             PushItemWidth(130.0f);
-            SliderFloat("Skybox Exposure", &skybox_exposure, 0.5f, 2.0f);
+            SliderFloat("Skybox Exposure", &skybox_exposure, 0.5f, 4.0f);
             SliderFloat("Skybox LOD", &skybox_lod, 0.0f, 7.0f);
             PopItemWidth();
             Separator();
@@ -242,7 +239,8 @@ namespace scene {
 
             if (BeginTabItem("Static Model")) {
                 PushItemWidth(130.0f);
-                Checkbox("Show Wireframe", &show_wireframe);
+                Checkbox("Show Wireframe", &show_wireframe); SameLine();
+                ColorEdit3("Line Color", val_ptr(wireframe_color), color_flags);
                 Checkbox("Auto Rotation", &rotate_model);
                 SliderFloat("Roughness", &roughness, 0.045f, 1.0f);
                 SliderFloat("Ambient Occlusion", &ao, 0.05f, 1.0f);
@@ -257,18 +255,19 @@ namespace scene {
             }
 
             if (simulate = BeginTabItem("Simulation"); simulate) {
-                Checkbox("Show Wireframe", &show_wireframe);
+                Checkbox("Show Wireframe", &show_wireframe); SameLine();
+                ColorEdit3("Line Color", val_ptr(wireframe_color), color_flags);
                 Checkbox("Apply Clearcoat", &simulation_clearcoat);
                 shading_model = simulation_clearcoat ? uvec2(3, 1) : uvec2(3, 0);
 
                 if (ArrowButton("##1", ImGuiDir_Left)) {
-                    resource_manager.Get<CShader>(30)->SetUniform(1, world::left * 20.0f);
+                    resource_manager.Get<CShader>(30)->SetUniform(1, 20.0f * world::left);
                 }
                 if (SameLine(); ArrowButton("##2", ImGuiDir_Right)) {
-                    resource_manager.Get<CShader>(30)->SetUniform(1, world::right * 20.0f);
+                    resource_manager.Get<CShader>(30)->SetUniform(1, 20.0f * world::right);
                 }
                 if (SameLine(); ArrowButton("##3", ImGuiDir_Up)) {
-                    resource_manager.Get<CShader>(30)->SetUniform(1, world::up * 20.0f);
+                    resource_manager.Get<CShader>(30)->SetUniform(1, 20.0f * world::up);
                 }
                 if (SameLine(); ArrowButton("##4", ImGuiDir_Down)) {
                     resource_manager.Get<CShader>(30)->SetUniform(1, world::zero);
@@ -307,32 +306,31 @@ namespace scene {
         }
     }
 
-    void Scene04::PrecomputeIBL() {
+    void Scene04::PrecomputeIBL(const std::string& hdri) {
         Renderer::SeamlessCubemap(true);
         Renderer::DepthTest(false);
         Renderer::FaceCulling(true);
 
-        auto irradiance_shader = CShader(paths::shader + "scene_03\\irradiance_map.glsl");
-        auto prefilter_shader  = CShader(paths::shader + "scene_03\\prefilter_envmap.glsl");
-        auto envBRDF_shader    = CShader(paths::shader + "scene_03\\environment_BRDF.glsl");
+        auto irradiance_shader = CShader(paths::shader + "core\\irradiance_map.glsl");
+        auto prefilter_shader  = CShader(paths::shader + "core\\prefilter_envmap.glsl");
+        auto envBRDF_shader    = CShader(paths::shader + "core\\environment_BRDF.glsl");
 
         std::string rootpath = utils::paths::root;
         if (rootpath.find("mashiro") == std::string::npos) {
             irradiance_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
-            prefiltered_map = MakeAsset<Texture>(paths::texture + "test\\newport_loft.hdr", 1024, 8);
+            prefiltered_map = MakeAsset<Texture>(hdri, 1024, 8);
             Texture::Copy(*prefiltered_map, 3, *irradiance_map, 0);
             BRDF_LUT = MakeAsset<Texture>(paths::texture + "common\\checkboard.png", 1);
             Sync::WaitFinish();
             return;
         }
 
-        std::string hdri = "newport_loft.hdr";
-        auto env_map = MakeAsset<Texture>(utils::paths::texture + "test\\" + hdri, 2048, 0);
+        auto env_map = MakeAsset<Texture>(hdri, 2048, 0);
         env_map->Bind(0);
 
         irradiance_map  = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
         prefiltered_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 2048, 2048, 6, GL_RGBA16F, 8);
-        BRDF_LUT        = MakeAsset<Texture>(GL_TEXTURE_2D, 1024, 1024, 1, GL_RGBA16F, 1);///////////////// 3 channels but ILS can only be RGBA
+        BRDF_LUT        = MakeAsset<Texture>(GL_TEXTURE_2D, 1024, 1024, 1, GL_RGBA16F, 1);
 
         CORE_INFO("Precomputing diffuse irradiance map from {0}", hdri);
         irradiance_map->BindILS(0, 0, GL_WRITE_ONLY);
@@ -437,9 +435,9 @@ namespace scene {
         cloth_pos[0]->SetData(&init_pos[0]);
         cloth_vel[0]->SetData(&init_vel[0]);
 
-        cloth_vao->SetVBO(cloth_pos[0]->ID(), 0, 0, 3, sizeof(vec4));  // layout(location = 0) in vec3 position
-        cloth_vao->SetVBO(cloth_normal->ID(), 1, 0, 3, sizeof(vec4));  // layout(location = 1) in vec3 normal
-        cloth_vao->SetVBO(cloth_vbo->ID(), 2, 0, 2, sizeof(vec2));     // layout(location = 2) in vec2 uv
+        cloth_vao->SetVBO(cloth_pos[0]->ID(), 0, 0, 3, sizeof(vec4), GL_FLOAT);  // in vec3 position
+        cloth_vao->SetVBO(cloth_normal->ID(), 1, 0, 3, sizeof(vec4), GL_FLOAT);  // in vec3 normal
+        cloth_vao->SetVBO(cloth_vbo->ID(), 2, 0, 2, sizeof(vec2), GL_FLOAT);     // in vec2 uv
         cloth_vao->SetIBO(cloth_ibo->ID());
 
         auto simulation_cs = resource_manager.Get<CShader>(30);
@@ -456,25 +454,27 @@ namespace scene {
         pbr_mat.SetTexture(pbr_t::BRDF_LUT, BRDF_LUT);
 
         pbr_mat.BindUniform(0, &show_wireframe);
-        pbr_mat.SetUniform(1, vec4(1.0f));
+        pbr_mat.BindUniform(1, &wireframe_color);
         pbr_mat.SetUniform(2, 0.05f);
+        pbr_mat.BindUniform(3, &skybox_exposure);
 
         if (cloth) {
             pbr_mat.SetUniform(pbr_u::shading_model, uvec2(3, 0));
             pbr_mat.SetUniform(pbr_u::clearcoat, 1.0f);
             pbr_mat.SetUniform(pbr_u::uv_scale, vec2(4.0f, 4.0f));
+            std::string tex_path = paths::texture + "fabric\\";
 
             if (textured) {
-                pbr_mat.SetTexture(pbr_t::albedo, resource_manager.Get<Texture>(50));
-                pbr_mat.SetTexture(pbr_t::normal, resource_manager.Get<Texture>(51));
-                pbr_mat.SetTexture(pbr_t::roughness, resource_manager.Get<Texture>(52));
-                pbr_mat.SetTexture(pbr_t::ao, resource_manager.Get<Texture>(53));
+                pbr_mat.SetTexture(pbr_t::albedo,    MakeAsset<Texture>(tex_path + "albedo.jpg"));
+                pbr_mat.SetTexture(pbr_t::normal,    MakeAsset<Texture>(tex_path + "normal.jpg"));
+                pbr_mat.SetTexture(pbr_t::roughness, MakeAsset<Texture>(tex_path + "roughness.jpg"));
+                pbr_mat.SetTexture(pbr_t::ao,        MakeAsset<Texture>(tex_path + "ao.jpg"));
                 pbr_mat.SetUniform(pbr_u::sheen_color, color::white);
                 pbr_mat.SetUniform(pbr_u::subsurf_color, color::black);
             }
             else {
-                pbr_mat.SetTexture(pbr_t::normal, resource_manager.Get<Texture>(51));
                 pbr_mat.BindUniform(pbr_u::albedo, &albedo);
+                pbr_mat.SetTexture(pbr_t::normal, MakeAsset<Texture>(tex_path + "normal.jpg"));
                 pbr_mat.BindUniform(pbr_u::roughness, &roughness);
                 pbr_mat.BindUniform(pbr_u::ao, &ao);
                 pbr_mat.BindUniform(pbr_u::sheen_color, &sheen_color);
