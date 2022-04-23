@@ -134,6 +134,7 @@ local function setup_solution()
 
             disablewarnings {
                 "4018",  -- signed/unsigned mismatch
+                "4189",  -- local variable is initialized but not referenced
                 "4267",  -- conversion from 'a' to 'b', possible loss of data
                 "4456",  -- declaration of '...' hides previous local declaration
                 "4458",  -- declaration of '...' hides class member
