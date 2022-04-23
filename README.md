@@ -1,30 +1,24 @@
-# WIP
-# sketchpad (Windows 10 + OpenGL 4.6)
+# sketchpad
 
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
-<!-- ![LOC](https://tokei.rs/b1/github/neo-mashiro/sketchpad?category=lines)](https://github.com/neo-mashiro/sketchpad)
-![NOF](https://tokei.rs/b1/github/neo-mashiro/sketchpad?category=files)](https://github.com/neo-mashiro/sketchpad) -->
 
-A simple canvas for testing out various topics and rendering techniques in computer graphics using the OpenGL rendering pipeline. This framework was built to quickly test some low-level graphics features and to learn how they work in OpenGL. Future versions may consider using the [SPIR-V](https://www.khronos.org/spir/) open source ecosystem to support Vulkan or OpenCL.
+This is a simple rendering library built with __OpenGL 4.6__ and C++17, the purpose of which is to experiment with various rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS tight budget. There are so many low-level details behind the rendering pipeline, so we need a solid understanding of every pixel in graphics. This project is an exercise to learn the basics of graphics in modern OpenGL, also a useful framework and codebase for future reference. I've borrowed some game engine concepts such as the ECS architecture to raise the level of abstraction, so that in the future we can prototype new scenes with relative ease and focus more on the rendering algorithms.
 
-从零开始手写的一个OpenGL练习框架，用于实现GAMES202中的作业内容和其他一些有趣的东西。
+## Demo Video
 
-100% code-based rendering engine to allow for maximum flexibility.
+insert link here
 
-I've always wanted to make an OpenGL sandbox to help me quickly prototype some sample scenes.
-Although some design of this project is very much like a game engine, it is not, there's no batch rendering system, no physics, no collision detection, native scripting support, and users are expected to make new scenes from c++ code by using some exposed APIs, rather than relying on a bunch of clicks and drags via the editor UI like in a real game engine. In this project, UI is not part of the application, but is owned by each individual scene.
-I'd rather think of it as being a "scene" engine, in the sense that it helps create a factory of scenes without the need to use low-level gl calls. Each scene is used to play with some shaders, the creation of scenes is kind of like Unity. Scenes, where the focus should be on rendering, not physics, not gameplay, the focus should be on underlying techniques, not the graphics API.
+Tested on: GTX 1050 on an old laptop (2016)
 
-## Features
+## Gallery
 
-- Forward+ Rendering (a.k.a Tiled Forward Rendering)
-- Deferred Rendering
-- Physically-Based Rendering
-- Path Tracing
-- Real-time Ray Tracing (Monte-Carlo Integration)
-- Normal Mapping without Precomputed Tangent Space Vectors
+<p align="center">
+  <b>CONSOLE LOGS</b>
+  <br><br>
+  <img src="">
+</p>
 
-## 3rd-party Libraries
+## Dependencies
 
 - [Premake5](https://github.com/premake/premake-core), [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/) + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
 - [GLEW](https://en.wikipedia.org/wiki/OpenGL_Extension_Wrangler_Library) (version 2.1.0), or better [GLAD](https://glad.dav1d.de/), and [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (version 0.9.2 or above)
@@ -43,7 +37,7 @@ cd vcpkg
 - [Dear ImGui] HUI
 - [xxx] Serialization
 
-## How to build
+## How to build (Windows only)
 
 The Premake Lua scripts will handle the workspace/project/build settings for all configurations and platforms for us, there's no need to set things up in Visual Studio by hand. To build the solution, simply run
 ```bash
@@ -53,48 +47,62 @@ vendor/premake/premake5.exe vs2019
 ```
 Once you have cloned the repository, the `vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and fire up the application. The executables are then built into the `bin` folder for each platform (x86 or x64), and all dependent DLLs will be copied over there automatically so you don't need any extra setup.
 
-## How to use
+## Features
 
-To make a new scene, just create a new `.h` and `.cpp` file in the [examples]() folder and start coding. You can reference the existing sample scenes to get a sense of how to use the API. GLSL shader sources, on the other hand, should be placed into the [res/shader/]() folder where you can find all the shaders used in the sample scenes, there's also a sample shader to walk you through the convention of our GLSL coding standard. The architecture of this application was designed such that only a minimal amount of work is necessary in your scene script, all of the examples will help you understand how to make a nice scene within 100 lines of code!
+- managing objects with entity-component system
+- loading and switching scenes at runtime
+- loading external 3D models, motions and high resolution HDRI
+- skeleton animation for humanoid models
+- blazingly fast screen capture support
+- sharing assets between entities or scenes
+- automatic PBR material system (like materials in Unity)
+- smart asset bindings (uniforms, shaders, textures and vertex arrays)
+- building UBOs automatically from shaders (require the `std140` layout)
+- configuring and visualizing framebuffers with one call
+- all shader stages in a one file (except the compute shader)
+- saving and loading shader binaries (GLSL only, SPIR-V not supported yet)
+- robust debugging tools (detailed console logs + debug callback + debugging by checkpoints)
+- modularized shader system (support C++ style `#include` directives in GLSL files)
+- dynamic transformation control using Gizmos
+- first-person camera + arcball control + smooth zooming and recovery
+- built-in clock and framerate counter
+- automatic filepath deduction (can run `.exe` in any folder)
+- mapping between 3D vector, equirectangular uv coordinates and ILS vector
 
-## Mouse and keyboard control
 
-- on application startup, cursor is locked into the window and set to invisible.
-- move the mouse to look around the scene from a first-person perspective.
-- scroll up/down the mouse wheel to zoom in or zoom out the main camera.
-- use directional keys or `wasd` to walk around the scene, use `space` and `z` to go up and down.
-- press `enter` to open the menu (cursor enabled), where you can control GUI buttons, slidebars, etc.
-- press `esc` to pop up the exit message box, click ok to confirm exit or cancel to resume.
+- tiled forward rendering (light culling in compute shader)
+- physically-based shading and IBL (with energy compensation)
+- physically-based materials (Disney BRDF + clear coat + anisotropy + refraction + cloth)
+- compute shader based IBL precomputation (with multi-scattering)
+- compute shader based bloom (1 downsample + Gaussian blur + 1 upsample)
+- compute shader based cloth simulation
+- configurable wireframe rendering
+- rendering skybox with custom exposure and LOD level
+- rendering infinite grid (Blender style)
+- rendering icons and rotating characters in ImGui
+- off-screen multisample anti-aliasing (MSAA)
+- omnidirectional shadow mapping (PCSS with Poisson disk sampling)
+- directional lights, point lights and spotlights
+- tone mapping and gamma correction
 
-## Sample scenes
+## TODO list?
 
-<p align="center">
-  <b>CONSOLE LOGS</b>
-  <br><br>
-  <img src="media/console.png">
-</p>
+- Data-oriented scene graph, transformation trees, see "3D Graphics Rendering Cookbook 2021" Ch.7
+- Scene graph serialization in readable YAML format
+- Precomputed Radiance Transfer (PRT) and light transport, see GAMES202 homework 2
+- Screen Space Reflection (SSR), see GAMES202 homework 3
+- Frame Graph (reference Filament) and Temporal Anti-Aliasing (TAA)
+- Raymarching, SDFs, tessellated terrain, compute shader based particle systems
+- Volumetric lights and subsurface scattering (can only hack in realtime, not physically based)
+- Optimization: frustum culling, clustered tiled forward rendering, batch rendering, indexed drawing
+- Revise design to include Taskflow and integrate Bullet physics
+- Realtime ray tracing and denoiser, see GAMES202 homework 5
 
-<p align="center">
-  <b>3D MESHES, TEXTURE MAPPING</b>
-  <br><br>
-  <img src="">
-</p>
 
-<p align="center">
-  <b>SKYBOX, REFLECTION MAPPING</b>
-  <br><br>
-  <img src="">
-</p>
 
-<p align="center">
-  <b>MODEL LOADING, BLINN-PHONG SHADING</b>
-  <br><br>
-  <img src="">
-</p>
+## References
 
-## Useful References
-
-https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
+- https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
 
 - [Physically Based Rendering: From Theory To Implementation](https://www.pbr-book.org/)
 - [Learn OpenGL](https://learnopengl.com)
@@ -103,21 +111,5 @@ https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
 - GAMES202 - [Advanced Real-time Rendering](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html)
 - CMU 15-462 - [course home](http://15462.courses.cs.cmu.edu/fall2020/home), [video lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
 - [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
-- [OpenGL API Documentation](http://docs.gl/)
-- [Learning Modern 3D Graphics Programming](https://paroj.github.io/gltut/)
-- [Anton's OpenGL 4 Tutorials](https://antongerdelan.net/opengl/)
-- [GLSL v4.60 Specification](https://github.com/neo-mashiro/sketchpad/blob/main/res/GLSL%20v4.60%20Spec.pdf)
 
-- Equirectangular [@flickr](https://www.flickr.com/groups/equirectangular/pool/)
-
-## Biblipgraphy
-
-// forward+ rendering
-https://www.3dgep.com/forward-plus/
-https://takahiroharada.files.wordpress.com/2015/04/forward_plus.pdf
-https://github.com/bcrusco/Forward-Plus-Renderer
-
-
-## Included Assets
-
-see res
+complete else from scripts
