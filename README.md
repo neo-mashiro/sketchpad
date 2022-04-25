@@ -1,4 +1,4 @@
-# "sketchpad"
+# sketchpad
 
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
 
@@ -6,7 +6,7 @@ This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose 
 
 This project is initially started as an exercise to learn the basics of graphics in modern OpenGL, which has since then incorporated some ideas from game engine architecture to raise up the scope and level of abstraction. It is designed with modularization in mind to let users prototype new scenes with relative ease, thus we can focus more on the rendering algorithms without worrying too much about details. This can also be a useful framework and codebase for future reference, and a good starting point for implementing something more feature-complete and advanced.
 
-[Watch Demo Video](https://www.youtube.com/watch?v=JCagITtAmQ0) on Youtube. (Tested on a 2016 old laptop with __NVIDIA GTX 1050__ card)
+Watch [Demo Video](https://www.youtube.com/watch?v=JCagITtAmQ0) on Youtube. (Tested on a 2016 old laptop with __NVIDIA GTX 1050__ card)
 
 ## Requirements
 
@@ -27,7 +27,7 @@ cd vcpkg
 ./vcpkg.exe install assimp:x64-windows  # x64 build
 ```
 
-## Build (Windows only)
+## How to build (Windows only)
 
 The `premake5.lua` script will handle all the workspace/project/build settings for us, there's no need to configure `build/release` or `win32/x64` manually, just run `premake.bat` and you are good to go. Alternatively, you can also build the solution on the command line like so:
 ```bash
@@ -39,49 +39,35 @@ The `\vendor` folder already contains the pre-compiled binaries of all dependenc
 
 ## Screenshots
 
-<p align="center">
-  <b>CONSOLE LOGS</b>
-  <br><br>
-  <img src="">
-</p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/11.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/22.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/33.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/44.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/55.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/66.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/77.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/88.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/99.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/00.png"></p>
+
+![image](/res/screenshot/console.png?raw=true "debug console")
 
 ## Features
 
-make a compact table here
-
-- managing objects with entity-component system
-- loading and switching scenes at runtime
-- loading external 3D models, motions and high resolution HDRI
-- skeleton animation for humanoid models
-- blazingly fast screen capture support
-- sharing assets between entities or scenes
-- automatic PBR material system (like materials in Unity)
-- smart asset bindings (uniforms, shaders, textures and vertex arrays)
-- building UBOs automatically from shaders (require the `std140` layout)
-- configuring and visualizing framebuffers with one call
-- all shader stages in a one file (except the compute shader)
-- saving and loading shader binaries (GLSL only, SPIR-V not supported yet)
-- robust debugging tools (detailed console logs + debug callback + debugging by checkpoints)
-- modularized shader system (support C++ style `#include` directives in GLSL files)
-- dynamic transformation control using Gizmos
-- first-person camera + arcball control + smooth zooming and recovery
-- built-in clock and framerate counter
-- automatic filepath deduction (can run `.exe` in any folder)
-- mapping between 3D vector, equirectangular uv coordinates and ILS vector
-- tiled forward rendering (light culling in compute shader)
-- physically-based shading and IBL (with energy compensation)
-- physically-based materials (Disney BRDF + clear coat + anisotropy + refraction + cloth)
-- compute shader based IBL precomputation (with multi-scattering)
-- compute shader based bloom (1 downsample + Gaussian blur + 1 upsample)
-- compute shader based cloth simulation
-- configurable wireframe rendering
-- rendering skybox with custom exposure and LOD level
-- rendering infinite grid (Blender style)
-- rendering icons and rotating characters in ImGui
-- off-screen multisample anti-aliasing (MSAA)
-- omnidirectional shadow mapping (PCSS with Poisson disk sampling)
-- directional lights, point lights and spotlights
-- tone mapping and gamma correction
+| Application                                     | Rendering                                           |
+| ----------------------------------------------- | --------------------------------------------------- |
+| manage objects with entity-component system     | tiled forward rendering (screen space)              |
+| runtime scene loading and scene switching       | physically-based shading and image-based lighting   |
+| skeleton animation for humanoid models          | physically-based materials (simplified Disney BSDF) |
+| FPS camera with smooth zoom and arcball control | compute shader IBL baking                           |
+| blazingly fast native screen capturing (GDI+)   | compute shader bloom effect                         |
+| independent resource and asset managers         | compute shader cloth simulation                     |
+| smart material system and viewable framebuffers | configurable wireframe rendering                    |
+| smart OpenGL context switching                  | Blender-style infinite grid                         |
+| automatic resolve `std140` layout               | off-screen MSAA                                     |
+| support `#include` directives in GLSL           | omnidirectional PCSS shadows (Poisson disk)         |
+| all shaders in one file (except compute shader) | runtime transformation control using Gizmos         |
+| built-in clock and framerate counter            | tone mapping and gamma correction                   |
 
 ## TODO list?
 
@@ -90,24 +76,18 @@ make a compact table here
 - Precomputed Radiance Transfer (PRT) and light transport, see GAMES202 homework 2
 - Screen Space Reflection (SSR), see GAMES202 homework 3
 - Frame Graph (reference Filament) and Temporal Anti-Aliasing (TAA)
-- Raymarching, SDFs, tessellated terrain, compute shader based particle systems
+- Raymarching, SDFs and tessellated terrain
+- Compute shader particle systems, realistic fire, smoke and water simulation
 - Volumetric lights and subsurface scattering (can only hack in realtime, not physically based)
-- Optimization: frustum culling, clustered tiled forward rendering, batch rendering, indexed drawing
-- Revise design to include Taskflow and integrate Bullet physics
-- Realtime ray tracing and denoiser, see GAMES202 homework 5
-
-
+- Optimization: frustum culling, clustered tiled rendering (voxelized), batch rendering, indexed drawing
+- Refactor design to include Taskflow, Optics and integrate Bullet physics
 
 ## References
 
 - https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.html
-
 - [Physically Based Rendering: From Theory To Implementation](https://www.pbr-book.org/)
 - [Learn OpenGL](https://learnopengl.com)
 - [Hazel Game Engine Series, The Cherno](....)
 - [OpenGL 4 Shading Language Cookbook, Third Edition](...)
 - GAMES202 - [Advanced Real-time Rendering](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html)
-- CMU 15-462 - [course home](http://15462.courses.cs.cmu.edu/fall2020/home), [video lectures](https://www.youtube.com/playlist?list=PL9_jI1bdZmz2emSh0UQ5iOdT2xRHFHL7E)
-- [Khronos OpenGL Wiki](https://www.khronos.org/opengl/wiki/Main_Page)
-
-complete else from scripts
+- CMU 15-462 - [course home](http://15462.courses.cs.cmu.edu/fall2020/home)
