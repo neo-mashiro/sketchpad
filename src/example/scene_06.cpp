@@ -156,6 +156,9 @@ namespace scene {
             SetupMaterial(model.SetMaterial("staklo_plavo",      resource_manager.Get<Material>(14)), 24);
         }
 
+        // TODO: import shader ball models, disable `ai_Pre_transformVertices` by setting
+        // `animate` to true, so that we can shade every individual mesh differently
+
         Renderer::MSAA(true);
         Renderer::DepthTest(true);
         Renderer::AlphaBlend(true);
@@ -312,16 +315,6 @@ namespace scene {
         auto irradiance_shader = CShader(paths::shader + "core\\irradiance_map.glsl");
         auto prefilter_shader  = CShader(paths::shader + "core\\prefilter_envmap.glsl");
         auto envBRDF_shader    = CShader(paths::shader + "core\\environment_BRDF.glsl");
-
-        std::string rootpath = utils::paths::root;
-        if (rootpath.find("mashiro") == std::string::npos) {
-            irradiance_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
-            prefiltered_map = MakeAsset<Texture>(paths::texture + "HDRI\\newport_loft.hdr", 1024, 8);
-            Texture::Copy(*prefiltered_map, 3, *irradiance_map, 0);
-            BRDF_LUT = MakeAsset<Texture>(paths::texture + "common\\checkboard.png", 1);
-            Sync::WaitFinish();
-            return;
-        }
 
         auto env_map = MakeAsset<Texture>(hdri, 2048, 0);
         env_map->Bind(0);

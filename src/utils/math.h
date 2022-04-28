@@ -6,10 +6,10 @@
 
 namespace utils::math {
 
-	template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-	static constexpr bool IsPowerOfTwo(T value) {  // implicitly inline
-		return value != 0 && (value & (value - 1)) == 0;
-	}
+    template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    static constexpr bool IsPowerOfTwo(T value) {  // implicitly inline
+        return value != 0 && (value & (value - 1)) == 0;
+    }
 
     template<typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
     [[nodiscard]] T RandomGenerator();

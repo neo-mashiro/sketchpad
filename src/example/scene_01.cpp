@@ -503,16 +503,6 @@ namespace scene {
         auto prefilter_shader  = CShader(paths::shader + "core\\prefilter_envmap.glsl");
         auto envBRDF_shader    = CShader(paths::shader + "core\\environment_BRDF.glsl");
 
-        std::string rootpath = utils::paths::root;
-        if (rootpath.find("mashiro") == std::string::npos) {
-            irradiance_map = MakeAsset<Texture>(GL_TEXTURE_CUBE_MAP, 128, 128, 6, GL_RGBA16F, 1);
-            prefiltered_map = MakeAsset<Texture>(paths::texture + "HDRI\\cosmic\\", ".hdr", 2048, 8);
-            Texture::Copy(*prefiltered_map, 4, *irradiance_map, 0);
-            BRDF_LUT = MakeAsset<Texture>(paths::texture + "common\\checkboard.png", 1);
-            Sync::WaitFinish();
-            return;
-        }
-
         auto env_map = MakeAsset<Texture>(hdri, ".hdr", 2048, 0);
         env_map->Bind(0);
 

@@ -224,8 +224,10 @@ namespace scene {
         AlphaBlend(0);
         FaceCulling(0);
         SeamlessCubemap(0);
+        PrimitiveRestart(0);
         SetFrontFace(1);
         SetViewport(Window::width, Window::height);
+        SetShadowPass(0);
     }
 
     void Renderer::Clear() {
