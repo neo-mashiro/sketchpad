@@ -41,32 +41,32 @@ vec3 IntegrateBRDF(float NoV, float roughness, uint n_samples) {
 
     NoV = max(NoV, 1e-4);  // reduce artifact on the border
     vec3 N = vec3(0.0, 0.0, 1.0);
-	vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);  // vec3(sin, 0, cos)
+    vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);  // vec3(sin, 0, cos)
 
     float scale = 0.0;
-	float bias = 0.0;
+    float bias = 0.0;
 
-	for (uint i = 0; i < n_samples; i++) {
+    for (uint i = 0; i < n_samples; i++) {
         vec2 u = Hammersley2D(i, n_samples);
         vec3 H = ImportanceSampleGGX(u.x, u.y, alpha);  // keep in tangent space
         precise vec3 L = 2 * dot(V, H) * H - V;  // need the precise qualifier
 
         // implicitly assume that all vectors lie in the X-Z plane
-		float NoL = max(L.z, 0.0);
-		float NoH = max(H.z, 0.0);
-		float HoV = max(dot(H, V), 0.0);
+        float NoL = max(L.z, 0.0);
+        float NoH = max(H.z, 0.0);
+        float HoV = max(dot(H, V), 0.0);
 
-		if (NoL > 0.0) {
-			float V = V_SmithGGX(alpha, NoV, NoL) * NoL * HoV / max(NoH, 1e-5);
-			float Fc = pow5(1.0 - HoV);  // Fresnel F has been factorized out of the integral
+        if (NoL > 0.0) {
+            float V = V_SmithGGX(alpha, NoV, NoL) * NoL * HoV / max(NoH, 1e-5);
+            float Fc = pow5(1.0 - HoV);  // Fresnel F has been factorized out of the integral
 
-			// scale += V * (1.0 - Fc);  // this only considers single bounce
-			// bias += V * Fc;           // this only considers single bounce
+            // scale += V * (1.0 - Fc);  // this only considers single bounce
+            // bias += V * Fc;           // this only considers single bounce
 
             scale += V * Fc;  // take account of multi-scattering energy compensation
             bias += V;        // take account of multi-scattering energy compensation
-		}
-	}
+        }
+    }
 
     scale *= (4.0 * inv_ns);
     bias  *= (4.0 * inv_ns);
@@ -82,9 +82,9 @@ vec3 IntegrateBRDF(float NoV, float roughness, uint n_samples) {
         vec3 H = UniformSampleHemisphere(u.x, u.y);
         precise vec3 L = 2 * dot(V, H) * H - V;
 
-		float NoL = max(L.z, 0.0);
-		float NoH = max(H.z, 0.0);
-		float HoV = max(dot(H, V), 0.0);
+        float NoL = max(L.z, 0.0);
+        float NoH = max(H.z, 0.0);
+        float HoV = max(dot(H, V), 0.0);
 
         if (NoL > 0.0) {
             float V = V_Neubelt(NoV, NoL);
@@ -102,11 +102,11 @@ vec3 IntegrateBRDF(float NoV, float roughness, uint n_samples) {
 
 void main() {
     vec2 resolution = vec2(imageSize(BRDF_LUT));
-	float cosine    = float(gl_GlobalInvocationID.x) / resolution.x;
-	float roughness = float(gl_GlobalInvocationID.y) / resolution.y;
+    float cosine    = float(gl_GlobalInvocationID.x) / resolution.x;
+    float roughness = float(gl_GlobalInvocationID.y) / resolution.y;
 
     vec3 texel = IntegrateBRDF(cosine, roughness, 2048);
-	imageStore(BRDF_LUT, ivec2(gl_GlobalInvocationID.xy), vec4(texel, 0.0));
+    imageStore(BRDF_LUT, ivec2(gl_GlobalInvocationID.xy), vec4(texel, 0.0));
 }
 
 #endif

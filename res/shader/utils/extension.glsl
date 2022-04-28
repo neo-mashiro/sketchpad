@@ -129,10 +129,10 @@ float random1D(float x) {
 // the random pattern can be changed using different values of a, b and c, but the
 // seed value (for each component) must be a floating point number between 0 and 1
 float random2D(const vec2 uv) {
-	const float a = 12.9898, b = 78.233, c = 43758.5453123;
-	float dt = dot(uv.xy, vec2(a, b));
+    const float a = 12.9898, b = 78.233, c = 43758.5453123;
+    float dt = dot(uv.xy, vec2(a, b));
     float sn = mod(dt, PI);
-	return fract(sin(sn) * c);
+    return fract(sin(sn) * c);
 }
 
 #endif

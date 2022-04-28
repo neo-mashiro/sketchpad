@@ -18,9 +18,9 @@ void main() {
 
     vec2 sample_vec = Cartesian2Spherical(v);
     sample_vec = Spherical2Equirect(sample_vec);
-	vec4 color = texture(equirectangle, sample_vec);
+    vec4 color = texture(equirectangle, sample_vec);
 
-	imageStore(cubemap, ils_coordinate, color);
+    imageStore(cubemap, ils_coordinate, color);
 }
 
 #endif

@@ -81,8 +81,8 @@ void main() {
         vec2 upper = 2.0 * vec2(gl_WorkGroupID.xy + uvec2(1)) / vec2(gl_NumWorkGroups.xy);
 
         // every plane is defined by a normal vector along with a screen space distance to the eye?
-        //     frustum_planes[i].xyz;  -> normal vector
-        //     frustum_planes[i].w;    -> screen space distance
+        // frustum_planes[i].xyz;  -> normal vector
+        // frustum_planes[i].w;    -> screen space distance
 
         frustum_planes[0] = vec4(+1.0, +0.0, +0.0, +1.0 - lower.x);    // left
         frustum_planes[1] = vec4(-1.0, +0.0, +0.0, -1.0 + upper.x);    // right

@@ -84,66 +84,66 @@ float CircularEaseInOut(float x) {
 }
 
 float ExponentialEaseIn(float x) {
-	return (x == 0.0) ? x : pow(2, 10 * (x - 1));
+    return (x == 0.0) ? x : pow(2, 10 * (x - 1));
 }
 
 float ExponentialEaseOut(float x) {
-	return (x == 1.0) ? x : 1 - pow(2, -10 * x);
+    return (x == 1.0) ? x : 1 - pow(2, -10 * x);
 }
 
 float ExponentialEaseInOut(float x) {
-	return (x == 0.0 || x == 1.0) ? x :
+    return (x == 0.0 || x == 1.0) ? x :
         ((x < 0.5) ? (0.5 * pow(2, (20 * x) - 10)) : (1 - 0.5 * pow(2, (-20 * x) + 10)))
     ;
 }
 
 float ElasticEaseIn(float x) {
-	return sin(13 * HLF_PI * x) * pow(2, 10 * (x - 1));
+    return sin(13 * HLF_PI * x) * pow(2, 10 * (x - 1));
 }
 
 float ElasticEaseOut(float x) {
-	return 1 - sin(13 * HLF_PI * (x + 1)) * pow(2, -10 * x);
+    return 1 - sin(13 * HLF_PI * (x + 1)) * pow(2, -10 * x);
 }
 
 float ElasticEaseInOut(float x) {
-	return (x < 0.5)
+    return (x < 0.5)
         ? (0.5 * sin(26 * HLF_PI * x) * pow(2, 10 * (2 * x - 1)))
         : (0.5 * (2 - sin(26 * HLF_PI * x) * pow(2, -10 * (2 * x - 1))))
     ;
 }
 
 float BackEaseIn(float x) {
-	return x * x * x - x * sin(x * PI);
+    return x * x * x - x * sin(x * PI);
 }
 
 float BackEaseOut(float x) {
-	float f = 1 - x;
-	return 1 - (f * f * f - f * sin(f * PI));
+    float f = 1 - x;
+    return 1 - (f * f * f - f * sin(f * PI));
 }
 
 float BackEaseInOut(float x) {
-	if (x < 0.5) {
-		float f = 2 * x;
-		return 0.5 * (f * f * f - f * sin(f * PI));
-	}
+    if (x < 0.5) {
+        float f = 2 * x;
+        return 0.5 * (f * f * f - f * sin(f * PI));
+    }
 
-	float f = 2 - 2 * x;
-	return 0.5 * (1 - (f * f * f - f * sin(f * PI))) + 0.5;
+    float f = 2 - 2 * x;
+    return 0.5 * (1 - (f * f * f - f * sin(f * PI))) + 0.5;
 }
 
 float BounceEaseOut(float x) {
-	if (x < 0.36363636363) { return x * x * 7.5625; }
-	if (x < 0.72727272727) { return x * x * 9.075 - x * 9.9 + 3.4; }
-	if (x < 0.90000000000) { return x * x * 12.0664819945 - x * 19.6354570637 + 8.89806094183; }
-	return x * x * 10.8 - x * 20.52 + 10.72;
+    if (x < 0.36363636363) { return x * x * 7.5625; }
+    if (x < 0.72727272727) { return x * x * 9.075 - x * 9.9 + 3.4; }
+    if (x < 0.90000000000) { return x * x * 12.0664819945 - x * 19.6354570637 + 8.89806094183; }
+    return x * x * 10.8 - x * 20.52 + 10.72;
 }
 
 float BounceEaseIn(float x) {
-	return 1 - BounceEaseOut(1 - x);
+    return 1 - BounceEaseOut(1 - x);
 }
 
 float BounceEaseInOut(float x) {
-	return (x < 0.5) ? (0.5 * BounceEaseIn(x * 2)) : (0.5 * BounceEaseOut(x * 2 - 1) + 0.5);
+    return (x < 0.5) ? (0.5 * BounceEaseIn(x * 2)) : (0.5 * BounceEaseOut(x * 2 - 1) + 0.5);
 }
 
 #endif

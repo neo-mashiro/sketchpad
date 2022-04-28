@@ -7,11 +7,10 @@
 #include "../utils/material.glsl"
 #include "../utils/postprocess.glsl"
 
-/* this shader implements our physically based rendering API, reference:
-   - https://google.github.io/filament/Filament.html
-   - https://blog.selfshadow.com/publications/
-   - https://pbr-book.org/3ed-2018/contents
-*/
+// this shader implements our physically based rendering API, reference:
+// https://google.github.io/filament/Filament.html
+// https://blog.selfshadow.com/publications/
+// https://pbr-book.org/3ed-2018/contents
 
 /* computes the LD term (from prefiltered envmap) in the split-sum equation
 

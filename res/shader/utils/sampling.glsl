@@ -56,9 +56,9 @@ vec3 CosineSampleHemisphere(float u, float v) {
 // this function returns the halfway vector H (because NDF is evaluated at H)
 vec3 ImportanceSampleGGX(float u, float v, float alpha) {
     float a2 = alpha * alpha;
-	float phi = u * PI2;
-	float cos_theta = sqrt((1.0 - v) / (1.0 + (a2 - 1.0) * v));  // bias toward cosine and TRGGX NDF
-	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+    float phi = u * PI2;
+    float cos_theta = sqrt((1.0 - v) / (1.0 + (a2 - 1.0) * v));  // bias toward cosine and TRGGX NDF
+    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
     return vec3(cos(phi) * sin_theta, sin(phi) * sin_theta, cos_theta);
 }
 

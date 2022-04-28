@@ -54,8 +54,8 @@ vec3 PrefilterEnvironmentMap(vec3 R, uint n_samples) {
     vec3 N = R;
     vec3 V = R;
 
-	vec2 env_size = vec2(textureSize(environment_map, 0));
-	float w = 4.0 * PI / (6 * env_size.x * env_size.y);  // solid angle per texel (Equation 12)
+    vec2 env_size = vec2(textureSize(environment_map, 0));
+    float w = 4.0 * PI / (6 * env_size.x * env_size.y);  // solid angle per texel (Equation 12)
 
     // roughness is guaranteed to be > 0 as the base level is copied directly
     float alpha = roughness * roughness;
@@ -73,11 +73,11 @@ vec3 PrefilterEnvironmentMap(vec3 R, uint n_samples) {
         float HoV = max(dot(H, V), 0.0);
 
         if (NoL > 0.0) {
-			float pdf = D_TRGGX(NoH, alpha) * NoH / (4.0 * HoV);
-			float ws = 1.0 / (n_samples * pdf + 0.0001);  // solid angle associated with this sample (Equation 11)
-			float mip_level = max(0.5 * log2(ws / w) + 1.0, 0.0);  // mipmap level (Equation 13 biased by +1)
-			color += textureLod(environment_map, L, mip_level).rgb * NoL;
-			weight += NoL;
+            float pdf = D_TRGGX(NoH, alpha) * NoH / (4.0 * HoV);
+            float ws = 1.0 / (n_samples * pdf + 0.0001);  // solid angle associated with this sample (Equation 11)
+            float mip_level = max(0.5 * log2(ws / w) + 1.0, 0.0);  // mipmap level (Equation 13 biased by +1)
+            color += textureLod(environment_map, L, mip_level).rgb * NoL;
+            weight += NoL;
         }
     }
 
@@ -89,9 +89,9 @@ void main() {
     vec2 resolution = vec2(imageSize(prefilter_map));
 
     // make sure we won't write past the texture when computing higher mipmap levels
-	if (ils_coordinate.x >= resolution.x || ils_coordinate.y >= resolution.y) {
-		return;
-	}
+    if (ils_coordinate.x >= resolution.x || ils_coordinate.y >= resolution.y) {
+        return;
+    }
 
     vec3 R = ILS2Cartesian(ils_coordinate, resolution);
     vec3 color = PrefilterEnvironmentMap(R, 2048);  // ~ 1024 samples for 2K resolution

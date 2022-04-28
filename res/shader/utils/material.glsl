@@ -53,9 +53,9 @@ float D_TRGGX(float alpha, float NoH) {
 // Brent Burley 2012, "Physically Based Shading at Disney"
 float D_GTR1(float alpha, float NoH) {
     if (alpha >= 1.0) return INV_PI;  // singularity case when gamma = alpha = 1
-	float a2 = alpha * alpha;
-	float t = 1.0 + (a2 - 1.0) * NoH * NoH;
-	return (a2 - 1.0) / (PI * log(a2) * t);
+    float a2 = alpha * alpha;
+    float t = 1.0 + (a2 - 1.0) * NoH * NoH;
+    return (a2 - 1.0) / (PI * log(a2) * t);
 }
 
 // GTR2 (equivalent to GGX) anisotropic normal distribution function
@@ -72,12 +72,12 @@ float D_AnisoGTR2(float at, float ab, float ToH, float BoH, float NoH) {
 // Ashikhmin and Premoze 2007, "Distribution-based BRDFs"
 // Neubelt 2013, "Crafting a Next-Gen Material Pipeline for The Order: 1886"
 float D_Ashikhmin(float alpha, float NoH) {
-	float a2 = alpha * alpha;
-	float cos2 = NoH * NoH;
-	float sin2 = 1.0 - cos2;
-	float sin4 = sin2 * sin2;
-	float cot2 = -cos2 / (a2 * sin2);
-	return 1.0 / (PI * (4.0 * a2 + 1.0) * sin4) * (4.0 * exp(cot2) + sin4);
+    float a2 = alpha * alpha;
+    float cos2 = NoH * NoH;
+    float sin2 = 1.0 - cos2;
+    float sin4 = sin2 * sin2;
+    float cot2 = -cos2 / (a2 * sin2);
+    return 1.0 / (PI * (4.0 * a2 + 1.0) * sin4) * (4.0 * exp(cot2) + sin4);
 }
 
 // Charlie distribution function based on an exponentiated sinusoidal
