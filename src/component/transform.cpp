@@ -22,7 +22,7 @@ namespace component {
         // local space translation: expect vector in local space coordinates
         if (space == Space::Local) {
             glm::vec3 world_v = Local2World(vector);
-            this->position += vector;
+            this->position += world_v;
             this->transform[3] = glm::vec4(position, 1.0f);
         }
         // world space translation: position is directly updated by the vector
