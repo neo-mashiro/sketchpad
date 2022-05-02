@@ -1,4 +1,4 @@
-# sketchpad
+# sketchpad - physically-based renderer
 
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
 
