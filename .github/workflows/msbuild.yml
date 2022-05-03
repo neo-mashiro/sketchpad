@@ -26,8 +26,8 @@ jobs:
     needs: checkout
     
     steps:
-    - shell: bash
     - run: ls -a
+      shell: bash
       
   build:
     runs-on: windows-latest
