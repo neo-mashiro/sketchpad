@@ -1,11 +1,11 @@
-name: Build
+name: Windows Build
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    
+
   workflow_dispatch:
 
 env:
@@ -31,6 +31,8 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
 
+    # make sure `vcpkg integrate install` runs after `msbuild` has been added to $PATH
+    # note that dependencies are not cached so this can be slow (takes around 10 mins)
     - name: Install Dependencies
       shell: bash
       run: |

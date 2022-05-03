@@ -2,6 +2,7 @@
 
 ![Build status](https://github.com/neo-mashiro/sketchpad/actions/workflows/msbuild.yml/badge.svg)
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=blueviolet&label=License&style=flat)
+![Video views](https://img.shields.io/youtube/views/JCagITtAmQ0?label=Video%20Views&style=social)
 
 This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose of which is to experiment with a wide range of rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS constraint. There are also lots of low-level details behind the graphics API, so we need a solid understanding of every step in the rendering pipeline.
 
@@ -18,7 +19,7 @@ Watch [Demo Video](https://www.youtube.com/watch?v=JCagITtAmQ0) on Youtube. (Tes
 
 - [GLFW](https://en.wikipedia.org/wiki/GLFW) (v3.3.2+) or [FreeGLUT](https://en.wikipedia.org/wiki/FreeGLUT) (v3.0.0 MSVC Package), [GLAD](https://glad.dav1d.de/), [GLM](https://glm.g-truc.net/0.9.2/api/index.html) (v0.9.2+), [spdlog](https://github.com/gabime/spdlog) (logging library)
 - [Dear ImGui](https://github.com/ocornut/imgui) (GUI), [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) (Gizmo), [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders), [Optick](https://github.com/bombomby/optick) (profiler), [taskflow](https://github.com/taskflow/taskflow) (parallel tasks system)
-- [EnTT](https://github.com/skypjack/entt) (entity-component system), [Date](https://github.com/HowardHinnant/date) (time zone), [stb](https://github.com/nothings/stb) (image loader), [Assimp](https://github.com/assimp/assimp) (compile from sources)
+- [EnTT](https://github.com/skypjack/entt) (entity-component system), [Date](https://github.com/HowardHinnant/date) (time zone), [stb](https://github.com/nothings/stb) (image loader), __[Assimp](https://github.com/assimp/assimp) (compile from sources)__
 ```bash
 git clone https://github.com/Microsoft/vcpkg.git
 cd vcpkg
