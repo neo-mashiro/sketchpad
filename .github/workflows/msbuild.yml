@@ -26,8 +26,8 @@ jobs:
     needs: checkout
     
     steps:
-    - run: $GITHUB_WORKSPACE\\premake.bat
-      shell: bash
+    - working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: ./premake.bat
       
   build:
     runs-on: windows-latest
