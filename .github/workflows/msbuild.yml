@@ -9,38 +9,34 @@ on:
   workflow_dispatch:
 
 env:
-  SOLUTION_FILE_PATH: ./sketchpad.sln
-  BUILD_CONFIGURATION: Release
+  SOLUTION_FILE: ./sketchpad.sln
 
 permissions:
   contents: read
 
 jobs:
-  checkout:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-
-  premake:
-    runs-on: windows-latest
-    needs: checkout
-    
-    steps:
-    - working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: ./premake.bat
-      
   build:
     runs-on: windows-latest
-    needs: premake
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+        platform: [x86, x64]
 
     steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Restore NuGet packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+      working-directory: ${{ env.GITHUB_WORKSPACE }}
+      run: nuget restore ${{ env.SOLUTION_FILE }}
+
+    - name: Run Premake5
+      working-directory: ${{ env.GITHUB_WORKSPACE }}
+      run: ./premake.bat
 
     - name: Build Solution
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+      working-directory: ${{ env.GITHUB_WORKSPACE }}
+      run: msbuild /m /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} ${{ env.SOLUTION_FILE }}
