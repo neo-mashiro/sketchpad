@@ -32,7 +32,6 @@ jobs:
         cd vcpkg
         ./bootstrap-vcpkg.sh
         ./vcpkg integrate install
-        # ./vcpkg.exe install assimp:x64-windows
         ./vcpkg.exe install assimp
 
     - name: Checkout Repository
