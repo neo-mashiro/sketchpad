@@ -19,10 +19,21 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        configuration: [Debug, Release]
-        platform: [Win32, x64]
+        # configuration: [Debug, Release]
+        # platform: [Win32, x64]
+        configuration: [Debug]
+        platform: [Win32]
 
     steps:
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+        ./vcpkg integrate install
+        ./vcpkg.exe install assimp:x64-windows
+
     - name: Checkout Repository
       uses: actions/checkout@v3
 
