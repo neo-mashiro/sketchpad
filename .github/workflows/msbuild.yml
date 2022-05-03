@@ -26,7 +26,7 @@ jobs:
     needs: checkout
     
     steps:
-    - run: ls -a
+    - run: ls ${{ github.repository }}
       shell: bash
       
   build:
