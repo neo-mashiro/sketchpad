@@ -26,6 +26,7 @@ jobs:
     needs: checkout
     
     steps:
+    - shell: bash
     - run: ls -a
       
   build:
