@@ -18,6 +18,7 @@ permissions:
 jobs:
   checkout:
     runs-on: windows-latest
+    steps:
     - uses: actions/checkout@v3
 
   premake:
