@@ -2,18 +2,18 @@
 
 ![Build status](https://github.com/neo-mashiro/sketchpad/actions/workflows/msbuild.yml/badge.svg)
 ![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=blueviolet&label=License&style=flat)
-![Video views](https://img.shields.io/youtube/views/JCagITtAmQ0?label=Video%20Views&style=social)
 
 This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose of which is to experiment with a wide range of rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS constraint. There are also lots of low-level details behind the graphics API, so we need a solid understanding of every step in the rendering pipeline.
 
 This project is initially started as an exercise to learn the basics of graphics in modern OpenGL, which has since then incorporated some ideas from game engine architecture to raise up the scope and level of abstraction. It is designed with modularization in mind to let users prototype new scenes with relative ease, thus we can focus more on the rendering algorithms without worrying too much about details. This can also be a useful framework and codebase for future reference, and a good starting point for implementing something more feature-complete and advanced.
 
+![Total views](https://img.shields.io/youtube/views/JCagITtAmQ0?label=Total%20Views&style=social)
 Watch [Demo Video](https://www.youtube.com/watch?v=JCagITtAmQ0) on Youtube. (Tested on a 2016 old laptop with __NVIDIA GTX 1050__ card)
 
 ## Requirements
 
 - [Visual Studio](https://visualstudio.microsoft.com/downloads/) 2019 or later + optional extensions: [GLSL Language Integration](https://marketplace.visualstudio.com/items?itemName=DanielScherzer.GLSL) and [Visual Assist](https://www.wholetomato.com/)
-- Desktop Windows with OpenGL 4.6 support + [Premake5](https://github.com/premake/premake-core) (included in the `\vendor` folder)
+- Desktop Windows 10/11 with OpenGL 4.6 support + [Premake5](https://github.com/premake/premake-core) (included in the `\vendor` folder)
 
 ## Dependencies
 
