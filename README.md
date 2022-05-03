@@ -1,6 +1,7 @@
 # sketchpad - physically-based renderer
 
-![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=orange&label=License&style=plastic)
+![Build status](https://github.com/neo-mashiro/sketchpad/actions/workflows/msbuild.yml/badge.svg)
+![GitHub license](https://img.shields.io/github/license/neo-mashiro/sketchpad?color=blueviolet&label=License&style=flat)
 
 This is a simple rendering library built with OpenGL 4.6 and C++17, the purpose of which is to experiment with a wide range of rendering techniques and see how these ideas are put into practice in a rasterization pipeline. Unlike offline path tracing which is based mostly on math and physics rules, RTR is full of little hacks and compromises due to the 60 FPS constraint. There are also lots of low-level details behind the graphics API, so we need a solid understanding of every step in the rendering pipeline.
 
