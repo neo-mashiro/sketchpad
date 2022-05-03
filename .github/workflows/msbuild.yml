@@ -25,6 +25,12 @@ jobs:
         platform: [Win32]
 
     steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+
     - name: Install Dependencies
       shell: bash
       run: |
@@ -33,12 +39,6 @@ jobs:
         ./bootstrap-vcpkg.sh
         ./vcpkg integrate install
         ./vcpkg.exe install assimp
-
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Run Premake5
       working-directory: ${{ env.GITHUB_WORKSPACE }}
