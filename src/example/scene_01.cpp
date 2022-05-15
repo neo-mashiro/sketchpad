@@ -291,6 +291,7 @@ namespace scene {
 
         auto cull_shader = resource_manager.Get<CShader>(10);
         cull_shader->SetUniform(0, n_pls);
+        cull_shader->SetUniform(1, glm::inverse(main_camera.GetProjectionMatrix()));
 
         // in this pass we only dispatch the compute shader to update the light indices SSBO
         // note that `SyncWait()` should ideally be placed closest to the code that actually uses
