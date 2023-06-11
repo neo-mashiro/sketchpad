@@ -41,6 +41,8 @@ vendor/premake/premake5.exe vs2019
 ```
 The `\vendor` folder already contains the pre-compiled binaries of all dependencies listed above, simply open the solution in Visual Studio and start building. Upon success, executables will be built into a sub-folder in `\bin` for the selected platform, and all dependent DLLs will be automatically copied over there. You can also move the exe folder around without problems, as long as it's inside root, paths are automatically deducted.
 
+To be able to run the scenes, make sure you have downloaded the assets separately, see [this page](https://github.com/neo-mashiro/sketchpad/tree/main/res) for details.
+
 ## Screenshots
 
 <p align="center"><img src="https://raw.githubusercontent.com/neo-mashiro/sketchpad/main/res/screenshot/11.png"></p>
